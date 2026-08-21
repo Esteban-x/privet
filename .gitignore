@@ -1,0 +1,15 @@
+node_modules
+
+# Secrets — clé Anthropic, clés Supabase, CAPTCHA_SECRET
+.env
+.env*.local
+
+# Build
+.next/
+out/
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# Divers
+.DS_Store
+*.log
