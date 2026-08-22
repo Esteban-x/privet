@@ -60,6 +60,16 @@ export function reviewCard(card: SrsCard, quality: Quality): SrsCard {
   };
 }
 
+// Score de maîtrise : plus il est bas, moins le mot est su, plus il doit
+// repasser tôt. Un mot jamais révisé (pas de carte SRS) est toujours
+// prioritaire — c'est lui qui a le plus besoin d'une première exposition.
+// Utilisé à la fois côté client (tri d'affichage) et côté serveur (tri de
+// /api/vocab/due) — une seule définition pour ne pas les faire diverger.
+export function masteryScore(srs: Pick<SrsCard, "repetitions" | "easeFactor"> | null): number {
+  if (!srs) return -1;
+  return srs.repetitions * srs.easeFactor;
+}
+
 export function isDue(card: SrsCard): boolean {
   return card.dueAt <= Date.now();
 }

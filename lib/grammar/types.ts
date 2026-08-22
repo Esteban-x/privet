@@ -24,10 +24,18 @@ export interface IrregularForms {
   plural?: Partial<Record<CaseId, string>>;
 }
 
+// Genre français de la traduction — INDÉPENDANT du genre russe (ex. "стол"
+// est masculin en russe ET en français, mais "книга" livre/féminin en russe
+// est masculin en français : "un livre"). Sert à choisir le bon article
+// (un/une, ce/cet/cette) quand la traduction est insérée dans une phrase
+// française — voir lib/grammar/french-article.ts.
+export type FrenchGender = "m" | "f";
+
 export interface Noun {
   id: string;
   lemma: string; // nominatif singulier
   translation: string;
+  frenchGender: FrenchGender;
   gender: Gender;
   animacy: Animacy;
   stemType: StemType;
@@ -42,4 +50,12 @@ export interface DeclensionResult {
   form: string;
   ruleApplied: string;
   isIrregular: boolean;
+}
+
+export interface Adjective {
+  id: string;
+  lemmaM: string; // masculin nominatif singulier, forme du dictionnaire (ex. "красивый")
+  translation: string;
+  stemType: StemType; // "mixed" = radical en г,к,х,ж,ч,ш,щ (règle -ий/-ие)
+  stressedEnding?: boolean; // accent sur la désinence -> -ой au masc./neutre au lieu de -ый/-ий (большой, молодой)
 }

@@ -1,54 +1,116 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
-import { VOCAB } from "@/lib/vocabulary/data";
-import { getOrCreateCard, loadSrsCards, saveSrsCards } from "@/lib/storage";
-import { isDue, Quality, reviewCard } from "@/lib/srs/sm2";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import DirectionToggle from "@/components/exercises/DirectionToggle";
+import SessionSummary from "@/components/exercises/SessionSummary";
+import { loadDirection, saveDirection, type VocabDirection } from "@/lib/storage";
+import { fetchDailyProgress } from "@/lib/vocabulary/custom";
+import { useReviewQueue } from "@/lib/vocabulary/useReviewQueue";
+import { ReviewCardSkeleton } from "@/components/ui/Skeleton";
 
 export default function FlashcardsPage() {
-  const [cards, setCards] = useState(() => loadSrsCards());
-  const [revealed, setRevealed] = useState(false);
-  const [sessionDone, setSessionDone] = useState(0);
+  return (
+    <Suspense fallback={null}>
+      <FlashcardsInner />
+    </Suspense>
+  );
+}
 
-  const queue = useMemo(() => {
-    const due = VOCAB.filter((v) => isDue(getOrCreateCard(cards, v.id)));
-    return due.length > 0 ? due : VOCAB;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionDone]);
+function FlashcardsInner() {
+  const searchParams = useSearchParams();
+  const listId = searchParams.get("list");
 
-  const current = queue[0];
-
-  function handleReview(quality: Quality) {
-    if (!current) return;
-    const card = getOrCreateCard(cards, current.id);
-    const updated = reviewCard(card, quality);
-    const nextCards = { ...cards, [current.id]: updated };
-    saveSrsCards(nextCards);
-    setCards(nextCards);
-    setRevealed(false);
-    setSessionDone((n) => n + 1);
+  const [direction, setDirection] = useState<VocabDirection>(() =>
+    loadDirection("flashcards", "ru-first")
+  );
+  function changeDirection(d: VocabDirection) {
+    setDirection(d);
+    saveDirection("flashcards", d);
   }
 
-  if (!current) {
+  const [revealed, setRevealed] = useState(false);
+  const {
+    current,
+    review,
+    reload,
+    loading,
+    loadError,
+    listName,
+    sessionIndex,
+    sessionCorrect,
+    noWordsAtAll,
+  } = useReviewQueue(listId);
+
+  const [daily, setDaily] = useState<{ reviewedToday: number; goal: number } | null>(null);
+  useEffect(() => {
+    fetchDailyProgress().then(setDaily).catch(() => {});
+  }, []);
+
+  function handleReview(quality: Parameters<typeof review>[0]) {
+    review(quality);
+    setRevealed(false);
+  }
+
+  const backHref = listId ? `/vocabulary/lists/${listId}` : "/vocabulary/review";
+  const backLabel = listId ? `← ${listName || "Liste"}` : "← Révision";
+
+  if (loadError) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-24 text-center">
-        <p className="font-display text-2xl font-bold">Session terminée 🎉</p>
+        <p className="font-display text-lg text-danger">{loadError}</p>
       </div>
     );
   }
 
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-16">
+        <ReviewCardSkeleton />
+      </div>
+    );
+  }
+
+  if (noWordsAtAll) {
+    return <EmptyState />;
+  }
+
+  if (!current) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-24">
+        <SessionSummary
+          reviewed={sessionIndex}
+          correct={sessionCorrect}
+          goal={daily?.goal ?? 15}
+          reviewedTodayTotal={(daily?.reviewedToday ?? 0) + sessionIndex}
+          backHref={backHref}
+          backLabel={backLabel}
+          onRestart={reload}
+        />
+      </div>
+    );
+  }
+
+  const frontText = direction === "ru-first" ? current.ru : current.fr;
+  const frontSub = direction === "ru-first" ? current.transliteration : null;
+  const backText = direction === "ru-first" ? current.fr : current.ru;
+  const backSub = direction === "ru-first" ? current.ru : current.transliteration;
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
-      <Link
-        href="/vocabulary"
-        className="mb-8 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
-      >
-        ← Vocabulaire
-      </Link>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={backHref}
+          className="font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+        >
+          {backLabel}
+        </Link>
+        <DirectionToggle direction={direction} onChange={changeDirection} />
+      </div>
 
       <p className="mb-4 text-center font-display text-xs font-semibold uppercase tracking-wide text-muted">
-        {current.theme} · carte {sessionDone + 1}
+        {current.theme} · carte {sessionIndex + 1}
       </p>
 
       <button
@@ -57,16 +119,16 @@ export default function FlashcardsPage() {
       >
         {!revealed ? (
           <>
-            <span className="font-display text-4xl font-bold">{current.ru}</span>
-            <span className="mt-3 font-display text-sm text-muted">{current.transliteration}</span>
+            <span className="font-display text-4xl font-bold">{frontText}</span>
+            {frontSub && <span className="mt-3 font-display text-sm text-muted">{frontSub}</span>}
             <span className="mt-8 font-display text-xs font-semibold uppercase tracking-wide text-accent">
               Clique pour révéler
             </span>
           </>
         ) : (
           <>
-            <span className="font-display text-3xl font-bold text-accent">{current.fr}</span>
-            <span className="mt-4 font-display text-lg text-muted">{current.ru}</span>
+            <span className="font-display text-3xl font-bold text-accent">{backText}</span>
+            {backSub && <span className="mt-4 font-display text-lg text-muted">{backSub}</span>}
           </>
         )}
       </button>
@@ -79,6 +141,27 @@ export default function FlashcardsPage() {
           <QualityButton label="Facile" color="var(--color-success)" onClick={() => handleReview(5)} />
         </div>
       )}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="mx-auto max-w-md px-6 py-24 text-center">
+      <p className="font-display text-lg font-semibold">Aucun mot à réviser pour l&apos;instant</p>
+      <p className="mt-2 font-display text-sm text-muted">
+        Choisis des thèmes dans ton{" "}
+        <Link href="/account" className="text-accent hover:underline">
+          profil
+        </Link>{" "}
+        pour obtenir des mots tout faits, ou crée ta propre liste.
+      </p>
+      <Link
+        href="/vocabulary"
+        className="mt-5 inline-block rounded-[10px] bg-accent px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+      >
+        Aller à mes listes
+      </Link>
     </div>
   );
 }

@@ -8,7 +8,7 @@ export const CASES: CaseInfo[] = [
     nameFr: "Nominatif",
     question: "кто? что?",
     usage: "Le sujet de la phrase. La forme du dictionnaire.",
-    color: "#C41E3A",
+    color: "#6B7280",
   },
   {
     id: "genitive",
@@ -53,7 +53,7 @@ export const CASES: CaseInfo[] = [
     nameFr: "Prépositionnel",
     question: "о ком? о чём?",
     usage: "Toujours avec préposition : lieu (в/на), sujet (о).",
-    color: "#4A4A4A",
+    color: "#6F4A2E",
   },
 ];
 

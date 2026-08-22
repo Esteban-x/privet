@@ -1,11 +1,44 @@
 import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { CASES } from "@/lib/grammar/cases";
+import { createClient } from "@/lib/supabase/server";
 
-export default function CasesPage() {
+// Indicateur de précision par cas (agrégée tous genres confondus), pour
+// orienter l'utilisateur vers ses points faibles — visible seulement
+// connecté et après au moins une tentative.
+async function loadAccuracyByCase(): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+
+  const { data } = await supabase
+    .from("case_progress")
+    .select("case_id, attempts, correct")
+    .eq("user_id", user.id);
+
+  const totals: Record<string, { attempts: number; correct: number }> = {};
+  for (const row of data ?? []) {
+    const cur = totals[row.case_id] ?? { attempts: 0, correct: 0 };
+    cur.attempts += row.attempts;
+    cur.correct += row.correct;
+    totals[row.case_id] = cur;
+  }
+
+  const accuracy: Record<string, number> = {};
+  for (const [caseId, t] of Object.entries(totals)) {
+    if (t.attempts > 0) accuracy[caseId] = Math.round((t.correct / t.attempts) * 100);
+  }
+  return accuracy;
+}
+
+export default async function CasesPage() {
+  const accuracyByCase = await loadAccuracyByCase();
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
-      <SectionLabel>Падежи</SectionLabel>
+      <SectionLabel color="accent2">Падежи</SectionLabel>
       <h1 className="mb-3 font-display text-4xl font-extrabold tracking-tight">
         Choisis un cas à travailler
       </h1>
@@ -28,10 +61,21 @@ export default function CasesPage() {
             >
               {c.number}
             </div>
-            <div>
-              <p className="font-display text-xs font-semibold uppercase tracking-wide text-muted">
-                {c.question}
-              </p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display text-xs font-semibold uppercase tracking-wide text-muted">
+                  {c.question}
+                </p>
+                {accuracyByCase[c.id] !== undefined && (
+                  <span
+                    className={`font-display text-xs font-bold ${
+                      accuracyByCase[c.id] < 60 ? "text-danger" : "text-success"
+                    }`}
+                  >
+                    {accuracyByCase[c.id]}%
+                  </span>
+                )}
+              </div>
               <h2 className="font-display text-xl font-bold">
                 {c.nameRu} <span className="font-normal text-muted">· {c.nameFr}</span>
               </h2>

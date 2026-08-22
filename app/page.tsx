@@ -1,11 +1,11 @@
 import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { CASES } from "@/lib/grammar/cases";
-import { getNoun } from "@/lib/grammar/nouns-data";
+import { getNoun, NOUNS } from "@/lib/grammar/nouns-data";
 import { declineNoun } from "@/lib/grammar/decline";
 
 export default function Home() {
-  const demoNoun = getNoun("kniga")!;
+  const demoNoun = getNoun("kniga") ?? NOUNS[0];
   const demoDecl = declineNoun(demoNoun, "genitive");
 
   return (
@@ -183,7 +183,7 @@ export default function Home() {
               Privet — apprendre le russe, à votre rythme.
             </span>
           </div>
-          <div className="font-display text-sm text-muted">© 2026 Privet</div>
+          <div className="font-display text-sm text-muted">© {new Date().getFullYear()} Privet</div>
         </div>
       </div>
     </div>

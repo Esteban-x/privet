@@ -16,10 +16,13 @@ const OTP_TYPES: EmailOtpType[] = [
 //   • `?token_hash=…&type=signup` (gabarit recommandé, marche d'un autre appareil)
 //   • `?code=…`                   (gabarit par défaut, flux PKCE : même navigateur)
 // On accepte les deux. En cas de succès, la session est posée en cookie et
-// l'utilisateur atterrit sur l'onboarding.
+// l'utilisateur passe par un écran de confirmation avant `next` (onboarding
+// par défaut) — sans ça, il atterrit sans transition et peut douter que le
+// clic ait fonctionné.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const next = safeNext(searchParams.get("next"));
+  const confirmedUrl = `${origin}/auth/confirmed?next=${encodeURIComponent(next)}`;
 
   const tokenHash = searchParams.get("token_hash");
   const rawType = searchParams.get("type");
@@ -32,13 +35,18 @@ export async function GET(request: Request) {
       type: rawType as EmailOtpType,
       token_hash: tokenHash,
     });
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    if (!error) return NextResponse.redirect(confirmedUrl);
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    if (!error) return NextResponse.redirect(confirmedUrl);
   }
 
-  return NextResponse.redirect(`${origin}/login?error=confirm`);
+  // Le type du lien est renvoyé dans l'URL d'erreur : /login affiche un
+  // message différent pour "recovery" (réinitialisation de mot de passe) ou
+  // "email_change" que pour "signup" — un message d'inscription sur un lien
+  // de réinitialisation expiré serait trompeur.
+  const failedType = rawType && OTP_TYPES.includes(rawType as EmailOtpType) ? rawType : "signup";
+  return NextResponse.redirect(`${origin}/login?error=confirm&type=${failedType}`);
 }
 
 // N'accepte qu'un chemin interne : empêche `?next=https://ailleurs` de

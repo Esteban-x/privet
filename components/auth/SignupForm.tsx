@@ -1,19 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, useTransition } from "react";
-import { resendConfirmationAction, signUpAction } from "@/app/signup/actions";
-import type { CaptchaChallenge } from "@/lib/auth/captcha";
+import { useActionState, useState } from "react";
+import { signUpAction } from "@/app/signup/actions";
 import { INITIAL_SIGNUP_STATE } from "@/lib/auth/signup-state";
 import { PASSWORD_MIN } from "@/lib/auth/validation";
-import CaptchaField from "./CaptchaField";
+import ResendConfirmationForm from "./ResendConfirmationForm";
+import TurnstileWidget from "./TurnstileWidget";
 
-export default function SignupForm({ captcha }: { captcha: CaptchaChallenge }) {
+export default function SignupForm() {
   const [state, formAction, pending] = useActionState(
     signUpAction,
     INITIAL_SIGNUP_STATE
   );
   const [showPassword, setShowPassword] = useState(false);
+
+  // Un jeton Turnstile est à usage unique : après chaque échec, le widget doit
+  // en redemander un neuf. Ajusté pendant le rendu (plutôt que dans un effet)
+  // en comparant à l'état précédemment vu, pour ne pas déclencher de rendu
+  // intermédiaire périmé.
+  const [seenState, setSeenState] = useState(state);
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "error") setCaptchaResetSignal((n) => n + 1);
+  }
 
   if (state.status === "sent") {
     return <ConfirmationSent email={state.sentTo ?? state.values.email} />;
@@ -85,17 +96,18 @@ export default function SignupForm({ captcha }: { captcha: CaptchaChallenge }) {
       </button>
 
       <div className="mt-5">
-        <CaptchaField
-          initial={captcha}
-          replacement={state.captcha}
-          error={state.errors.captcha}
-        />
+        <TurnstileWidget action="signup" resetSignal={captchaResetSignal} />
+        {state.errors.captcha && (
+          <p role="alert" className="mt-1.5 font-display text-xs text-danger">
+            {state.errors.captcha}
+          </p>
+        )}
       </div>
 
       {state.message && (
         <p
           role="alert"
-          className="mt-4 rounded-[10px] border border-accent2/40 bg-accent2/10 px-3.5 py-2.5 font-display text-sm text-accent2"
+          className="mt-4 rounded-[10px] border border-danger/40 bg-danger/10 px-3.5 py-2.5 font-display text-sm text-danger"
         >
           {state.message}
         </p>
@@ -122,15 +134,6 @@ export default function SignupForm({ captcha }: { captcha: CaptchaChallenge }) {
 // ─── Écran de succès ────────────────────────────────────────────────
 
 function ConfirmationSent({ email }: { email: string }) {
-  const [pending, startTransition] = useTransition();
-  const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
-
-  function resend() {
-    startTransition(async () => {
-      setFeedback(await resendConfirmationAction(email));
-    });
-  }
-
   return (
     <div className="text-center">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-success/15 text-2xl">
@@ -146,22 +149,9 @@ function ConfirmationSent({ email }: { email: string }) {
         Rien reçu au bout de deux minutes ? Regarde dans les spams.
       </p>
 
-      <button
-        onClick={resend}
-        disabled={pending}
-        className="mt-5 rounded-[10px] border border-border px-4 py-2.5 font-display text-sm font-medium text-text transition-colors hover:border-accent disabled:opacity-60"
-      >
-        {pending ? "Envoi…" : "Renvoyer l'email"}
-      </button>
-
-      {feedback && (
-        <p
-          role="status"
-          className={`mt-3 font-display text-sm ${feedback.ok ? "text-success" : "text-accent2"}`}
-        >
-          {feedback.message}
-        </p>
-      )}
+      <div className="mt-5">
+        <ResendConfirmationForm email={email} />
+      </div>
 
       <p className="mt-6 font-display text-sm text-muted">
         <Link href="/login" className="font-semibold text-text hover:text-accent">
@@ -218,11 +208,11 @@ function Field({
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
         className={`w-full rounded-[10px] border bg-bg px-3.5 py-2.5 font-display text-sm text-text placeholder:text-muted/60 focus:outline-none ${
-          error ? "border-accent2 focus:border-accent2" : "border-border focus:border-accent"
+          error ? "border-danger focus:border-danger" : "border-border focus:border-accent"
         }`}
       />
       {error ? (
-        <p id={`${name}-error`} className="mt-1.5 font-display text-xs text-accent2">
+        <p id={`${name}-error`} className="mt-1.5 font-display text-xs text-danger">
           {error}
         </p>
       ) : hint ? (

@@ -1,4 +1,3 @@
-import type { CaptchaChallenge } from "./captcha";
 import type { FieldErrors } from "./validation";
 
 // État partagé entre l'action serveur et le formulaire (`useActionState`).
@@ -15,8 +14,6 @@ export interface SignupState {
   sentTo?: string;
   /** Valeurs à réafficher après un échec — jamais les mots de passe. */
   values: { firstName: string; lastName: string; email: string };
-  /** Défi frais : celui qui vient d'être soumis n'est plus réutilisable. */
-  captcha?: CaptchaChallenge;
 }
 
 export const INITIAL_SIGNUP_STATE: SignupState = {
@@ -24,3 +21,10 @@ export const INITIAL_SIGNUP_STATE: SignupState = {
   errors: {},
   values: { firstName: "", lastName: "", email: "" },
 };
+
+export interface ResendState {
+  status: "idle" | "error" | "sent";
+  message?: string;
+}
+
+export const INITIAL_RESEND_STATE: ResendState = { status: "idle" };

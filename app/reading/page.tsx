@@ -1,7 +1,7 @@
 import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { READING_TEXTS } from "@/lib/reading/texts";
-import AiReadingGenerator from "@/components/exercises/AiReadingGenerator";
+import ReadingGeneratorSection from "@/components/exercises/ReadingGeneratorSection";
 
 export default function ReadingHub() {
   return (
@@ -13,9 +13,7 @@ export default function ReadingHub() {
         quitter le texte.
       </p>
 
-      <div className="mb-12">
-        <AiReadingGenerator />
-      </div>
+      <ReadingGeneratorSection />
 
       <SectionLabel color="accent">Textes de la bibliothèque</SectionLabel>
 

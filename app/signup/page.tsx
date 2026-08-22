@@ -1,15 +1,10 @@
 import { redirect } from "next/navigation";
 import SignupForm from "@/components/auth/SignupForm";
-import { createCaptcha } from "@/lib/auth/captcha";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Créer un compte — Privet",
 };
-
-// Le captcha est tiré au sort à chaque rendu : la page ne doit jamais être
-// servie depuis un cache, sinon tout le monde recevrait le même défi.
-export const dynamic = "force-dynamic";
 
 export default async function SignupPage() {
   // Déjà connecté : pas de raison de repasser par l'inscription.
@@ -35,7 +30,7 @@ export default async function SignupPage() {
         </div>
 
         <div className="mt-7">
-          <SignupForm captcha={createCaptcha()} />
+          <SignupForm />
         </div>
       </div>
     </div>

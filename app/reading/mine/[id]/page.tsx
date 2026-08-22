@@ -1,0 +1,61 @@
+import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/api/validate";
+import ReadingPassage from "@/components/exercises/ReadingPassage";
+import DeleteReadingTextButton from "@/components/exercises/DeleteReadingTextButton";
+import type { ReadingText } from "@/lib/reading/texts";
+
+export default async function MyReadingTextPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  if (!isUuid(id)) notFound();
+  if (!isSupabaseConfigured()) redirect("/login");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=/reading/mine/${id}`);
+
+  const { data } = await supabase
+    .from("reading_texts")
+    .select("id, title, level, sentences")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+  if (!data) notFound();
+
+  const text: ReadingText = {
+    id: data.id,
+    title: data.title,
+    level: data.level,
+    sentences: data.sentences,
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-16">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <Link
+          href="/reading"
+          className="inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+        >
+          ← Tous les textes
+        </Link>
+        <DeleteReadingTextButton id={text.id} />
+      </div>
+
+      <div className="mb-8 flex items-center gap-3">
+        <span className="rounded-full border border-border px-2.5 py-0.5 font-display text-xs font-semibold text-muted">
+          {text.level}
+        </span>
+        <h1 className="font-display text-4xl font-extrabold tracking-tight">{text.title}</h1>
+      </div>
+
+      <ReadingPassage text={text} />
+    </div>
+  );
+}

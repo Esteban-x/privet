@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30" fill="none">
+  <!-- Fond (#4a63d6 avec coins arrondis rx="8") -->
+  <rect width="30" height="30" rx="8" fill="#4a63d6" />
+  
+  <!-- Lettre Cyrillique П -->
+  <text 
+    x="50%" 
+    y="50%" 
+    dominant-baseline="central" 
+    text-anchor="middle" 
+    fill="#FFFFFF" 
+    font-family="system-ui, -apple-system, sans-serif" 
+    font-size="15" 
+    font-weight="800">
+    П
+  </text>
+</svg>

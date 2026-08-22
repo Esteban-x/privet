@@ -54,8 +54,12 @@ export function validateSignup(input: SignupInput): FieldErrors {
     errors.password = "Le mot de passe est obligatoire.";
   } else if (input.password.length < PASSWORD_MIN) {
     errors.password = `Le mot de passe doit faire au moins ${PASSWORD_MIN} caractères.`;
-  } else if (input.password.length > PASSWORD_MAX) {
-    errors.password = `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX} caractères.`;
+  } else if (new TextEncoder().encode(input.password).length > PASSWORD_MAX) {
+    // bcrypt (GoTrue) compte des OCTETS, pas des unités UTF-16 : un mot de
+    // passe avec des caractères accentués/cyrilliques/emoji peut dépasser
+    // la limite réelle sans dépasser `.length`, et serait alors tronqué
+    // silencieusement côté serveur d'auth sans que cette validation le voie.
+    errors.password = `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX} octets (les caractères accentués ou non-latins en comptent plusieurs chacun).`;
   } else if (!/[a-zA-Z\p{L}]/u.test(input.password) || !/[0-9]/.test(input.password)) {
     errors.password = "Le mot de passe doit contenir au moins une lettre et un chiffre.";
   }

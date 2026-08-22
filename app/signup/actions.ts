@@ -1,8 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createCaptcha, verifyCaptcha } from "@/lib/auth/captcha";
-import type { SignupState } from "@/lib/auth/signup-state";
+import type { ResendState, SignupState } from "@/lib/auth/signup-state";
+import { TURNSTILE_FIELD } from "@/lib/auth/turnstile";
 import { normalizeName, validateSignup, type FieldErrors } from "@/lib/auth/validation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -33,24 +33,20 @@ export async function signUpAction(
   };
   const password = field(formData, "password");
   const passwordConfirm = field(formData, "passwordConfirm");
+  const captchaToken = field(formData, TURNSTILE_FIELD);
 
-  // Échec ⇒ on renvoie toujours un défi neuf, sinon le formulaire réafficherait
-  // une image dont le jeton vient d'être consommé.
   const fail = (errors: FieldErrors, message?: string): SignupState => ({
     status: "error",
     errors,
     message,
     values,
-    captcha: createCaptcha(),
   });
 
-  // 1. Captcha d'abord : rien ne sert de valider (ni d'appeler Supabase) si la
-  //    requête vient d'un bot.
-  if (!verifyCaptcha(field(formData, "captchaToken"), field(formData, "captchaAnswer"))) {
-    return fail({ captcha: "Code incorrect ou expiré. Réessaie avec la nouvelle image." });
+  // Le widget n'a peut-être pas fini de se résoudre (JS lent, bloqueur...).
+  if (!captchaToken) {
+    return fail({ captcha: "Merci de valider le captcha avant de continuer." });
   }
 
-  // 2. Champs.
   const errors = validateSignup({ ...values, password, passwordConfirm });
   if (Object.keys(errors).length > 0) return fail(errors);
 
@@ -61,15 +57,18 @@ export async function signUpAction(
     );
   }
 
-  // 3. Création du compte. Supabase envoie lui-même l'email de confirmation ;
-  //    tant que le lien n'est pas cliqué, aucune session n'est ouverte.
+  // Création du compte. Supabase vérifie lui-même `captchaToken` auprès de
+  // Cloudflare (Authentication → Attack Protection) avant de créer quoi que ce
+  // soit, puis envoie l'email de confirmation ; tant que le lien n'est pas
+  // cliqué, aucune session n'est ouverte.
   const supabase = await createClient();
   const origin = await siteOrigin();
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: values.email,
     password,
     options: {
+      captchaToken,
       emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent("/onboarding")}`,
       data: {
         first_name: values.firstName,
@@ -80,12 +79,15 @@ export async function signUpAction(
   });
 
   if (error) {
-    const alreadyRegistered =
-      error.code === "user_already_exists" || error.status === 422;
-    // Si le projet Supabase autorise la divulgation, on reste quand même vague :
-    // confirmer qu'une adresse existe permet d'énumérer les comptes.
-    if (alreadyRegistered) {
-      return { status: "sent", errors: {}, sentTo: values.email, values };
+    // Uniquement sur ce code précis — le statut HTTP 422 seul ne suffit pas,
+    // GoTrue l'utilise aussi pour weak_password, validation_failed, etc.
+    if (error.code === "user_already_exists") {
+      return fail({ email: "Cette adresse email est déjà utilisée. Connecte-toi plutôt." });
+    }
+    if (error.code === "captcha_failed") {
+      // Le jeton Turnstile est à usage unique : celui-ci vient d'être
+      // consommé par la vérification, qu'elle ait réussi ou non.
+      return fail({ captcha: "Le captcha a expiré ou a échoué. Réessaie." });
     }
     if (error.code === "over_email_send_rate_limit") {
       return fail({}, "Trop de tentatives. Attends une minute avant de réessayer.");
@@ -93,43 +95,73 @@ export async function signUpAction(
     if (error.code === "weak_password") {
       return fail({ password: "Ce mot de passe est trop faible. Choisis-en un autre." });
     }
+    if (error.code === "email_address_invalid") {
+      return fail({ email: "Cette adresse email est refusée par le serveur." });
+    }
+    // Code non prévu ci-dessus : on logue le détail côté serveur (jamais
+    // exposé au client) pour pouvoir diagnostiquer, et on affiche un message
+    // générique.
+    console.error("[signup] échec Supabase non géré :", {
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
     return fail({}, "L'inscription a échoué. Réessaie dans un instant.");
   }
 
-  // Note : quand l'adresse est déjà prise, Supabase renvoie un utilisateur
-  // factice sans identité plutôt qu'une erreur. La réponse ci-dessous est donc
-  // identique dans les deux cas — c'est voulu (pas d'énumération de comptes).
+  // Selon la config du projet, une adresse déjà prise ne renvoie pas toujours
+  // une erreur : GoTrue peut répondre 200 avec un utilisateur "obfusqué" —
+  // reconnaissable à `identities` vide (aucune identité créée, puisque le
+  // compte en avait déjà une).
+  if (data.user && data.user.identities?.length === 0) {
+    return fail({ email: "Cette adresse email est déjà utilisée. Connecte-toi plutôt." });
+  }
+
   return { status: "sent", errors: {}, sentTo: values.email, values };
 }
 
 /** Renvoie l'email de confirmation (lien expiré ou message perdu). */
 export async function resendConfirmationAction(
-  email: string
-): Promise<{ ok: boolean; message: string }> {
-  const cleaned = email.trim().toLowerCase();
-  if (!cleaned) return { ok: false, message: "Adresse email manquante." };
+  _previous: ResendState,
+  formData: FormData
+): Promise<ResendState> {
+  const email = field(formData, "email").trim().toLowerCase();
+  const captchaToken = field(formData, TURNSTILE_FIELD);
+
+  if (!email) return { status: "error", message: "Adresse email manquante." };
+  // Supabase protège aussi cet endpoint (Authentication → Attack Protection) :
+  // sans jeton, il refuse la requête avant même de vérifier l'email.
+  if (!captchaToken) {
+    return { status: "error", message: "Merci de valider le captcha avant de continuer." };
+  }
   if (!isSupabaseConfigured()) {
-    return { ok: false, message: "L'authentification n'est pas configurée." };
+    return { status: "error", message: "L'authentification n'est pas configurée." };
   }
 
   const supabase = await createClient();
   const origin = await siteOrigin();
   const { error } = await supabase.auth.resend({
     type: "signup",
-    email: cleaned,
+    email,
     options: {
+      captchaToken,
       emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent("/onboarding")}`,
     },
   });
 
   if (error) {
-    return {
-      ok: false,
-      message:
-        error.code === "over_email_send_rate_limit"
-          ? "Trop de renvois. Attends une minute."
-          : "Le renvoi a échoué. Réessaie dans un instant.",
-    };
+    if (error.code === "captcha_failed") {
+      return { status: "error", message: "Le captcha a expiré ou a échoué. Réessaie." };
+    }
+    if (error.code === "over_email_send_rate_limit") {
+      return { status: "error", message: "Trop de renvois. Attends une minute." };
+    }
+    console.error("[resend] échec Supabase non géré :", {
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
+    return { status: "error", message: "Le renvoi a échoué. Réessaie dans un instant." };
   }
-  return { ok: true, message: "Email renvoyé. Pense à regarder dans les spams." };
+  return { status: "sent", message: "Email renvoyé. Pense à regarder dans les spams." };
 }
