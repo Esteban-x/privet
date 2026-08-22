@@ -17,6 +17,7 @@ import {
 } from "@/lib/grammar/exercise-generator";
 import { ADJECTIVES } from "@/lib/grammar/adjectives-data";
 import { PROPER_NOUN_TRIGGER_ID, triggersForCase } from "@/lib/grammar/triggers";
+import { getNoun } from "@/lib/grammar/nouns-data";
 import { pickWeightedTrigger } from "@/lib/grammar/exercise-selector";
 import {
   accuracyFor,
@@ -96,6 +97,7 @@ export default function CaseDeclension({
   const [streak, setStreak] = useState(0);
   const [progressTick, setProgressTick] = useState(0);
   const [aiLoading, setAiLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   // Incrémenté à chaque loadExercise("sentence") : permet à un appel IA
   // devenu périmé (l'utilisateur a changé d'onglet/de cas entre-temps) de
   // se reconnaître obsolète à son retour et de ne PAS écraser l'exercice
@@ -168,6 +170,7 @@ export default function CaseDeclension({
   async function loadExercise(nextTab: Tab) {
     setFeedback(null);
     setInput("");
+    setVerifying(false);
     // Invalide toute requête IA encore en vol : quel que soit le prochain
     // onglet, sa réponse tardive ne doit plus pouvoir écraser l'exercice
     // affiché entre-temps.
@@ -220,7 +223,7 @@ export default function CaseDeclension({
       });
       if (requestId !== aiRequestSeq.current) return; // périmé (nouvel exercice demandé entre-temps)
       if (!res.ok) throw new Error("ai unavailable");
-      const { exercise: ai } = await res.json();
+      const { exercise: ai, pool_noun_id: poolNounId } = await res.json();
       // Le prompt demande explicitement d'éviter les emprunts indéclinables
       // (кофе, метро...), mais si le modèle en choisit quand même un —
       // qu'il l'ait signalé via "indeclinable" ou pas —, décliner ce mot
@@ -237,7 +240,12 @@ export default function CaseDeclension({
       }
       const hint: string = (ai.hint || ai.lemma || "").trim();
       const frenchGender: FrenchGender = ai.french_gender === "f" ? "f" : "m";
-      const noun: Noun = {
+      // Le serveur ne renvoie un pool_noun_id que pour un mot de la banque
+      // curée (jamais le vocabulaire perso, qui n'a pas cette donnée) — s'il
+      // est présent, on va chercher l'objet Noun complet plutôt que d'en
+      // reconstruire un de zéro à partir des seuls champs JSON, pour ne pas
+      // perdre d'éventuelles formes irrégulières mémorisées (noun.irregular).
+      const noun: Noun = (poolNounId && getNoun(poolNounId)) || {
         id: `ai:${ai.lemma}`,
         lemma: ai.lemma,
         translation: hint,
@@ -324,9 +332,41 @@ export default function CaseDeclension({
     setProgressTick((t) => t + 1);
   }
 
-  function submit() {
-    if (!exercise || !input.trim()) return;
-    recordResult(checkAnswer(exercise, input));
+  async function submit() {
+    if (!exercise || !input.trim() || verifying) return;
+    if (checkAnswer(exercise, input)) {
+      recordResult(true);
+      return;
+    }
+    // Filet de sécurité IA : le moteur de règles dit "faux", mais avant
+    // d'afficher ça à l'apprenant on demande une seconde vérification —
+    // couvre à la fois une vraie faute (confirmée par l'IA) ET une
+    // variante correcte que la comparaison de chaînes aurait refusée à
+    // tort (accent, orthographe alternative, ou bug du moteur lui-même).
+    // Ne coûte des tokens QUE sur une réponse déjà jugée fausse, jamais
+    // sur le chemin heureux.
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/cases/verify-answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lemma: exercise.noun.lemma,
+          gender: exercise.noun.gender,
+          animacy: exercise.noun.animacy,
+          targetCase: exercise.targetCase,
+          plural: exercise.plural,
+          computedForm: exercise.correctForm,
+          userAnswer: input,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      recordResult(Boolean(data.acceptable));
+    } catch {
+      recordResult(false);
+    } finally {
+      setVerifying(false);
+    }
   }
 
   function selectOption(opt: string) {
@@ -479,7 +519,10 @@ export default function CaseDeclension({
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (feedback ? nextExercise() : submit())}
                   placeholder="Écris la réponse en russe…"
-                  className="flex-1 rounded-[10px] border border-border bg-bg px-4 py-3 font-display text-lg text-text outline-none placeholder:text-muted/60 focus:border-accent"
+                  readOnly={verifying}
+                  className={`flex-1 rounded-[10px] border border-border bg-bg px-4 py-3 font-display text-lg text-text outline-none placeholder:text-muted/60 focus:border-accent ${
+                    verifying ? "opacity-60" : ""
+                  }`}
                   autoFocus
                 />
                 {feedback ? (
@@ -492,10 +535,10 @@ export default function CaseDeclension({
                 ) : (
                   <button
                     onClick={submit}
-                    disabled={!input.trim()}
+                    disabled={!input.trim() || verifying}
                     className="rounded-[10px] bg-accent px-6 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Vérifier
+                    {verifying ? "Vérification…" : "Vérifier"}
                   </button>
                 )}
               </div>
@@ -504,7 +547,8 @@ export default function CaseDeclension({
             {!feedback && (
               <button
                 onClick={reveal}
-                className="mt-3 w-full rounded-[10px] border border-border py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:border-accent2 hover:text-accent2"
+                disabled={verifying}
+                className="mt-3 w-full rounded-[10px] border border-border py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:border-accent2 hover:text-accent2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 💡 Je ne sais pas — voir la réponse
               </button>

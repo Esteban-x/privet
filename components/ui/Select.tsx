@@ -29,7 +29,13 @@ export default function Select({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const selected = options.find((o) => o.value === value);
+  // Filet défensif : un seul crash observé en dev, à l'exact moment où ce
+  // composant est passé d'une API à base de `children` à `options` (Fast
+  // Refresh a pu, l'espace d'un rendu, appairer une ancienne instance avec
+  // les nouvelles props) — pas reproduit depuis, mais un rendu vide plutôt
+  // qu'un plantage de toute la page ne coûte rien si ça se reproduit.
+  const safeOptions = options ?? [];
+  const selected = safeOptions.find((o) => o.value === value);
 
   useEffect(() => {
     if (!open) return;
@@ -79,7 +85,7 @@ export default function Select({
           role="listbox"
           className="animate-fade-in absolute z-20 mt-1.5 max-h-64 min-w-full overflow-auto rounded-[10px] border border-border bg-bg3 p-1.5 shadow-[0_16px_32px_-12px_rgba(0,0,0,0.6)]"
         >
-          {options.map((opt) => (
+          {safeOptions.map((opt) => (
             <li key={opt.value}>
               <button
                 type="button"

@@ -48,6 +48,7 @@ function TypingInner() {
 
   const [input, setInput] = useState("");
   const [result, setResult] = useState<"correct" | "incorrect" | "revealed" | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const {
     current,
     review,
@@ -86,6 +87,7 @@ function TypingInner() {
     setSeenQuestionId(current?.id);
     setInput("");
     setResult(null);
+    setVerifying(false);
   }
 
   // Ramène le focus sur le champ de saisie pour le nouveau mot — le focus
@@ -140,10 +142,35 @@ function TypingInner() {
   const instruction = expectedIsRussian ? "Écris ce mot en russe :" : "Écris ce mot en français :";
   const answer = expectedIsRussian ? current.ru : current.fr;
 
-  function submit() {
-    if (!current || !input.trim() || result) return;
-    const ok = normalize(input) === normalize(answer);
-    setResult(ok ? "correct" : "incorrect");
+  async function submit() {
+    if (!current || !input.trim() || result || verifying) return;
+    if (normalize(input) === normalize(answer)) {
+      setResult("correct");
+      return;
+    }
+    // Filet de sécurité IA : la comparaison de chaînes dit "faux", mais
+    // avant de l'afficher on demande une seconde vérification — couvre un
+    // synonyme correct, une variante orthographique, ou un bug de la
+    // comparaison elle-même. Ne coûte des tokens que sur une réponse déjà
+    // jugée fausse, jamais sur le chemin heureux.
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/vocab/verify-answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expected: answer,
+          userAnswer: input,
+          expectedLanguage: expectedIsRussian ? "ru" : "fr",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setResult(data.acceptable ? "correct" : "incorrect");
+    } catch {
+      setResult("incorrect");
+    } finally {
+      setVerifying(false);
+    }
   }
 
   // Pour quelqu'un qui ne sait vraiment pas — évite de taper n'importe quoi
@@ -204,9 +231,9 @@ function TypingInner() {
           // recevoir les événements clavier/perd le focus. Le focus est
           // ramené ici au mot suivant (effet plus haut), donc plus besoin de
           // `autoFocus` (qui ne s'appliquerait qu'au tout premier rendu).
-          readOnly={!!result}
+          readOnly={!!result || verifying}
           className={`mt-6 w-full rounded-[10px] border border-border bg-bg px-4 py-3 text-center font-display text-2xl text-text outline-none placeholder:text-muted/60 focus:border-accent ${
-            result ? "opacity-60" : ""
+            result || verifying ? "opacity-60" : ""
           }`}
         />
 
@@ -233,15 +260,17 @@ function TypingInner() {
         <button
           ref={nextButtonRef}
           onClick={result ? next : submit}
-          className="mt-6 w-full rounded-[10px] bg-accent py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+          disabled={verifying}
+          className="mt-6 w-full rounded-[10px] bg-accent py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {result ? "Suivant →" : "Vérifier"}
+          {verifying ? "Vérification…" : result ? "Suivant →" : "Vérifier"}
         </button>
 
         {!result && (
           <button
             onClick={reveal}
-            className="mt-2.5 w-full rounded-[10px] border border-border py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:border-accent2 hover:text-accent2"
+            disabled={verifying}
+            className="mt-2.5 w-full rounded-[10px] border border-border py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:border-accent2 hover:text-accent2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             💡 Je ne sais pas — voir la réponse
           </button>
