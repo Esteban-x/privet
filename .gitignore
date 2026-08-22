@@ -13,3 +13,4 @@ next-env.d.ts
 # Divers
 .DS_Store
 *.log
+supabase/.temp/

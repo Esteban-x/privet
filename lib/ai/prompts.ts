@@ -1,6 +1,6 @@
 import { CefrLevel } from "@/lib/supabase/types";
 import { CaseId } from "@/lib/grammar/types";
-import { CaseTrigger } from "@/lib/grammar/triggers";
+import { CaseTrigger, PROPER_NOUN_TRIGGER_ID } from "@/lib/grammar/triggers";
 import { CASES } from "@/lib/grammar/cases";
 
 const LEVEL_GUIDANCE: Record<CefrLevel, string> = {
@@ -18,11 +18,16 @@ export function exerciseSystemPrompt(
   level: CefrLevel,
   topics: string[],
   trigger?: CaseTrigger,
-  knownWords?: { ru: string; fr: string }[]
+  knownWords?: { ru: string; fr: string }[],
+  recentLemmas?: string[]
 ) {
   const triggerInstruction = trigger
     ? `Le déclencheur à illustrer est précisément : "${trigger.ru}" (${trigger.meaningFr}). La phrase doit utiliser ce déclencheur exact (cette préposition, ce verbe ou cette expression), pas un autre.`
     : `Choisis toi-même un déclencheur naturel du cas "${caseId}" (préposition, verbe à régime ou expression figée) — indique-le dans le champ "trigger_id" si tu peux l'identifier, sinon laisse-le vide.`;
+  const isProperNounTrigger = trigger?.id === PROPER_NOUN_TRIGGER_ID;
+  const properNounInstruction = isProperNounTrigger
+    ? `\nCas particulier pour CE déclencheur précis ("${trigger?.ru}") : "Je m'appelle ___" n'a de sens qu'avec un PRÉNOM, jamais un nom commun. Le "lemma" DOIT être un prénom russe courant (ex. Анна, Иван, Мария, Дмитрий), écrit avec une majuscule. "hint" est alors la transcription usuelle de ce prénom en français (ex. "Anna", "Ivan"), PAS une traduction — et si "sentence_fr" est une phrase complète sans trou, ce prénom transcrit doit y apparaître tel quel (jamais le mot russe brut, jamais "cet/cette/ce" devant).`
+    : "";
   const vocabInstruction =
     knownWords && knownWords.length
       ? `Si possible et naturel, réutilise UN de ces mots déjà connus de l'apprenant comme mot à décliner (sinon choisis un autre nom courant) : ${knownWords
@@ -30,17 +35,24 @@ export function exerciseSystemPrompt(
           .map((w) => w.ru)
           .join(", ")}.`
       : "";
+  const avoidRepeatInstruction =
+    recentLemmas && recentLemmas.length
+      ? `N'utilise AUCUN de ces mots, déjà vus dans les exercices récents de l'apprenant (même famille de sens à éviter aussi, pas seulement le mot exact) : ${recentLemmas.join(", ")}.`
+      : "";
 
   return `Tu es un concepteur d'exercices de russe langue étrangère, pour un apprenant francophone.
 Niveau CEFR de l'apprenant : ${level} (${LEVEL_GUIDANCE[level]}).
-Thèmes qui l'intéressent : ${topics.length ? topics.join(", ") : "généraliste"}.
+Thèmes qui l'intéressent (à illustrer occasionnellement — voir consigne de variété ci-dessous, ne t'y limite surtout pas) : ${topics.length ? topics.join(", ") : "généraliste"}.
 
 Tâche : produire UN exercice à trou testant le cas grammatical "${caseId}" (cas russe).
 ${triggerInstruction}
+${properNounInstruction}
 ${vocabInstruction}
 Contraintes STRICTES :
+- VARIÉTÉ LEXICALE (règle la plus importante après la grammaire) : même si un thème est donné ci-dessus, ne choisis un mot lié à ce thème qu'environ UNE fois sur trois. Les autres fois, pioche un nom courant de la vie quotidienne SANS rapport avec ce thème (maison, ville, travail, nourriture, temps, famille, objets du quotidien…) — un apprenant qui ne s'entraîne que sur un seul thème répété tombe toujours sur les 2-3 mêmes mots les plus évidents de ce thème, ce qui est inutile pédagogiquement. Ne choisis JAMAIS deux fois de suite un mot de la même famille de sens.
+${avoidRepeatInstruction}
 - La phrase russe contient exactement un trou noté "___" à l'emplacement du mot à décliner.
-- Le mot à décliner est un NOM commun, donné à sa forme du dictionnaire (nominatif singulier) dans le champ "lemma".
+- Le mot à décliner est un NOM commun, donné à sa forme du dictionnaire (nominatif singulier) dans le champ "lemma"${isProperNounTrigger ? " — SAUF pour ce déclencheur précis, voir le cas particulier ci-dessus (un prénom, pas un nom commun)" : ""}.
 - Tu ne fournis PAS la forme fléchie attendue : elle sera calculée par un moteur de règles côté serveur à partir du lemme et du genre. Fournis le lemme, son genre et son animacité (ce sont des faits sur le mot, pas la forme fléchie).
 - La traduction française ("sentence_fr") est COMPLÈTE et naturelle, SANS trou ni "___" : le mot à deviner y apparaît normalement traduit. C'est ce qui permet à l'apprenant de savoir QUEL mot français il doit chercher en russe — un trou aussi côté français le laisserait deviner à l'aveugle (ex. pour "sans ___", impossible de savoir s'il faut dire "sucre" ou "lait").
 - "hint" est UNIQUEMENT la traduction française du mot "lemma" seul (un ou deux mots, pas une phrase) — ex. lemma "сахар" → hint "sucre". Ce champ doit être cohérent avec le mot déjà révélé dans "sentence_fr".

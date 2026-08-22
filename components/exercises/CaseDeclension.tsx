@@ -16,7 +16,7 @@ import {
   generateSentenceExercise,
 } from "@/lib/grammar/exercise-generator";
 import { ADJECTIVES } from "@/lib/grammar/adjectives-data";
-import { triggersForCase } from "@/lib/grammar/triggers";
+import { PROPER_NOUN_TRIGGER_ID, triggersForCase } from "@/lib/grammar/triggers";
 import { pickWeightedTrigger } from "@/lib/grammar/exercise-selector";
 import {
   accuracyFor,
@@ -103,6 +103,13 @@ export default function CaseDeclension({
   // ici puisque le repli sur le gabarit fixe (catch) doit, lui aussi, être
   // ignoré s'il est périmé.
   const aiRequestSeq = useRef(0);
+  // Derniers lemmes vus en mode "Phrase" IA (tous cas confondus, cette
+  // session) — envoyés au prompt pour qu'il évite de reproposer les mêmes
+  // mots en boucle (typiquement le mot le plus "évident" d'un thème avec un
+  // seul thème choisi). Volontairement en mémoire seule (pas persisté) :
+  // juste assez pour casser une répétition immédiate, pas un vrai suivi de
+  // fréquence.
+  const recentAiLemmas = useRef<string[]>([]);
 
   function applyExercise(ex: CaseExercise) {
     setExercise(ex);
@@ -188,13 +195,28 @@ export default function CaseDeclension({
     // "Phrase" : IA en premier (personnalisée, ciblée sur le déclencheur
     // choisi), repli SILENCIEUX sur le gabarit fixe si indisponible/erreur.
     const trigger = pickWeightedTrigger(triggersForCase(caseInfo.id), triggerStats, userLevel);
+
+    // Exception : "Меня зовут ___" n'a de sens qu'avec un prénom (jamais un
+    // nom commun) et reste toujours au nominatif (aucune vraie déclinaison
+    // à tester) — le gabarit fixe + la banque de prénoms réservée
+    // (RUSSIAN_NAMES, voir exercise-generator.ts) couvrent déjà l'exercice
+    // parfaitement. Pas de valeur à risquer une phrase IA imprévisible ici.
+    if (trigger.id === PROPER_NOUN_TRIGGER_ID) {
+      applyExercise(generateSentenceExercise(caseInfo.id, pool, trigger));
+      return;
+    }
+
     const requestId = aiRequestSeq.current;
     setAiLoading(true);
     try {
       const res = await fetch("/api/ai/exercise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ caseId: caseInfo.id, triggerId: trigger.id }),
+        body: JSON.stringify({
+          caseId: caseInfo.id,
+          triggerId: trigger.id,
+          recentLemmas: recentAiLemmas.current,
+        }),
       });
       if (requestId !== aiRequestSeq.current) return; // périmé (nouvel exercice demandé entre-temps)
       if (!res.ok) throw new Error("ai unavailable");
@@ -208,6 +230,11 @@ export default function CaseDeclension({
       if (ai.indeclinable || KNOWN_INDECLINABLE.has((ai.lemma ?? "").toLowerCase())) {
         throw new Error("indeclinable lemma");
       }
+      if (ai.lemma) {
+        // Fenêtre glissante : garde les ~12 plus récents pour rester un
+        // signal utile côté prompt sans le laisser grossir indéfiniment.
+        recentAiLemmas.current = [...recentAiLemmas.current, ai.lemma].slice(-12);
+      }
       const hint: string = (ai.hint || ai.lemma || "").trim();
       const frenchGender: FrenchGender = ai.french_gender === "f" ? "f" : "m";
       const noun: Noun = {
@@ -219,7 +246,12 @@ export default function CaseDeclension({
         animacy: ai.animate ? "animate" : "inanimate",
         stemType: "hard",
       };
-      const result = declineNoun(noun, caseInfo.id, false);
+      // Certains déclencheurs imposent le pluriel (много/мало/несколько,
+      // среди, "мн. число"...) — ignoré ici, la forme attendue était
+      // toujours calculée au singulier même quand l'IA écrivait à raison
+      // une phrase au pluriel (ex. "музыканты", pas "музыкант").
+      const plural = trigger.plural ?? false;
+      const result = declineNoun(noun, caseInfo.id, plural);
       // Filet de sécurité : le prompt demande une traduction française sans
       // trou, mais si le modèle en laisse quand même un (ambiguïté du style
       // "sans ___" — impossible de deviner sucre/lait sans indice), on le
@@ -227,13 +259,13 @@ export default function CaseDeclension({
       // de laisser l'apprenant deviner à l'aveugle.
       const sentenceFr =
         hint && ai.sentence_fr?.includes("___")
-          ? fillFrenchBlank(ai.sentence_fr, frenchNounPhrase(hint, frenchGender, trigger.article, false))
+          ? fillFrenchBlank(ai.sentence_fr, frenchNounPhrase(hint, frenchGender, trigger.article, plural))
           : ai.sentence_fr;
       applyExercise({
         kind: "sentence-ai",
         noun,
         targetCase: caseInfo.id,
-        plural: false,
+        plural,
         correctForm: result.form,
         ruleApplied: result.ruleApplied,
         trigger,

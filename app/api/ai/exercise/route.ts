@@ -38,6 +38,13 @@ export async function POST(req: Request) {
   const rawTrigger = triggerId ? getTrigger(triggerId) : undefined;
   const trigger = rawTrigger?.caseId === caseId ? rawTrigger : undefined;
 
+  // Mots récemment vus par l'apprenant (n'importe quel cas) — évite que le
+  // modèle reparte systématiquement sur le mot le plus "évident" du thème
+  // choisi (ex. песня dès que le thème est la musique, en boucle).
+  const recentLemmas: string[] = Array.isArray(body.recentLemmas)
+    ? body.recentLemmas.filter((w: unknown): w is string => typeof w === "string").slice(0, 12)
+    : [];
+
   // Contexte de personnalisation depuis le profil + un échantillon du
   // vocabulaire perso, pour orienter l'IA vers du réemploi lexical connu.
   const [{ data: profile }, { data: words }] = await Promise.all([
@@ -58,7 +65,8 @@ export async function POST(req: Request) {
         profile?.level ?? "A1",
         profile?.topics ?? [],
         trigger,
-        words ?? []
+        words ?? [],
+        recentLemmas
       ),
       messages: [{ role: "user", content: "Génère un exercice." }],
     });

@@ -45,6 +45,14 @@ export interface CaseTrigger {
   article: ArticleMode;
 }
 
+// "Меня зовут ___" n'a de sens qu'avec un prénom, jamais un nom commun de
+// la banque générale ("Меня зовут музыка" est absurde) — repéré par id
+// plutôt qu'un champ générique sur CaseTrigger puisque c'est, à ce jour, le
+// seul déclencheur dans ce cas. Utilisé à la fois pour réserver le tirage
+// du nom (lib/grammar/exercise-generator.ts) et pour adapter le prompt IA
+// (lib/ai/prompts.ts).
+export const PROPER_NOUN_TRIGGER_ID = "expr-nom-zovut";
+
 export const TRIGGERS: CaseTrigger[] = [
   // ─── Nominatif ──────────────────────────────────────────────────
   {
@@ -82,7 +90,11 @@ export const TRIGGERS: CaseTrigger[] = [
     caseId: "nominative",
     kind: "expression",
     tier: "basic",
-    article: "demonstrative",
+    // Jamais d'article devant un prénom ("Je m'appelle Anna", jamais
+    // "Je m'appelle cette Anna") — voir aussi le tirage réservé aux
+    // prénoms (RUSSIAN_NAMES) dans exercise-generator.ts pour ce
+    // déclencheur précis.
+    article: "none",
     ru: "зовут",
     meaningFr: "Se présenter : le nom reste au nominatif après \"меня зовут\".",
     template: { ru: "Меня зовут ___.", fr: "Je m'appelle ___." },

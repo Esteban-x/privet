@@ -1,12 +1,17 @@
 import { Adjective, Animacy, CaseId, Noun } from "./types";
 import { NOUNS } from "./nouns-data";
 import { ADJECTIVES } from "./adjectives-data";
+import { RUSSIAN_NAMES } from "./names-data";
 import { declineNoun } from "./decline";
 import { declineAdjective } from "./decline-adjective";
-import { CaseTrigger, triggersForCase } from "./triggers";
+import { CaseTrigger, PROPER_NOUN_TRIGGER_ID, triggersForCase } from "./triggers";
 import { CASES } from "./cases";
 import { CountForm, countFormFor, randomCountNumber } from "./numerals";
 import { fillFrenchBlank, frenchNounPhrase } from "./french-article";
+
+function poolFor(pool: Noun[], trigger: CaseTrigger): Noun[] {
+  return trigger.id === PROPER_NOUN_TRIGGER_ID ? RUSSIAN_NAMES : pool;
+}
 
 export type ExerciseKind =
   | "isolated"
@@ -77,7 +82,8 @@ export function generateSentenceExercise(
   trigger?: CaseTrigger
 ): CaseExercise {
   const chosenTrigger = trigger ?? pickRandom(triggersForCase(targetCase));
-  const noun = pickRandom(pool.length ? pool : DECLINABLE_NOUNS);
+  const effectivePool = poolFor(pool, chosenTrigger);
+  const noun = pickRandom(effectivePool.length ? effectivePool : DECLINABLE_NOUNS);
   const plural = chosenTrigger.plural ?? false;
   const result = declineNoun(noun, targetCase, plural);
 
@@ -166,7 +172,8 @@ export function generateAdjectiveExercise(
   trigger?: CaseTrigger
 ): CaseExercise {
   const chosenTrigger = trigger ?? pickRandom(triggersForCase(targetCase));
-  const noun = pickRandom(nounPool.length ? nounPool : DECLINABLE_NOUNS);
+  const effectivePool = poolFor(nounPool, chosenTrigger);
+  const noun = pickRandom(effectivePool.length ? effectivePool : DECLINABLE_NOUNS);
   const adjective = pickRandom(adjPool);
   const plural = chosenTrigger.plural ?? false;
 
