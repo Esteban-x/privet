@@ -26,7 +26,7 @@ export interface Profile {
 export interface ActivityRow {
   id: string;
   user_id: string;
-  kind: "case" | "motion" | "vocab" | "reading" | "chat";
+  kind: "case" | "motion" | "aspect" | "vocab" | "reading" | "chat";
   correct: boolean | null;
   meta: Record<string, unknown> | null;
   created_at: string;

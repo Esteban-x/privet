@@ -9,6 +9,7 @@ import type { User } from "@supabase/supabase-js";
 const LINKS = [
   { href: "/cases", label: "Cas" },
   { href: "/motion", label: "Mouvement" },
+  { href: "/aspect", label: "Aspect" },
   { href: "/vocabulary", label: "Vocabulaire" },
   { href: "/reading", label: "Lecture" },
   { href: "/tutor", label: "Professeur IA" },

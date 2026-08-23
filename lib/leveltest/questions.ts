@@ -68,6 +68,7 @@ export const DOMAIN_LABEL: Record<LevelDomain, string> = {
 export const DOMAIN_PRACTICE: Partial<Record<LevelDomain, { href: string; label: string }>> = {
   cas: { href: "/cases", label: "Module Cas" },
   mouvement: { href: "/motion", label: "Module Verbes de mouvement" },
+  aspect: { href: "/aspect", label: "Module Aspect" },
   lexique: { href: "/vocabulary", label: "Module Vocabulaire" },
 };
 

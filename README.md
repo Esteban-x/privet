@@ -112,6 +112,7 @@ npm run check:grammar     # banque de noms et moteur de déclinaison
 npm run check:leveltest   # vivier d'items et qualité du placement
 npm run check:progression # adaptation au niveau et estimation continue
 npm run check:motion      # verbes de mouvement : formes et cohérence des exercices
+npm run check:aspect      # aspect verbal : paires et cohérence des exercices
 npm run build:nouns     # régénère la banque depuis le dictionnaire (rare)
 ```
 
@@ -156,7 +157,7 @@ app/
   signup/            page d'inscription + action serveur (actions.ts)
   account/           réglages du compte + action serveur (suppression)
   login, onboarding, dashboard, tutor
-  cases, motion, vocabulary, reading   (modules d'apprentissage)
+  cases, motion, aspect, vocabulary, reading   (modules d'apprentissage)
 components/
   auth/              SignupForm, TurnstileWidget
   account/           ProfileSettings, PreferencesSettings, PasswordSettings,
@@ -323,6 +324,47 @@ cours). Cette incohérence-là est apparue au premier essai de génération.
 La correction est rejouée côté serveur (`app/api/motion/attempt`), comme pour
 les cas : le client envoie l'item et sa réponse, jamais « j'ai eu juste ».
 
+## L'aspect verbal
+
+L'autre catégorie que le français n'a pas. Un francophone la remplace par
+imparfait / passé composé, ce qui marche une fois sur deux et installe donc
+une erreur au lieu d'un doute. L'aspect ne dit pas QUAND l'action a lieu,
+mais quelle **forme** elle a dans le temps :
+
+- **imperfectif** — un processus, une répétition, une action sans borne :
+  « Я реша́л зада́чу » = je planchais dessus, sans dire si j'y suis arrivé ;
+- **perfectif** — une borne atteinte, un résultat : « Я реши́л зада́чу ».
+
+`/aspect` découpe ça en cinq compétences (A2 → B1) : processus ou résultat,
+les mots qui tranchent, les deux futurs, l'impératif et la négation, et la
+reconnaissance des paires. Les schémas sont des **timelines** : une ligne
+pour le processus, une ligne qui bute sur une borne pour le résultat, des
+points pour la répétition, une ligne coupée pour l'interruption.
+
+### La contrainte qui gouverne le module
+
+L'aspect a de **vraies zones ambiguës** : beaucoup de contextes admettent les
+deux formes avec une nuance, pas une faute. Or un exercice à choix unique ne
+peut porter que sur ce qui est tranché. On ne construit donc d'items que là
+où l'aspect est **forcé** — par un marqueur (`долго`, `за два часа`,
+`каждый день`), par une construction (impératif négatif), ou par un
+enchaînement de résultats. Tout ce dont un russophone dirait « les deux, ça
+dépend » reste dehors, quitte à couvrir moins. C'est la même règle qui avait
+fait écarter `искать`/`ждать` des déclencheurs de l'accusatif.
+
+### Un contexte, une paire
+
+La phrase française doit nommer le verbe — sinon l'apprenant ne saurait pas
+lequel employer — et seul l'aspect reste à trouver. Chaque contexte est donc
+lié à **une seule** paire aspectuelle. Sans cette contrainte, la génération
+produisait « J'ai lu ce livre » avec « реши́л » attendu comme réponse :
+« j'ai résolu ce livre ». Le lien supprime ce mode d'échec par construction
+plutôt que par vigilance, et `check:aspect` le vérifie à chaque tirage.
+
+Les formes sont écrites et vérifiées contre une table relue à la main :
+`говори́ть → сказа́ть`, `брать → взять`, `класть → положи́ть` sont supplétifs,
+aucune règle ne les prédit.
+
 ## Niveau et progression
 
 Deux mesures cohabitent, volontairement :
@@ -376,10 +418,11 @@ de réussite reste estimée A0.
   ne manque que la traduction française.
 - Corpus de classiques du domaine public (Pouchkine, Tchekhov…) pour compléter
   la lecture générée.
-- Conjugaison verbale (aspects perfectif/imperfectif) et participes : ce que
-  l'app n'entraîne toujours pas alors que le test le mesure, d'où l'écart
-  possible entre niveau testé et niveau de pratique. Les verbes de mouvement,
-  eux, ont désormais leur module.
+- Les **participes et gérondifs** : le dernier domaine que le test mesure
+  sans que l'app l'entraîne. À traiter par transformation
+  (« Человек, который читает → читающий человек ») plutôt que par schéma —
+  un participe est une relative comprimée, ça se manipule, ça ne se dessine
+  pas.
 - Faire entrer `motion_progress` dans l'estimation continue du niveau : les
   seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
   demande de les recalibrer.
