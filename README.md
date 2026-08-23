@@ -111,6 +111,7 @@ npm run check             # tous les contrôles
 npm run check:grammar     # banque de noms et moteur de déclinaison
 npm run check:leveltest   # vivier d'items et qualité du placement
 npm run check:progression # adaptation au niveau et estimation continue
+npm run check:motion      # verbes de mouvement : formes et cohérence des exercices
 npm run build:nouns     # régénère la banque depuis le dictionnaire (rare)
 ```
 
@@ -155,7 +156,7 @@ app/
   signup/            page d'inscription + action serveur (actions.ts)
   account/           réglages du compte + action serveur (suppression)
   login, onboarding, dashboard, tutor
-  cases, vocabulary, reading   (modules d'apprentissage)
+  cases, motion, vocabulary, reading   (modules d'apprentissage)
 components/
   auth/              SignupForm, TurnstileWidget
   account/           ProfileSettings, PreferencesSettings, PasswordSettings,
@@ -253,6 +254,52 @@ placement se dégrade. Mesure actuelle : 69 % de placement exact, 95 % à un
 palier près, et un candidat qui répond au hasard finit en A0/A1 dans 95 %
 des cas.
 
+## Les verbes de mouvement
+
+La difficulté n°1 du russe pour un francophone, et longtemps le trou du
+programme : le français dit « aller » là où le russe demande trois décisions
+en même temps.
+
+1. **Le mode** — à pied, en véhicule, en avion, par l'eau. « Я иду в Москву »
+   signifie qu'on s'y rend *à pied*.
+2. **La direction** — unidirectionnel (un trajet en cours) contre
+   multidirectionnel (habitude, aller-retour, aptitude). Le piège : au passé,
+   « вчера я ходил в кино » veut dire qu'on y est allé **et revenu**, alors
+   que « я шёл в кино » dit seulement qu'on était en chemin.
+3. **Le préfixe** — при-, у-, в-, вы-, под-… qui change le sens, rend le
+   verbe perfectif, et impose sa préposition et donc son cas.
+
+`/motion` traite ces trois couches comme quatre compétences séparées, dans
+l'ordre où elles se construisent (A1 → B1). Chacune isole UNE difficulté :
+mélanger le mode et la direction dans un même exercice ne dirait pas laquelle
+des deux a fait échouer l'apprenant.
+
+### Pourquoi des schémas et pas des images
+
+Ce qui sépare `идти` de `ходить` n'est pas la scène — c'est un piéton dans
+les deux cas — mais la **forme du trajet**. Une photo de quelqu'un qui marche
+ne distingue rien ; une flèche qui revient à son point de départ, si. Les
+préfixes encodent de la même façon une relation à une frontière (entrer,
+sortir, s'arrêter au bord, contourner) : c'est de la géométrie, donc ça se
+dessine exactement.
+
+D'où des schémas SVG inline (`components/motion/TrajectoryDiagram.tsx`) :
+rien à charger, rien à licencier, et les couleurs suivent le thème.
+
+### Discipline de données
+
+Les formes conjuguées sont écrites et vérifiées, jamais dérivées : `идти` fait
+`шёл` au passé, et le préfixe `вы-` porte toujours l'accent (`вы́шел`, jamais
+« вышёл »). Même règle que pour les déclinaisons.
+
+`npm run check:motion` vérifie les formes contre une table de référence
+relue à la main, **et** la cohérence sémantique des exercices : un exercice
+dont la phrase française dit « je vais » ne peut pas attendre « бегу » (je
+cours). Cette incohérence-là est apparue au premier essai de génération.
+
+La correction est rejouée côté serveur (`app/api/motion/attempt`), comme pour
+les cas : le client envoie l'item et sa réponse, jamais « j'ai eu juste ».
+
 ## Niveau et progression
 
 Deux mesures cohabitent, volontairement :
@@ -306,10 +353,13 @@ de réussite reste estimée A0.
   ne manque que la traduction française.
 - Corpus de classiques du domaine public (Pouchkine, Tchekhov…) pour compléter
   la lecture générée.
-- Conjugaison verbale (aspects perfectif/imperfectif) — c'est, avec les
-  verbes de mouvement et les participes, ce que l'app n'entraîne nulle part
-  alors que le test le mesure : d'où l'écart possible entre niveau testé et
-  niveau de pratique.
+- Conjugaison verbale (aspects perfectif/imperfectif) et participes : ce que
+  l'app n'entraîne toujours pas alors que le test le mesure, d'où l'écart
+  possible entre niveau testé et niveau de pratique. Les verbes de mouvement,
+  eux, ont désormais leur module.
+- Faire entrer `motion_progress` dans l'estimation continue du niveau : les
+  seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
+  demande de les recalibrer.
 - Étiqueter les 136 déclencheurs par niveau CEFR plutôt que par palier
   (basic/intermediate/advanced) : trois paliers ne permettent pas de séparer
   A1 de A2. Travail de contenu, pas de code.

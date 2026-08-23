@@ -130,12 +130,26 @@ create table if not exists public.case_trigger_progress (
   primary key (user_id, case_id, trigger_id)
 );
 
+-- ─── motion_progress ────────────────────────────────────────────
+-- Précision par compétence du module « verbes de mouvement »
+-- (lib/motion/exercises.ts : mode, direction, prefix, government). Même
+-- forme que case_trigger_progress : un compteur par compétence, alimenté
+-- par app/api/motion/attempt.
+create table if not exists public.motion_progress (
+  user_id   uuid not null references auth.users(id) on delete cascade,
+  skill_id  text not null,
+  attempts  int default 0,
+  correct   int default 0,
+  last_seen timestamptz default now(),
+  primary key (user_id, skill_id)
+);
+
 -- ─── activity_log ───────────────────────────────────────────────
 -- Journal d'activité pour alimenter le dashboard (graphes, streak…).
 create table if not exists public.activity_log (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users(id) on delete cascade,
-  kind       text not null,             -- 'case' | 'vocab' | 'reading' | 'chat'
+  kind       text not null,             -- 'case' | 'motion' | 'vocab' | 'reading' | 'chat'
   correct    boolean,
   meta       jsonb,
   created_at timestamptz default now()
@@ -214,6 +228,7 @@ alter table public.profiles              enable row level security;
 alter table public.level_tests           enable row level security;
 alter table public.case_progress         enable row level security;
 alter table public.case_trigger_progress enable row level security;
+alter table public.motion_progress       enable row level security;
 alter table public.srs_cards             enable row level security;
 alter table public.activity_log          enable row level security;
 alter table public.chat_conversations    enable row level security;
@@ -226,7 +241,7 @@ alter table public.reading_texts         enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['level_tests','case_progress','case_trigger_progress','srs_cards','activity_log','chat_conversations','chat_messages','vocab_lists','vocab_words','reading_texts']
+  foreach t in array array['level_tests','case_progress','case_trigger_progress','motion_progress','srs_cards','activity_log','chat_conversations','chat_messages','vocab_lists','vocab_words','reading_texts']
   loop
     execute format('drop policy if exists own_select on public.%I;', t);
     execute format('drop policy if exists own_all on public.%I;', t);
@@ -314,3 +329,8 @@ alter table public.profiles    drop column if exists goals;
 -- Le test de placement s'arrête à C1 : C2 sert aux textes de lecture, dont
 -- le niveau se demande indépendamment du niveau mesuré.
 alter type cefr_level add value if not exists 'C2';
+
+-- ─── Migration : module « verbes de mouvement » ─────────────────────
+-- Sans effet si la table existe déjà (create ... if not exists ci-dessus).
+-- À exécuter sur une base créée avant ce module.
+alter table public.motion_progress enable row level security;
