@@ -12,6 +12,7 @@ const PUBLIC_PATHS = ["/", "/login", "/signup", "/auth"];
 // redirection en boucle vers /onboarding.
 const ONBOARDING_EXEMPT_PATHS = [
   "/onboarding",
+  "/level-test",
   "/account",
   "/api/profile",
   "/api/level-test/evaluate",

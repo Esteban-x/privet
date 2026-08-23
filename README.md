@@ -247,12 +247,35 @@ gérondifs et régime verbal, C1 phraséologie et registre. Chaque item teste
 une compétence en contexte, avec une seule réponse défendable — les items
 dont deux options se disent réellement en russe ont été écartés.
 
+### Le retest
+
+`/level-test` réévalue le niveau. Trois règles, toutes au service de la
+comparabilité :
+
+- **Mêmes règles, mêmes seuils, même calibrage** que la première passation.
+  Un test « adapté » à l'apprenant rendrait « je suis passé de A2 à B1 »
+  incomparable — c'est le point sur lequel il ne faut pas céder.
+- **Items jamais vus** : `level_tests.detail` conserve les réponses item par
+  item, donc les questions déjà posées sont écartées du tirage. Sinon le
+  retest mesure la mémoire de la correction, pas la compréhension. Le vivier
+  tient 5 passations entièrement inédites ; au-delà, les anciens items
+  reviennent plutôt que de laisser un palier non sondé.
+- **Un délai de 14 jours** entre deux passations. Deux tests rapprochés ne
+  diffèrent que par le bruit ; la progression réelle se compte en semaines.
+
+Le rapport est le seul endroit où la personnalisation a sa place : il découpe
+le résultat **par domaine** (cas, aspect, verbes de mouvement, participes,
+syntaxe, morphologie, lexique), du plus faible au plus solide, et renvoie
+vers le module d'entraînement quand il en existe un.
+
 `npm run check:leveltest` vérifie le vivier (4 options, bonne réponse dans
-les bornes, assez d'items par palier) ET le comportement statistique :
-simulation de candidats de niveau connu, avec des seuils qui échouent si le
-placement se dégrade. Mesure actuelle : 69 % de placement exact, 95 % à un
-palier près, et un candidat qui répond au hasard finit en A0/A1 dans 95 %
-des cas.
+les bornes, assez d'items par palier, domaines représentés), le
+**comportement du retest** (aucun item reposé sur 4 passations successives,
+et un test qui se déroule quand même une fois le vivier épuisé), ET le
+comportement statistique : simulation de candidats de niveau connu, avec des
+seuils qui échouent si le placement se dégrade. Mesure actuelle : 100 items,
+70 % de placement exact, 96 % à un palier près, et un candidat qui répond au
+hasard finit en A0/A1 dans 95 % des cas.
 
 ## Les verbes de mouvement
 
@@ -363,8 +386,8 @@ de réussite reste estimée A0.
 - Étiqueter les 136 déclencheurs par niveau CEFR plutôt que par palier
   (basic/intermediate/advanced) : trois paliers ne permettent pas de séparer
   A1 de A2. Travail de contenu, pas de code.
-- Retest de niveau avec items jamais vus (`level_tests.detail` conserve déjà
-  les ids répondus), proposé quand le niveau de pratique dépasse le testé.
+- Élargir encore le vivier du test : 100 items tiennent 5 passations
+  inédites, au-delà les questions commencent à revenir.
 - Audio / prononciation via un TTS.
 
 ## Le captcha

@@ -28,7 +28,10 @@ function require_(condition, message) {
 
 // ─── 1. Vivier ─────────────────────────────────────────────────────
 const OPTIONS_PER_ITEM = 4; // le seuil de validation (3/4) suppose 25 % de hasard
-const MIN_PER_TIER = E.BLOCK_SIZE * 2; // deux passations ne doivent pas se ressembler
+// Chaque passation consomme un bloc par palier sondé : il faut de quoi tenir
+// plusieurs retests sans reposer d'item.
+const MIN_RETESTS = 4;
+const MIN_PER_TIER = E.BLOCK_SIZE * MIN_RETESTS;
 
 const ids = new Set();
 for (const q of Q.LEVEL_QUESTIONS) {
@@ -73,6 +76,60 @@ for (let tier = Q.MIN_TIER; tier <= Q.MAX_TIER; tier++) {
     );
   }
 }
+
+// Chaque item porte un domaine, et le rapport doit pouvoir nommer chacun.
+for (const q of Q.LEVEL_QUESTIONS) {
+  require_(
+    Q.DOMAIN_LABEL[q.domain] !== undefined,
+    `${q.id} : domaine "${q.domain}" sans libellé`
+  );
+}
+for (const tier of [1, 2, 3, 4, 5]) {
+  const domains = new Set(Q.questionsForTier(tier).map((q) => q.domain));
+  require_(
+    domains.size >= 3,
+    `palier ${tier} : seulement ${domains.size} domaines représentés, le rapport serait creux`
+  );
+}
+
+// ─── 1bis. Retest : exclusion des items déjà vus ───────────────────
+// Un retest qui repose les mêmes questions mesure la mémoire de la
+// correction, pas la compréhension.
+function runWith(excludeIds, picker) {
+  let run = E.startRun(Math.random, excludeIds);
+  let guard = 0;
+  while (!run.finished && guard++ < 50) {
+    const q = E.currentQuestion(run);
+    if (!q) break;
+    run = E.answerCurrent(run, picker(q));
+  }
+  return run;
+}
+
+const perfect = (q) => q.correctIndex;
+let seen = [];
+let reused = 0;
+for (let pass = 0; pass < MIN_RETESTS; pass += 1) {
+  const run = runWith(seen, perfect);
+  require_(run.finished, `passation ${pass + 1} : le test ne s'est pas terminé`);
+  const overlap = run.askedIds.filter((id) => seen.includes(id));
+  if (overlap.length > 0) reused += overlap.length;
+  seen = [...seen, ...run.askedIds];
+}
+require_(
+  reused === 0,
+  `${reused} items reposés au cours de ${MIN_RETESTS} passations successives — le vivier est trop petit`
+);
+require_(
+  E.freshRunsLeft([]) >= MIN_RETESTS,
+  `le vivier n'annonce que ${E.freshRunsLeft([])} passations inédites, il en faut ${MIN_RETESTS}`
+);
+// Vivier épuisé : le test doit continuer de fonctionner, quitte à reposer.
+const exhausted = runWith(Q.LEVEL_QUESTIONS.map((q) => q.id), perfect);
+require_(
+  exhausted.finished && exhausted.answers.length >= E.BLOCK_SIZE * 2,
+  "avec un vivier entièrement vu, le test doit encore se dérouler plutôt que de rendre des blocs vides"
+);
 
 // ─── 2. Algorithme ─────────────────────────────────────────────────
 const LEVELS = ["A0", "A1", "A2", "B1", "B2", "C1"];
@@ -164,6 +221,29 @@ for (const l of perLevel) {
   require_(l.items <= maxItems, `candidat ${l.level} : ${l.items.toFixed(1)} items posés, maximum ${maxItems}`);
 }
 
+// ─── 5. Rapport par domaine ────────────────────────────────────────
+const sample = runWith([], (q) => (Math.random() < 0.7 ? q.correctIndex : (q.correctIndex + 1) % 4));
+const report = E.evaluateAnswers(sample.answers);
+require_(report.domains.length > 0, "le rapport ne contient aucun domaine");
+require_(
+  report.domains.reduce((sum, d) => sum + d.asked, 0) === report.total,
+  "le total par domaine ne retombe pas sur le nombre de questions posées"
+);
+require_(
+  report.domains.reduce((sum, d) => sum + d.correct, 0) === report.score,
+  "le score par domaine ne retombe pas sur le score global"
+);
+// Les domaines les moins réussis d'abord : le rapport doit ouvrir sur ce
+// qu'il y a à travailler.
+for (let i = 1; i < report.domains.length; i += 1) {
+  const previous = report.domains[i - 1];
+  const current = report.domains[i];
+  require_(
+    previous.correct / previous.asked <= current.correct / current.asked,
+    "les domaines du rapport ne sont pas triés du plus faible au plus solide"
+  );
+}
+
 // ─── Rapport ───────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`\n✗ ${failures.length} problème(s) sur ${checks} contrôles :\n`);
@@ -176,6 +256,10 @@ console.log(`✓ ${checks} contrôles passés.`);
 console.log(
   `  vivier : ${Q.LEVEL_QUESTIONS.length} items sur ${Q.MAX_TIER} paliers ` +
     `(${Q.questionsForTier(1).length} par palier), blocs de ${E.BLOCK_SIZE}, ${E.MAX_BLOCKS} séries max`
+);
+console.log(
+  `  retest : ${E.freshRunsLeft([])} passations sans reposer d'item · ` +
+    `${new Set(Q.LEVEL_QUESTIONS.map((q) => q.domain)).size} domaines dans le rapport`
 );
 console.log(
   `  placement : ${(exactRate * 100).toFixed(0)}% exact, ${(within1Rate * 100).toFixed(0)}% à un palier près`

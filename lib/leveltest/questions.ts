@@ -35,10 +35,47 @@ import { CefrLevel } from "@/lib/supabase/types";
 
 export type LevelSkill = "grammaire" | "lexique";
 
+/**
+ * Domaine grammatical de l'item — sert au RAPPORT du test, là où `skill` sert
+ * seulement à équilibrer la composition d'un bloc.
+ *
+ * C'est ce découpage qui permet de dire « tu valides B1 ; il t'a manqué les
+ * participes et le régime verbal » au lieu d'un simple niveau. Il recoupe
+ * volontairement les modules de l'app : un domaine faible qui a son module
+ * (cas, mouvement) renvoie vers un entraînement, un domaine faible qui n'en
+ * a pas (aspect, participes) est une limite connue du programme.
+ */
+export type LevelDomain =
+  | "lexique"
+  | "morphologie"
+  | "cas"
+  | "aspect"
+  | "mouvement"
+  | "syntaxe"
+  | "participes";
+
+export const DOMAIN_LABEL: Record<LevelDomain, string> = {
+  lexique: "Vocabulaire",
+  morphologie: "Formes et accords",
+  cas: "Cas et rection",
+  aspect: "Aspect verbal",
+  mouvement: "Verbes de mouvement",
+  syntaxe: "Syntaxe",
+  participes: "Participes et gérondifs",
+};
+
+/** Domaines qui ont un module d'entraînement dans l'app. */
+export const DOMAIN_PRACTICE: Partial<Record<LevelDomain, { href: string; label: string }>> = {
+  cas: { href: "/cases", label: "Module Cas" },
+  mouvement: { href: "/motion", label: "Module Verbes de mouvement" },
+  lexique: { href: "/vocabulary", label: "Module Vocabulaire" },
+};
+
 export interface LevelQuestion {
   id: string;
   tier: number; // 1 (A1) → 5 (C1)
   skill: LevelSkill;
+  domain: LevelDomain;
   prompt: string; // consigne en français
   question: string; // le contenu russe
   options: string[];
@@ -61,6 +98,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   // ─── Palier 1 · A1 — Элементарный уровень ────────────────────────
   {
     id: "a1-lex-spasibo",
+    domain: "lexique",
     tier: 1,
     skill: "lexique",
     prompt: "Que signifie ce mot ?",
@@ -71,6 +109,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-lex-dosvidaniya",
+    domain: "lexique",
     tier: 1,
     skill: "lexique",
     prompt: "Que signifie cette formule ?",
@@ -81,6 +120,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-lex-khleb",
+    domain: "lexique",
     tier: 1,
     skill: "lexique",
     prompt: "Que signifie ce mot ?",
@@ -91,6 +131,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-lex-ponedelnik",
+    domain: "lexique",
     tier: 1,
     skill: "lexique",
     prompt: "Quel jour de la semaine est-ce ?",
@@ -101,6 +142,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-com-kakvaszovut",
+    domain: "lexique",
     tier: 1,
     skill: "lexique",
     prompt: "Que demande-t-on ?",
@@ -116,6 +158,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-com-kakdela",
+    domain: "lexique",
     tier: 1,
     skill: "lexique",
     prompt: "Que signifie cette question ?",
@@ -126,6 +169,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-gram-govoryu",
+    domain: "morphologie",
     tier: 1,
     skill: "grammaire",
     prompt: "Complète : « Je parle russe. »",
@@ -136,6 +180,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-gram-prep-lieu",
+    domain: "cas",
     tier: 1,
     skill: "grammaire",
     prompt: "Complète : « J'habite à Moscou. »",
@@ -146,6 +191,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-gram-possessif",
+    domain: "morphologie",
     tier: 1,
     skill: "grammaire",
     prompt: "Complète : « C'est ma sœur. »",
@@ -156,6 +202,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-gram-accusatif",
+    domain: "cas",
     tier: 1,
     skill: "grammaire",
     prompt: "Complète : « Je lis un livre. »",
@@ -166,6 +213,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-gram-est",
+    domain: "syntaxe",
     tier: 1,
     skill: "grammaire",
     prompt: "Complète : « J'ai un frère. »",
@@ -176,6 +224,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a1-gram-gde",
+    domain: "syntaxe",
     tier: 1,
     skill: "grammaire",
     prompt: "Complète : « Où habites-tu ? »",
@@ -185,9 +234,101 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
     explain: "«Где» = où. «Когда» = quand, «Кто» = qui, «Что» = quoi.",
   },
 
+  {
+    id: "a1-lex-voda",
+    domain: "lexique",
+    tier: 1,
+    skill: "lexique",
+    prompt: "Que signifie ce mot ?",
+    question: "вода",
+    options: ["pain", "eau", "lait", "thé"],
+    correctIndex: 1,
+    explain: "«вода» = eau. «молоко» = lait, «чай» = thé.",
+  },
+  {
+    id: "a1-lex-segodnya",
+    domain: "lexique",
+    tier: 1,
+    skill: "lexique",
+    prompt: "Que signifie cet adverbe ?",
+    question: "сегодня",
+    options: ["hier", "demain", "aujourd'hui", "toujours"],
+    correctIndex: 2,
+    explain: "«сегодня» = aujourd'hui. «вчера» = hier, «завтра» = demain.",
+  },
+  {
+    id: "a1-lex-khorosho",
+    domain: "lexique",
+    tier: 1,
+    skill: "lexique",
+    prompt: "Que signifie ce mot ?",
+    question: "хорошо",
+    options: ["mal", "bien", "beaucoup", "peu"],
+    correctIndex: 1,
+    explain: "«хорошо» = bien. «плохо» = mal.",
+  },
+  {
+    id: "a1-mor-govorish",
+    domain: "morphologie",
+    tier: 1,
+    skill: "grammaire",
+    prompt: "Complète : « Tu parles français ? »",
+    question: "Ты ___ по-французски?",
+    options: ["говорю", "говоришь", "говорит", "говорят"],
+    correctIndex: 1,
+    explain: "2e personne du singulier : говоришь. La terminaison -ишь marque le « tu ».",
+  },
+  {
+    id: "a1-syn-kopula",
+    domain: "syntaxe",
+    tier: 1,
+    skill: "grammaire",
+    prompt: "Comment dit-on « Il est étudiant » ?",
+    question: "Il est étudiant.",
+    options: ["Он есть студент.", "Он студент.", "Он быть студент.", "Он это студент."],
+    correctIndex: 1,
+    explain:
+      "Au présent, le russe n'emploie pas de verbe « être » : on juxtapose simplement le sujet et l'attribut.",
+  },
+  {
+    id: "a1-syn-chto",
+    domain: "syntaxe",
+    tier: 1,
+    skill: "grammaire",
+    prompt: "Complète : « Qu'est-ce que c'est ? »",
+    question: "___ это?",
+    options: ["Кто", "Что", "Где", "Как"],
+    correctIndex: 1,
+    explain: "«Что» interroge sur une chose, «Кто» sur une personne.",
+  },
+  {
+    id: "a1-cas-na-stole",
+    domain: "cas",
+    tier: 1,
+    skill: "grammaire",
+    prompt: "Complète : « Le livre est sur la table. »",
+    question: "Книга ___ столе.",
+    options: ["в", "на", "из", "под"],
+    correctIndex: 1,
+    explain: "Sur une surface : «на» + prépositionnel (на столе). «в» servirait pour l'intérieur.",
+  },
+  {
+    id: "a1-cas-acc-inanime",
+    domain: "cas",
+    tier: 1,
+    skill: "grammaire",
+    prompt: "Complète : « Je vois une maison. »",
+    question: "Я вижу ___.",
+    options: ["дом", "дома", "дому", "домом"],
+    correctIndex: 0,
+    explain:
+      "Pour un masculin INANIMÉ, l'accusatif est identique au nominatif : дом. C'est l'animé qui prend la forme du génitif (вижу брата).",
+  },
+
   // ─── Palier 2 · A2 — Базовый уровень ─────────────────────────────
   {
     id: "a2-gram-passe",
+    domain: "morphologie",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « Hier, Anna est allée au cinéma. »",
@@ -198,6 +339,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-futur",
+    domain: "morphologie",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « Demain je vais travailler. »",
@@ -208,6 +350,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-genitif-net",
+    domain: "cas",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « Je n'ai pas le temps. »",
@@ -218,6 +361,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-genitif-u",
+    domain: "cas",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « Mon frère a une voiture. »",
@@ -228,6 +372,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-datif-nravitsya",
+    domain: "cas",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « J'aime cette musique. »",
@@ -238,6 +383,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-direction",
+    domain: "cas",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « Chaque matin je vais à l'école. »",
@@ -248,6 +394,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-lieu",
+    domain: "cas",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « Mon frère travaille à l'école. »",
@@ -258,6 +405,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-numeral",
+    domain: "cas",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « J'ai deux sœurs. »",
@@ -268,6 +416,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-motion",
+    domain: "mouvement",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « D'habitude je vais au travail en bus. »",
@@ -279,6 +428,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-aspect-duree",
+    domain: "aspect",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « Hier j'ai écrit une lettre toute la soirée. »",
@@ -290,6 +440,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-gram-comparatif",
+    domain: "syntaxe",
     tier: 2,
     skill: "grammaire",
     prompt: "Complète : « Moscou est plus grande que Saint-Pétersbourg. »",
@@ -300,6 +451,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "a2-lex-opazdyvat",
+    domain: "lexique",
     tier: 2,
     skill: "lexique",
     prompt: "Que signifie ce verbe ?",
@@ -309,9 +461,103 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
     explain: "«опаздывать / опоздать» = être en retard. «спешить» = se dépêcher.",
   },
 
+  {
+    id: "a2-mou-metro",
+    domain: "mouvement",
+    tier: 2,
+    skill: "grammaire",
+    prompt: "Complète : « Chaque matin je vais au travail en métro. »",
+    question: "Каждое утро я ___ на работу на метро.",
+    options: ["иду", "еду", "хожу", "езжу"],
+    correctIndex: 3,
+    explain:
+      "Habitude (каждое утро) + véhicule → езжу. «еду» décrirait le trajet en cours, «хожу» un déplacement à pied.",
+  },
+  {
+    id: "a2-mou-seychas",
+    domain: "mouvement",
+    tier: 2,
+    skill: "grammaire",
+    prompt: "Complète : « En ce moment, il rentre à la maison (à pied). »",
+    question: "Сейчас он ___ домой.",
+    options: ["идёт", "ходит", "ездит", "ходил"],
+    correctIndex: 0,
+    explain:
+      "Un trajet en cours, dans une direction → unidirectionnel идёт. «ходит» dirait une habitude.",
+  },
+  {
+    id: "a2-cas-age",
+    domain: "cas",
+    tier: 2,
+    skill: "grammaire",
+    prompt: "Complète : « J'ai vingt ans. »",
+    question: "___ двадцать лет.",
+    options: ["Я", "Меня", "Мне", "Мной"],
+    correctIndex: 2,
+    explain: "L'âge se dit au datif : мне двадцать лет (littéralement « à moi vingt ans »).",
+  },
+  {
+    id: "a2-cas-partitif",
+    domain: "cas",
+    tier: 2,
+    skill: "grammaire",
+    prompt: "Complète : « Donne-moi un peu d'eau. »",
+    question: "Дай мне немного ___.",
+    options: ["вода", "воду", "воды", "водой"],
+    correctIndex: 2,
+    explain: "«немного» est une expression de quantité : elle exige le génitif — немного воды.",
+  },
+  {
+    id: "a2-cas-acc-anime",
+    domain: "cas",
+    tier: 2,
+    skill: "grammaire",
+    prompt: "Complète : « Je vois mon frère. »",
+    question: "Я вижу ___.",
+    options: ["брат", "брата", "брату", "братом"],
+    correctIndex: 1,
+    explain:
+      "Masculin ANIMÉ : l'accusatif emprunte la forme du génitif → брата. Comparer avec « вижу дом » (inanimé).",
+  },
+  {
+    id: "a2-asp-uzhe",
+    domain: "aspect",
+    tier: 2,
+    skill: "grammaire",
+    prompt: "Complète : « J'ai déjà vu ce film. »",
+    question: "Я уже ___ этот фильм.",
+    options: ["смотрел", "посмотрел", "смотрю", "буду смотреть"],
+    correctIndex: 1,
+    explain:
+      "«уже» pointe un résultat atteint → perfectif посмотрел. L'imperfectif «смотрел» décrirait l'activité, sans dire qu'elle a abouti.",
+  },
+  {
+    id: "a2-mor-byla",
+    domain: "morphologie",
+    tier: 2,
+    skill: "grammaire",
+    prompt: "Complète : « Elle était à la maison hier. »",
+    question: "Вчера она ___ дома.",
+    options: ["был", "была", "было", "были"],
+    correctIndex: 1,
+    explain: "Le passé de «быть» s'accorde en genre : она была.",
+  },
+  {
+    id: "a2-lex-dorogo",
+    domain: "lexique",
+    tier: 2,
+    skill: "lexique",
+    prompt: "Que signifie ce mot ?",
+    question: "дорого",
+    options: ["bon marché", "cher", "gratuit", "rapide"],
+    correctIndex: 1,
+    explain: "«дорого» = cher. «дёшево» = bon marché.",
+  },
+
   // ─── Palier 3 · B1 — ТРКИ-1 ──────────────────────────────────────
   {
     id: "b1-gram-instr-metier",
+    domain: "cas",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « Mon père travaille comme médecin. »",
@@ -322,6 +568,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-instr-avec",
+    domain: "cas",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « Je vais au cinéma avec un ami. »",
@@ -332,6 +579,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-aspect-delai",
+    domain: "aspect",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « J'ai lu ce livre en deux jours. »",
@@ -343,6 +591,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-chtoby",
+    domain: "syntaxe",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « Je suis venu pour t'aider. »",
@@ -353,6 +602,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-kotoryy",
+    domain: "syntaxe",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « La fille que j'ai rencontrée hier est ma sœur. »",
@@ -364,6 +614,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-motion-prefixe",
+    domain: "mouvement",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « Il est entré dans la pièce et s'est assis. »",
@@ -378,6 +629,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-conditionnel",
+    domain: "syntaxe",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « Si j'avais le temps, je t'aiderais. »",
@@ -388,6 +640,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-genitif-pluriel",
+    domain: "cas",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « Il y a beaucoup d'étudiants dans notre ville. »",
@@ -398,6 +651,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-datif-verbe",
+    domain: "cas",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « J'aide souvent ma mère. »",
@@ -409,6 +663,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-reflexif",
+    domain: "morphologie",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « Le matin je me réveille à sept heures. »",
@@ -419,6 +674,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-gram-superlatif",
+    domain: "syntaxe",
     tier: 3,
     skill: "grammaire",
     prompt: "Complète : « C'est le film le plus intéressant de l'année. »",
@@ -429,6 +685,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b1-lex-vnezapno",
+    domain: "lexique",
     tier: 3,
     skill: "lexique",
     prompt: "Que signifie cet adverbe ?",
@@ -438,9 +695,104 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
     explain: "«внезапно» = soudainement, tout à coup.",
   },
 
+  {
+    id: "b1-mou-vyshel",
+    domain: "mouvement",
+    tier: 3,
+    skill: "grammaire",
+    prompt: "Complète : « Il est sorti de la pièce et a fermé la porte. »",
+    question: "Он ___ из комнаты и закрыл дверь.",
+    options: ["вошёл", "вышел", "перешёл", "подошёл"],
+    correctIndex: 1,
+    explain:
+      "« из » impose le préfixe вы- (sortir de l'intérieur). в(о)- serait l'entrée, под- l'approche.",
+  },
+  {
+    id: "b1-mou-podoshla",
+    domain: "mouvement",
+    tier: 3,
+    skill: "grammaire",
+    prompt: "Complète : « Elle s'est approchée de la fenêtre. »",
+    question: "Она подошла ___ окну.",
+    options: ["к", "до", "у", "на"],
+    correctIndex: 0,
+    explain: "Le préfixe под- appelle « к » + datif : подойти к окну.",
+  },
+  {
+    id: "b1-cas-instr-moyen",
+    domain: "cas",
+    tier: 3,
+    skill: "grammaire",
+    prompt: "Complète : « J'écris au stylo. »",
+    question: "Я пишу ___.",
+    options: ["ручка", "ручку", "ручкой", "ручке"],
+    correctIndex: 2,
+    explain:
+      "L'instrument se met à l'instrumental, sans préposition : пишу ручкой. C'est ce sens qui donne son nom au cas.",
+  },
+  {
+    id: "b1-cas-prep-rossii",
+    domain: "cas",
+    tier: 3,
+    skill: "grammaire",
+    prompt: "Complète : « J'habite en Russie. »",
+    question: "Я живу в ___.",
+    options: ["Россия", "Россию", "России", "Россией"],
+    correctIndex: 2,
+    explain:
+      "Lieu où l'on est : в + prépositionnel. Un radical en -и (Россия) donne -ии → в России.",
+  },
+  {
+    id: "b1-asp-napishu",
+    domain: "aspect",
+    tier: 3,
+    skill: "grammaire",
+    prompt: "Complète : « Demain j'écrirai la lettre et je l'enverrai. »",
+    question: "Завтра я ___ письмо и отправлю его.",
+    options: ["напишу", "буду писать", "пишу", "писал"],
+    correctIndex: 0,
+    explain:
+      "Deux actions qui s'enchaînent, chacune menée à son terme → perfectif напишу. « буду писать » décrirait une activité sans fin marquée.",
+  },
+  {
+    id: "b1-syn-chto-indirect",
+    domain: "syntaxe",
+    tier: 3,
+    skill: "grammaire",
+    prompt: "Complète : « Il a dit qu'il viendrait demain. »",
+    question: "Он сказал, ___ придёт завтра.",
+    options: ["что", "чтобы", "если", "ли"],
+    correctIndex: 0,
+    explain:
+      "Discours indirect déclaratif : « что ». « чтобы » introduirait un but, « ли » une question.",
+  },
+  {
+    id: "b1-syn-luchshe",
+    domain: "syntaxe",
+    tier: 3,
+    skill: "grammaire",
+    prompt: "Complète : « Il parle russe mieux que moi. »",
+    question: "Он говорит по-русски ___, чем я.",
+    options: ["хорошо", "лучше", "хороший", "самый хороший"],
+    correctIndex: 1,
+    explain: "Comparatif irrégulier de « хорошо » : лучше. La construction est « лучше, чем… ».",
+  },
+  {
+    id: "b1-lex-vnimatelno",
+    domain: "lexique",
+    tier: 3,
+    skill: "lexique",
+    prompt: "Que signifie cet adverbe ?",
+    question: "внимательно",
+    options: ["rapidement", "attentivement", "rarement", "bruyamment"],
+    correctIndex: 1,
+    explain: "« внимательно » = attentivement, de « внимание » (attention).",
+  },
+
   // ─── Palier 4 · B2 — ТРКИ-2 ──────────────────────────────────────
   {
     id: "b2-gram-participe-actif",
+    domain: "participes",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « L'étudiant qui lit à la bibliothèque est mon ami. »",
@@ -452,6 +804,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-participe-passif",
+    domain: "participes",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « Le livre écrit par Tolstoï est devenu un classique. »",
@@ -463,6 +816,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-gerondif",
+    domain: "participes",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « En rentrant chez moi, j'ai croisé un vieil ami. »",
@@ -474,6 +828,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-regime-interesovatsya",
+    domain: "cas",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « Il s'intéresse depuis longtemps à l'histoire. »",
@@ -484,6 +839,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-regime-izbegat",
+    domain: "cas",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « Il évite les conflits. »",
@@ -494,6 +850,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-regime-udelyat",
+    domain: "cas",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « Il accorde beaucoup d'attention aux détails. »",
@@ -504,6 +861,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-passif",
+    domain: "participes",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « Cette maison a été construite au siècle dernier. »",
@@ -515,6 +873,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-nesmotrya",
+    domain: "syntaxe",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « Bien qu'il fût tard, nous avons continué. »",
@@ -526,6 +885,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-li",
+    domain: "syntaxe",
     tier: 4,
     skill: "grammaire",
     prompt: "Complète : « Il a demandé si je viendrais demain. »",
@@ -537,6 +897,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-gram-derivation",
+    domain: "lexique",
     tier: 4,
     skill: "grammaire",
     prompt: "Quel mot désigne la PERSONNE qui exerce l'action de « преподавать » (enseigner) ?",
@@ -548,6 +909,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-lex-sokrashchat",
+    domain: "lexique",
     tier: 4,
     skill: "lexique",
     prompt: "Que signifie ce verbe ?",
@@ -558,6 +920,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "b2-lex-uverennyy",
+    domain: "lexique",
     tier: 4,
     skill: "lexique",
     prompt: "Que signifie cet adjectif ?",
@@ -567,9 +930,103 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
     explain: "«уверенный» = sûr de soi, assuré ; «быть уверенным в чём-то» = être sûr de quelque chose.",
   },
 
+  {
+    id: "b2-par-gerondif-perf",
+    domain: "participes",
+    tier: 4,
+    skill: "grammaire",
+    prompt: "Complète : « Ayant terminé son travail, il est rentré. »",
+    question: "___ работу, он пошёл домой.",
+    options: ["Заканчивая", "Закончив", "Закончил", "Заканчивать"],
+    correctIndex: 1,
+    explain:
+      "Gérondif PERFECTIF en -в : l'action est achevée avant celle du verbe principal. « Заканчивая » (imperfectif) la dirait simultanée.",
+  },
+  {
+    id: "b2-par-participe-passe-actif",
+    domain: "participes",
+    tier: 4,
+    skill: "grammaire",
+    prompt: "Complète : « L'homme qui nous a aidés hier est médecin. »",
+    question: "Человек, ___ нам вчера, — врач.",
+    options: ["помогающий", "помогавший", "помогая", "помогаемый"],
+    correctIndex: 1,
+    explain:
+      "Participe PASSÉ actif en -вший : l'action est révolue (вчера). « помогающий » serait au présent.",
+  },
+  {
+    id: "b2-par-court-passif",
+    domain: "participes",
+    tier: 4,
+    skill: "grammaire",
+    prompt: "Complète : « La porte est fermée. »",
+    question: "Дверь ___.",
+    options: ["закрыта", "закрытая", "закрывает", "закрывается"],
+    correctIndex: 0,
+    explain:
+      "Participe passif COURT, employé comme attribut : дверь закрыта. La forme longue « закрытая » serait épithète (закрытая дверь).",
+  },
+  {
+    id: "b2-cas-zanimatsya",
+    domain: "cas",
+    tier: 4,
+    skill: "grammaire",
+    prompt: "Complète : « Il fait du sport. »",
+    question: "Он занимается ___.",
+    options: ["спорт", "спорта", "спортом", "спорту"],
+    correctIndex: 2,
+    explain: "« заниматься » se construit avec l'instrumental : занимается спортом.",
+  },
+  {
+    id: "b2-cas-gorditsya",
+    domain: "cas",
+    tier: 4,
+    skill: "grammaire",
+    prompt: "Complète : « Je suis fier de mon fils. »",
+    question: "Я горжусь ___.",
+    options: ["сын", "сына", "сыну", "сыном"],
+    correctIndex: 3,
+    explain: "« гордиться » + instrumental : горжусь сыном.",
+  },
+  {
+    id: "b2-asp-imperatif-negatif",
+    domain: "aspect",
+    tier: 4,
+    skill: "grammaire",
+    prompt: "Complète : « Ne ferme pas la porte ! »",
+    question: "Не ___ дверь!",
+    options: ["закрой", "закрывай", "закрыть", "закрыл"],
+    correctIndex: 1,
+    explain:
+      "À l'impératif NÉGATIF, le russe emploie l'imperfectif : не закрывай. Le perfectif « не закрой » serait une mise en garde contre un accident, pas une interdiction.",
+  },
+  {
+    id: "b2-syn-tak-kak",
+    domain: "syntaxe",
+    tier: 4,
+    skill: "grammaire",
+    prompt: "Complète : « Comme il était en retard, nous avons commencé sans lui. »",
+    question: "___ он опоздал, мы начали без него.",
+    options: ["Так как", "Чтобы", "Хотя", "Если"],
+    correctIndex: 0,
+    explain: "« Так как » introduit la cause. « Хотя » marquerait la concession, « Если » l'hypothèse.",
+  },
+  {
+    id: "b2-lex-osushchestvit",
+    domain: "lexique",
+    tier: 4,
+    skill: "lexique",
+    prompt: "Que signifie ce verbe ?",
+    question: "осуществить",
+    options: ["annuler", "réaliser, mettre en œuvre", "envisager", "retarder"],
+    correctIndex: 1,
+    explain: "« осуществить » = réaliser, concrétiser (осуществить план : réaliser un plan).",
+  },
+
   // ─── Palier 5 · C1 — ТРКИ-3 ──────────────────────────────────────
   {
     id: "c1-lex-shlyapa",
+    domain: "lexique",
     tier: 5,
     skill: "lexique",
     prompt: "Que signifie cette expression figée ?",
@@ -580,6 +1037,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-lex-baklushi",
+    domain: "lexique",
     tier: 5,
     skill: "lexique",
     prompt: "Que signifie cette expression figée ?",
@@ -590,6 +1048,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-lex-lomat-golovu",
+    domain: "lexique",
     tier: 5,
     skill: "lexique",
     prompt: "Que signifie cette expression figée ?",
@@ -600,6 +1059,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-gram-izza",
+    domain: "cas",
     tier: 5,
     skill: "grammaire",
     prompt: "Complète : « À cause de la pluie, nous sommes restés à la maison. »",
@@ -611,6 +1071,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-gram-svidetelstvovat",
+    domain: "cas",
     tier: 5,
     skill: "grammaire",
     prompt: "Complète : « Cela témoigne de problèmes sérieux. »",
@@ -621,6 +1082,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-gram-prenebregat",
+    domain: "cas",
     tier: 5,
     skill: "grammaire",
     prompt: "Complète : « Il néglige les règles. »",
@@ -631,6 +1093,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-gram-chem-tem",
+    domain: "syntaxe",
     tier: 5,
     skill: "grammaire",
     prompt: "Complète : « Plus il travaillait, plus il se fatiguait. »",
@@ -641,6 +1104,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-gram-aspect-vspomnit",
+    domain: "aspect",
     tier: 5,
     skill: "grammaire",
     prompt: "Complète : « Je n'arrive absolument pas à me rappeler son numéro. »",
@@ -652,6 +1116,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-gram-aspect-pytatsya",
+    domain: "aspect",
     tier: 5,
     skill: "grammaire",
     prompt: "Complète : « J'ai longtemps essayé de le joindre. »",
@@ -662,6 +1127,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-lex-registre",
+    domain: "lexique",
     tier: 5,
     skill: "lexique",
     prompt: "Quel équivalent de « сейчас » appartient au registre écrit et soutenu ?",
@@ -673,6 +1139,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-lex-predvzyatyy",
+    domain: "lexique",
     tier: 5,
     skill: "lexique",
     prompt: "Que signifie cet adjectif ?",
@@ -683,6 +1150,7 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
   },
   {
     id: "c1-lex-obuslovlen",
+    domain: "lexique",
     tier: 5,
     skill: "lexique",
     prompt: "Que signifie cette forme ?",
@@ -690,6 +1158,99 @@ export const LEVEL_QUESTIONS: LevelQuestion[] = [
     options: ["conditionné, déterminé par", "obligatoire", "conclu", "supposé"],
     correctIndex: 0,
     explain: "«обусловлен чем-то» = déterminé/conditionné par quelque chose — registre écrit et analytique.",
+  },
+  {
+    id: "c1-lex-spustya-rukava",
+    domain: "lexique",
+    tier: 5,
+    skill: "lexique",
+    prompt: "Que signifie cette expression figée ?",
+    question: "спустя рукава",
+    options: ["avec application", "à la va-vite, négligemment", "en cachette", "à contrecœur"],
+    correctIndex: 1,
+    explain:
+      "« работать спустя рукава » = travailler par-dessus la jambe. L'image : les manches qu'on n'a pas retroussées.",
+  },
+  {
+    id: "c1-lex-vodit-za-nos",
+    domain: "lexique",
+    tier: 5,
+    skill: "lexique",
+    prompt: "Que signifie cette expression figée ?",
+    question: "водить за нос",
+    options: ["mener en bateau", "prendre en charge", "suivre de près", "flatter"],
+    correctIndex: 0,
+    explain: "« водить кого-то за нос » = tromper quelqu'un, le mener en bateau.",
+  },
+  {
+    id: "c1-lex-tem-ne-menee",
+    domain: "lexique",
+    tier: 5,
+    skill: "lexique",
+    prompt: "Que signifie cette locution ?",
+    question: "тем не менее",
+    options: ["d'autant plus", "néanmoins", "en particulier", "par conséquent"],
+    correctIndex: 1,
+    explain: "« тем не менее » = néanmoins, toutefois — registre écrit et argumentatif.",
+  },
+  {
+    id: "c1-lex-daby",
+    domain: "lexique",
+    tier: 5,
+    skill: "lexique",
+    prompt: "Quel est l'équivalent neutre et courant de « дабы » ?",
+    question: "дабы → ?",
+    options: ["чтобы", "потому что", "хотя", "если"],
+    correctIndex: 0,
+    explain:
+      "« дабы » est un archaïsme littéraire pour « чтобы » (afin que). Le reconnaître relève du registre, pas du sens.",
+  },
+  {
+    id: "c1-syn-chto-by-ni",
+    domain: "syntaxe",
+    tier: 5,
+    skill: "grammaire",
+    prompt: "Complète : « Quoi qu'il dise, je ne le crois pas. »",
+    question: "___ бы он ни говорил, я ему не верю.",
+    options: ["Что", "Как", "Кто", "Где"],
+    correctIndex: 0,
+    explain:
+      "Concessive indéfinie : mot interrogatif + « бы… ни » → « что бы он ни говорил » = quoi qu'il dise.",
+  },
+  {
+    id: "c1-syn-ne-tolko",
+    domain: "syntaxe",
+    tier: 5,
+    skill: "grammaire",
+    prompt:
+      "Complète : « Non seulement il est arrivé en retard, mais il a aussi oublié ses papiers. »",
+    question: "Он не только опоздал, ___ и забыл документы.",
+    options: ["а", "но", "или", "да"],
+    correctIndex: 1,
+    explain: "Corrélation figée : « не только… но и… ».",
+  },
+  {
+    id: "c1-cas-protivorechit",
+    domain: "cas",
+    tier: 5,
+    skill: "grammaire",
+    prompt: "Complète : « Cela contredit les faits. »",
+    question: "Это противоречит ___.",
+    options: ["факты", "фактов", "фактам", "фактами"],
+    correctIndex: 2,
+    explain: "« противоречить » se construit avec le datif : противоречит фактам.",
+  },
+  {
+    id: "c1-asp-poglyadyval",
+    domain: "aspect",
+    tier: 5,
+    skill: "grammaire",
+    prompt: "Complète : « Il ne cessait de jeter des coups d'œil par la fenêtre. »",
+    question: "Он то и дело ___ в окно.",
+    options: ["посмотрел", "поглядывал", "взглянул", "глядеть"],
+    correctIndex: 1,
+    explain:
+      "« то и дело » marque la répétition : imperfectif à valeur itérative et atténuée, поглядывал. Les perfectifs « посмотрел » et « взглянул » seraient ponctuels.",
   },
 ];
 

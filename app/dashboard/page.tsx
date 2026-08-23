@@ -161,7 +161,7 @@ export default async function DashboardPage() {
                 au-dessus de ton niveau testé ({testedLevel}).
               </p>
               <Link
-                href="/onboarding"
+                href="/level-test"
                 className="shrink-0 rounded-[10px] bg-accent px-4 py-2 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
               >
                 Repasser le test

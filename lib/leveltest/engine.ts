@@ -1,6 +1,7 @@
 import { CefrLevel } from "@/lib/supabase/types";
 import {
   LEVEL_QUESTIONS,
+  LevelDomain,
   LevelQuestion,
   MAX_TIER,
   MIN_TIER,
@@ -52,6 +53,14 @@ export interface TestAnswer {
 }
 
 export interface TestRun {
+  /**
+   * Items déjà vus lors de passations PRÉCÉDENTES, à ne pas reposer.
+   *
+   * Sans ça, un retest ne mesure plus la compréhension mais la mémoire : on
+   * a déjà lu l'item ET son explication. Le score monte sans que le niveau
+   * bouge, ce qui est exactement l'inverse de ce qu'on veut observer.
+   */
+  excludeIds: string[];
   /** Palier du bloc en cours. */
   tier: number;
   /** Plus haut palier validé (0 = aucun → A0). */
@@ -83,12 +92,15 @@ function shuffle<T>(items: T[], random: Rng): T[] {
  * compétence quand le palier en propose — un bloc entièrement lexical ne
  * dirait rien de la grammaire, et inversement.
  */
-function buildBlock(tier: number, askedIds: string[], random: Rng): string[] {
+function buildBlock(tier: number, askedIds: string[], excludeIds: string[], random: Rng): string[] {
   const asked = new Set(askedIds);
-  const pool = shuffle(
-    questionsForTier(tier).filter((q) => !asked.has(q.id)),
-    random
-  );
+  const all = questionsForTier(tier).filter((q) => !asked.has(q.id));
+  // Priorité aux items jamais vus. Si le palier est épuisé (beaucoup de
+  // passations), on repose les anciens plutôt que de rendre un bloc
+  // incomplet : mieux vaut une mesure un peu émoussée qu'un palier non sondé.
+  const excluded = new Set(excludeIds);
+  const fresh = all.filter((q) => !excluded.has(q.id));
+  const pool = shuffle(fresh.length >= BLOCK_SIZE ? fresh : all, random);
   if (pool.length <= BLOCK_SIZE) return pool.map((q) => q.id);
 
   const picked: LevelQuestion[] = [];
@@ -103,17 +115,29 @@ function buildBlock(tier: number, askedIds: string[], random: Rng): string[] {
   return shuffle(picked, random).map((q) => q.id);
 }
 
-export function startRun(random: Rng = Math.random): TestRun {
+export function startRun(random: Rng = Math.random, excludeIds: string[] = []): TestRun {
   return {
     tier: START_TIER,
     floor: 0,
     ceiling: MAX_TIER + 1,
     blocksDone: 0,
-    queue: buildBlock(START_TIER, [], random),
+    excludeIds,
+    queue: buildBlock(START_TIER, [], excludeIds, random),
     askedIds: [],
     answers: [],
     finished: false,
   };
+}
+
+/** Combien de passations le vivier peut encore servir sans reposer d'item. */
+export function freshRunsLeft(excludeIds: string[]): number {
+  const excluded = new Set(excludeIds);
+  let worst = Infinity;
+  for (let tier = MIN_TIER; tier <= MAX_TIER; tier += 1) {
+    const fresh = questionsForTier(tier).filter((q) => !excluded.has(q.id)).length;
+    worst = Math.min(worst, Math.floor(fresh / BLOCK_SIZE));
+  }
+  return worst === Infinity ? 0 : worst;
 }
 
 export function currentQuestion(run: TestRun): LevelQuestion | null {
@@ -175,7 +199,7 @@ export function answerCurrent(run: TestRun, selectedIndex: number, random: Rng =
     ceiling,
     blocksDone,
     tier: following,
-    queue: buildBlock(following, askedIds, random),
+    queue: buildBlock(following, askedIds, run.excludeIds, random),
   };
 }
 
@@ -187,11 +211,23 @@ export interface TierScore {
   validated: boolean;
 }
 
+export interface DomainScore {
+  domain: LevelDomain;
+  asked: number;
+  correct: number;
+}
+
 export interface TestResult {
   level: CefrLevel;
   score: number;
   total: number;
   tiers: TierScore[];
+  /**
+   * Réussite par domaine grammatical. C'est ce qui transforme « tu es B1 »
+   * en « tu valides B1, il t'a manqué les participes » — la seule partie du
+   * rapport qui dise quoi travailler.
+   */
+  domains: DomainScore[];
 }
 
 /**
@@ -206,6 +242,7 @@ export interface TestResult {
  */
 export function evaluateAnswers(answers: TestAnswer[]): TestResult {
   const byTier = new Map<number, { asked: number; correct: number }>();
+  const byDomain = new Map<LevelDomain, { asked: number; correct: number }>();
   let score = 0;
   let total = 0;
 
@@ -213,13 +250,17 @@ export function evaluateAnswers(answers: TestAnswer[]): TestResult {
     const q = getQuestion(a.questionId);
     if (!q) continue; // id inconnu : ignoré plutôt que compté
     const entry = byTier.get(q.tier) ?? { asked: 0, correct: 0 };
+    const domain = byDomain.get(q.domain) ?? { asked: 0, correct: 0 };
     entry.asked += 1;
+    domain.asked += 1;
     total += 1;
     if (q.correctIndex === a.selectedIndex) {
       entry.correct += 1;
+      domain.correct += 1;
       score += 1;
     }
     byTier.set(q.tier, entry);
+    byDomain.set(q.domain, domain);
   }
 
   const tiers: TierScore[] = [...byTier.entries()]
@@ -238,7 +279,13 @@ export function evaluateAnswers(answers: TestAnswer[]): TestResult {
     reached = t.tier;
   }
 
-  return { level: levelForTier(reached), score, total, tiers };
+  const domains: DomainScore[] = [...byDomain.entries()]
+    .map(([domain, s]) => ({ domain, asked: s.asked, correct: s.correct }))
+    // Les domaines les moins réussis d'abord : le rapport doit ouvrir sur ce
+    // qu'il y a à travailler, pas sur ce qui est déjà acquis.
+    .sort((a, b) => a.correct / a.asked - b.correct / b.asked || b.asked - a.asked);
+
+  return { level: levelForTier(reached), score, total, tiers, domains };
 }
 
 export function runResult(run: TestRun): TestResult {

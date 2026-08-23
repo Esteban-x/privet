@@ -46,7 +46,10 @@ export async function POST(req: Request) {
     result_level: result.level,
     // Le détail par palier explique le niveau obtenu : utile pour un
     // historique lisible, et pour diagnostiquer un placement contesté.
-    detail: { answers, tiers: result.tiers },
+    // Les réponses item par item servent aussi à EXCLURE ces items des
+    // passations suivantes (lib/leveltest/history.ts) : sans elles, un
+    // retest reposerait les mêmes questions.
+    detail: { answers, tiers: result.tiers, domains: result.domains },
   });
 
   await supabase
@@ -54,5 +57,10 @@ export async function POST(req: Request) {
     .update({ level: result.level, updated_at: new Date().toISOString() })
     .eq("id", user.id);
 
-  return NextResponse.json({ level: result.level, score: result.score, total: result.total });
+  return NextResponse.json({
+    level: result.level,
+    score: result.score,
+    total: result.total,
+    domains: result.domains,
+  });
 }
