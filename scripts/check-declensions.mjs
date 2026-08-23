@@ -308,7 +308,10 @@ for (const adj of ADJECTIVES) {
   let missingNoun = 0;
   let degenerate = 0;
   let serverMismatch = 0;
+  let offScope = 0;
+  let offList = 0;
   let draws = 0;
+  const adjectivesSeen = new Set();
 
   for (const caseId of CASE_ORDER) {
     for (let i = 0; i < 500; i += 1) {
@@ -329,13 +332,66 @@ for (const adj of ADJECTIVES) {
         ex.noun.animacy
       ).form;
       if (server !== ex.correctForm) serverMismatch += 1;
+
+      // La portée sémantique est-elle respectée sur un vrai tirage ? C'est
+      // ce qui empêche « вку́сная сосе́дка » — désinence juste, phrase
+      // inavouable.
+      adjectivesSeen.add(ex.adjective.id);
+      if (ex.adjective.appliesTo && ex.noun.animacy !== ex.adjective.appliesTo) offScope += 1;
+      if (ex.adjective.onlyNouns && !ex.adjective.onlyNouns.includes(ex.noun.id)) offList += 1;
     }
   }
+
+  expect(
+    `accord adjectif : adjectifs jamais tirés (${adjectivesSeen.size}/${ADJECTIVES.length})`,
+    adjectivesSeen.size,
+    ADJECTIVES.length
+  );
 
   expect(`accord adjectif : réponses en plusieurs mots (${draws} tirages)`, multiword, 0);
   expect("accord adjectif : nom manquant après le blanc", missingNoun, 0);
   expect("accord adjectif : réponse identique à l'indice", degenerate, 0);
   expect("accord adjectif : forme attendue différente côté serveur", serverMismatch, 0);
+  expect("accord adjectif : adjectif hors de sa portée sémantique", offScope, 0);
+  expect("accord adjectif : nom hors de la liste autorisée", offList, 0);
+}
+
+// La contrainte sémantique ne doit pas se payer en variété : un adjectif
+// qui ne sortirait plus jamais, ou un cas qui n'en verrait qu'un seul,
+// appauvrirait l'exercice en silence.
+{
+  const NOUN_IDS = new Set(NOUNS.map((n) => n.id));
+  for (const adj of ADJECTIVES) {
+    for (const id of adj.onlyNouns ?? []) {
+      expect(`${adj.lemmaM} : « ${id} » de onlyNouns absent de la banque`, NOUN_IDS.has(id), true);
+    }
+    // Chaque adjectif doit rester tirable dans les six cas, au singulier
+    // comme au pluriel : sinon la contrainte l'a purement éliminé.
+    for (const caseId of CASE_ORDER) {
+      for (const plural of [false, true]) {
+        const usable = ["masculine", "feminine", "neuter"].flatMap((gender) =>
+          ["animate", "inanimate"]
+            .filter(
+              (animacy) =>
+                declineAdjective(adj, caseId, gender, plural, animacy).form !== adj.lemmaM
+            )
+            .map((animacy) => `${gender}:${animacy}`)
+        );
+        const allowed = adj.onlyNouns ? new Set(adj.onlyNouns) : null;
+        const count = NOUNS.filter(
+          (n) =>
+            usable.includes(`${n.gender}:${n.animacy}`) &&
+            (adj.appliesTo === undefined || n.animacy === adj.appliesTo) &&
+            (allowed === null || allowed.has(n.id))
+        ).length;
+        expect(
+          `${adj.lemmaM} : aucun nom disponible au ${caseId}${plural ? " pluriel" : " singulier"}`,
+          count > 0,
+          true
+        );
+      }
+    }
+  }
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────

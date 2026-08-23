@@ -202,31 +202,60 @@ export function generateAdjectiveExercise(
   const eligible = triggersForCase(targetCase).filter((t) => t.id !== PROPER_NOUN_TRIGGER_ID);
   const chosenTrigger =
     trigger && trigger.id !== PROPER_NOUN_TRIGGER_ID ? trigger : pickRandom(eligible);
-  const adjective = pickRandom(adjPool);
   const plural = chosenTrigger.plural ?? false;
 
-  // Certaines combinaisons donnent pour réponse la forme du dictionnaire
-  // déjà montrée en indice — nominatif masculin singulier, accusatif
-  // masculin inanimé : il suffisait de recopier « плохо́й ». C'est le
-  // GENRE et l'ANIMACITÉ du nom qui décident, jamais l'adjectif : tous
-  // sont dégénérés dans les mêmes cases.
+  // Deux filtres se combinent pour choisir le couple adjectif + nom.
   //
-  // Le nom est donc tiré dans un pool filtré, et non redessiné jusqu'à
-  // tomber juste : six combinaisons genre × animacité suffisent à trancher,
-  // et un filtre est exact là où des tirages successifs laissent toujours
-  // une queue de cas dégénérés.
-  const usable = new Set(
-    (["masculine", "feminine", "neuter"] as const).flatMap((gender) =>
-      (["animate", "inanimate"] as const)
-        .filter(
-          (animacy) =>
-            declineAdjective(adjective, targetCase, gender, plural, animacy).form !==
-            adjective.lemmaM
-        )
-        .map((animacy) => `${gender}:${animacy}`)
-    )
-  );
-  const candidates = usable.size > 0 ? pool.filter((n) => usable.has(`${n.gender}:${n.animacy}`)) : [];
+  // 1. GRAMMATICAL. Certaines combinaisons donnent pour réponse la forme du
+  //    dictionnaire déjà montrée en indice — nominatif masculin singulier,
+  //    accusatif masculin inanimé : il suffisait de recopier « плохо́й ».
+  //    C'est le genre et l'animacité du nom qui décident, jamais l'adjectif :
+  //    tous sont dégénérés dans les mêmes cases. Six combinaisons genre ×
+  //    animacité suffisent donc à trancher.
+  //
+  // 2. SÉMANTIQUE. Un adjectif restreint (voir adjectives-data.ts) n'accepte
+  //    qu'une partie des noms : « вку́сный » va avec un plat, pas avec une
+  //    voisine.
+  //
+  // Un filtre plutôt qu'un tirage répété : c'est exact, là où redessiner
+  // jusqu'à tomber juste laisse toujours une queue de cas ratés. Et si un
+  // adjectif ne trouve aucun nom dans le pool courant — pool réduit par
+  // niveau, liste comestible presque vide — on change d'ADJECTIF, jamais de
+  // phrase : mieux vaut un autre qualificatif qu'une phrase absurde.
+  const shuffled = [...adjPool];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  let adjective = shuffled[0];
+  let candidates: Noun[] = [];
+  for (const candidate of shuffled) {
+    const usable = new Set(
+      (["masculine", "feminine", "neuter"] as const).flatMap((gender) =>
+        (["animate", "inanimate"] as const)
+          .filter(
+            (animacy) =>
+              declineAdjective(candidate, targetCase, gender, plural, animacy).form !==
+              candidate.lemmaM
+          )
+          .map((animacy) => `${gender}:${animacy}`)
+      )
+    );
+    const allowed = candidate.onlyNouns ? new Set(candidate.onlyNouns) : null;
+    const found = pool.filter(
+      (n) =>
+        usable.has(`${n.gender}:${n.animacy}`) &&
+        (candidate.appliesTo === undefined || n.animacy === candidate.appliesTo) &&
+        (allowed === null || allowed.has(n.id))
+    );
+    if (found.length > 0) {
+      adjective = candidate;
+      candidates = found;
+      break;
+    }
+  }
+
   const noun = pickRandom(candidates.length > 0 ? candidates : pool);
   const adjResult = declineAdjective(adjective, targetCase, noun.gender, plural, noun.animacy);
 

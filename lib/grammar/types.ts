@@ -83,4 +83,22 @@ export interface Adjective {
   translation: string;
   stemType: StemType; // "mixed" = radical en г,к,х,ж,ч,ш,щ (règle -ий/-ие)
   stressedEnding?: boolean; // accent sur la désinence -> -ой au masc./neutre au lieu de -ый/-ий
+  /**
+   * Ce que l'adjectif peut qualifier sans produire d'absurdité.
+   *
+   * Le nom d'un exercice d'accord est tiré au hasard : sans contrainte, on
+   * obtenait « вку́сная сосе́дка » (une voisine savoureuse) ou « у́мное
+   * коли́чество » (une quantité intelligente). L'apprenant travaille alors
+   * la désinence sur une phrase qu'il n'oserait jamais dire.
+   *
+   * Absent = convient à peu près à tout (большо́й, но́вый, плохо́й).
+   */
+  appliesTo?: "animate" | "inanimate";
+  /**
+   * Adjectif trop étroit pour se laisser décrire par l'animacité : la liste
+   * des noms qu'il peut qualifier, par identifiant. « вку́сный » ne va
+   * qu'avec de la nourriture, et aucun champ de la banque ne dit qu'un mot
+   * est comestible.
+   */
+  onlyNouns?: string[];
 }
