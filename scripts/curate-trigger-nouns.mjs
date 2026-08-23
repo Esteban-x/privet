@@ -60,7 +60,9 @@ const only = onlyArg ? new Set(onlyArg.slice("--only=".length).split(",")) : nul
 const MODEL = process.env.ANTHROPIC_MODEL_CHAT || "claude-sonnet-5";
 const CONCURRENCY = 8;
 /** En dessous, le déclencheur n'aurait plus assez de variété pour ne pas se répéter. */
-const MIN_KEPT = 6;
+// Certains déclencheurs sont légitimement étroits : la banque ne contient
+// que six boissons, donc « un verre de ___ » ne peut pas en retenir plus.
+const MIN_KEPT = 5;
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const BY_ID = new Map(NOUNS.map((n) => [n.id, n]));
@@ -91,21 +93,62 @@ Le trou n'est pas forcément un usage littéral : « un morceau de » va avec du
 Réponds UNIQUEMENT par un objet JSON, sans texte autour :
 {"ids":["identifiant", "identifiant", ...]}
 
-Les identifiants sont recopiés EXACTEMENT depuis la première colonne du catalogue. N'invente aucun identifiant.
+RÈGLES SUR LES IDENTIFIANTS — deux erreurs coûtent la totalité de la réponse :
+
+1. Un identifiant se recopie TEL QUEL depuis la première colonne. Ne le mets jamais au pluriel ni à un autre cas, même si la phrase le demande : la déclinaison est faite ailleurs, par un moteur de règles. Pour « У меня есть несколько ___ », on attend « kniga », pas « knig ».
+2. Si un mot qui conviendrait parfaitement ne figure pas dans le catalogue, ignore-le. N'écris jamais un identifiant que tu n'as pas lu dans la première colonne — ni approché, ni provisoire, ni suffixé. Un catalogue pauvre sur un sujet donne une liste courte, et c'est une réponse correcte.
 
 CATALOGUE (identifiant | russe | français) :
 ${CATALOGUE}`;
 
 function question(trigger) {
+  // Le nombre est indiqué pour le SENS (« plusieurs livres » n'accepte pas
+  // les mêmes noms que « un livre »), jamais comme une consigne de forme :
+  // dire « au pluriel » poussait le modèle à renvoyer des formes fléchies au
+  // lieu des identifiants du catalogue.
   const number = trigger.plural
-    ? "Le trou appelle un nom au PLURIEL."
-    : "Le trou appelle un nom au singulier.";
+    ? "La phrase parle de plusieurs exemplaires — juge le sens en conséquence, mais réponds toujours par l'identifiant du catalogue."
+    : "";
   return `PHRASE RUSSE : ${trigger.template.ru}
 TRADUCTION   : ${trigger.template.fr}
 DÉCLENCHEUR  : ${trigger.ru} — ${trigger.meaningFr}
 ${number}
-
 Quels noms du catalogue conviennent ?`;
+}
+
+/**
+ * Premier objet JSON complet d'une réponse, par comptage d'accolades.
+ *
+ * Une expression régulière gloutonne allait du premier « { » au dernier
+ * « } » : quand le modèle ajoute une phrase après son JSON puis se reprend,
+ * elle avalait tout et le parsage échouait — ce qui déclenchait une reprise,
+ * donc un appel payant de plus.
+ */
+function firstJsonObject(text) {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i += 1) {
+    const c = text[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (c === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (c === '"') inString = !inString;
+    if (inString) continue;
+    if (c === "{") depth += 1;
+    if (c === "}") {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
 }
 
 async function curate(trigger) {
@@ -123,7 +166,16 @@ async function curate(trigger) {
   for (let attempt = 0; attempt < 2 && ids === null; attempt += 1) {
     const msg = await client.messages.create({
       model: MODEL,
-      max_tokens: 4000,
+      // Le raisonnement étendu est facturé en jetons de SORTIE, et il est
+      // actif par défaut sur Sonnet : une réponse de 300 caractères coûtait
+      // 767 jetons dont 616 de raisonnement. Sur 120 appels, c'est
+      // l'essentiel de la facture — pour une tâche de tri qui n'en a aucun
+      // besoin. Désactivé, la même réponse coûte 72 jetons.
+      thinking: { type: "disabled" },
+      // 3000 laisse passer les déclencheurs très permissifs, qui retiennent
+      // parfois près de 300 identifiants. Le plafond reste un garde-fou :
+      // sans raisonnement à facturer, une réponse longue coûte peu.
+      max_tokens: 3000,
       system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: question(trigger) }],
     });
@@ -132,15 +184,13 @@ async function curate(trigger) {
       .map((b) => (b.type === "text" ? b.text : ""))
       .join("")
       .trim();
-    // On isole le premier objet JSON plutôt que d'exiger une réponse nue :
-    // les fences et le texte d'accompagnement sont fréquents et sans gravité.
-    const match = /\{[\s\S]*\}/.exec(raw);
-    if (!match) {
+    const object = firstJsonObject(raw);
+    if (!object) {
       lastError = "aucun objet JSON dans la réponse";
       continue;
     }
     try {
-      const parsed = JSON.parse(match[0]);
+      const parsed = JSON.parse(object);
       ids = Array.isArray(parsed.ids) ? parsed.ids : [];
     } catch (err) {
       lastError = err.message;

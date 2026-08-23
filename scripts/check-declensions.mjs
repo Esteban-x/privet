@@ -479,6 +479,8 @@ let demandingTriggers = 0;
   // b) Aucun déclencheur ne peut se retrouver sans nom à servir. Une classe
   //    trop étroite viderait son pool en silence, et l'exercice retomberait
   //    sur le repli — donc sur des phrases absurdes, sans que rien ne le dise.
+  // Certains déclencheurs sont légitimement étroits : la banque ne contient
+  // que six boissons, donc « un verre de ___ » ne peut pas dépasser six.
   const MIN_NOUNS = 4;
   for (const trigger of TRIGGERS) {
     if (!trigger.accepts) continue;
