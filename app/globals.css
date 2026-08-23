@@ -1,5 +1,32 @@
 @import "tailwindcss";
 
+/*
+ * Accent tonique russe (U+0301) — voir scripts/build-cyrillic-font.py.
+ *
+ * L'accent est une marque COMBINANTE : sans largeur propre, c'est la police
+ * qui la place au-dessus de la voyelle, via une ancre GPOS.
+ *
+ * Inter possède bien ces ancres pour le cyrillique, mais n'active la fonction
+ * « mark » que pour les scripts DFLT et latn — sous `cyrl`, il n'y a que
+ * `kern`. Sur du texte russe, le moteur choisit `cyrl`, n'y trouve aucune
+ * fonction de positionnement, et pose la marque à la position courante : elle
+ * atterrissait donc sur la lettre SUIVANTE, d'où « челове́к » avec l'accent
+ * sur le к.
+ *
+ * On sert donc notre propre copie du sous-ensemble cyrillique, corrigée
+ * (fonction activée pour `cyrl`, plus deux ancres manquantes sur « я » et
+ * « Ю »), sous un nom de famille distinct placé en TÊTE de pile.
+ * `unicode-range` la cantonne au cyrillique : tout le reste vient d'Inter.
+ */
+@font-face {
+  font-family: "Privet Cyrillic";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/privet-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
 :root {
   --color-bg: #0d0f14;
   --color-bg2: #151822;
@@ -26,7 +53,7 @@
   --color-accent2-deep: var(--color-accent2-deep);
   --color-success: var(--color-success);
   --color-danger: var(--color-danger);
-  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Privet Cyrillic", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
@@ -36,7 +63,7 @@ html {
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Privet Cyrillic", "Inter", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

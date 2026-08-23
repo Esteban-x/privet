@@ -29,6 +29,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="fr">
       <head>
+        {/* Le cyrillique est servi depuis le domaine de l'app (voir
+            globals.css et scripts/build-cyrillic-font.py) : préchargé, parce
+            qu'il apparaît sur pratiquement chaque page et qu'un texte russe
+            repeint après coup est la chose la plus visible du chargement. */}
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/fonts/privet-cyrillic.woff2"
+          crossOrigin="anonymous"
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
