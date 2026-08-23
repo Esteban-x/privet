@@ -16,8 +16,8 @@ import type { User } from "@supabase/supabase-js";
  * disait. Ils sont maintenant regroupés sous une seule entrée dépliante,
  * qui a la place de dire à quoi sert chaque module.
  *
- * Il reste trois niveaux de lecture :
- * - à gauche, ce qu'on vient APPRENDRE (grammaire, vocabulaire, lecture,
+ * Il reste trois niveaux de lecture, en trois colonnes de même poids :
+ * - au centre, ce qu'on vient APPRENDRE (grammaire, vocabulaire, lecture,
  *   tuteur) ;
  * - à droite, le tableau de bord, seule action mise en avant ;
  * - au bout, le compte, replié derrière l'initiale de l'utilisateur —
@@ -111,17 +111,27 @@ export default function NavBar({ initialUser }: { initialUser: User | null }) {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-bg/72 backdrop-blur-md">
       <div ref={navRef} className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <span className="flex h-[30px] w-[30px] items-center justify-center rounded-lg bg-accent font-display text-[15px] font-extrabold text-white">
-            П
-          </span>
-          <span className="font-display text-[19px] font-bold">Privet</span>
-        </Link>
+        {/* Le `flex-1` est porté par le conteneur et non par le lien : sur le
+            lien, tout le tiers gauche de la barre deviendrait une zone
+            cliquable qui ramène à l'accueil. */}
+        <div className="flex flex-1 items-center">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+            <span className="flex h-[30px] w-[30px] items-center justify-center rounded-lg bg-accent font-display text-[15px] font-extrabold text-white">
+              П
+            </span>
+            <span className="font-display text-[19px] font-bold">Privet</span>
+          </Link>
+        </div>
 
-        {/* Navigation d'apprentissage. Passe au menu replié sous lg : à
-            640px, quatre entrées plus le compte ne tiennent pas sans se
-            couper en deux lignes — ce qui était exactement le défaut. */}
-        <nav className="hidden flex-1 items-center gap-0.5 lg:flex">
+        {/* Navigation d'apprentissage, au centre de la barre : le logo et le
+            bloc compte qui l'encadrent portent le même `flex-1`, si bien que
+            les liens tombent au milieu quelles que soient leurs largeurs
+            respectives — un simple `flex-1` sur la nav seule les aurait
+            collés au logo.
+
+            Passe au menu replié sous lg : à 640px, quatre entrées plus le
+            compte ne tiennent pas sans se couper en deux lignes. */}
+        <nav className="hidden items-center gap-0.5 lg:flex">
           <div className="relative">
             <button
               type="button"
@@ -196,7 +206,7 @@ export default function NavBar({ initialUser }: { initialUser: User | null }) {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 lg:ml-0">
+        <div className="flex flex-1 items-center justify-end gap-2">
           {user ? (
             <>
               <Link
