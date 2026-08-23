@@ -22,6 +22,20 @@ const S = await jiti.import("../lib/grammar/exercise-selector.ts");
 const T = await jiti.import("../lib/grammar/triggers.ts");
 const C = await jiti.import("../lib/grammar/cases.ts");
 const E = await jiti.import("../lib/progress/level-estimate.ts");
+const MOTION = await jiti.import("../lib/motion/exercises.ts");
+const ASPECT = await jiti.import("../lib/aspect/exercises.ts");
+const PART = await jiti.import("../lib/participles/exercises.ts");
+
+/** Progression fictive : toutes les compétences d'un module maîtrisées. */
+function solidModule(skills) {
+  return skills.map((s) => ({ skill_id: s.id, attempts: 6, correct: 6 }));
+}
+const ALL_MODULES_SOLID = {
+  motion: solidModule(MOTION.MOTION_SKILLS),
+  aspect: solidModule(ASPECT.ASPECT_SKILLS),
+  participles: solidModule(PART.PARTICIPLE_SKILLS),
+};
+const NO_MODULES = { motion: [], aspect: [], participles: [] };
 
 const LEVELS = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
 const failures = [];
@@ -147,12 +161,61 @@ function progressRows(shareByTier) {
 const solidCases = C.CASES.map((c) => ({ case_id: c.id, attempts: 40, correct: 34 }));
 
 require_(
-  E.computeLevelEstimate([], [], 0).level === "A0",
+  E.computeLevelEstimate([], [], NO_MODULES, 0).level === "A0",
   "sans aucune pratique, l'estimation doit valoir A0"
 );
 require_(
-  E.computeLevelEstimate([], [], 0).meaningful === false,
+  E.computeLevelEstimate([], [], NO_MODULES, 0).meaningful === false,
   "sans pratique, l'estimation ne doit pas être présentée comme significative"
+);
+
+// ─── 4bis. Couverture du programme ─────────────────────────────────
+// Les cas ne sont pas toute la grammaire : une maîtrise parfaite des seuls
+// déclencheurs ne peut pas justifier un niveau avancé.
+const casesOnly = E.computeLevelEstimate(
+  progressRows({ basic: 1, intermediate: 1, advanced: 1 }),
+  solidCases,
+  NO_MODULES,
+  0
+);
+require_(
+  casesOnly.depthLevel === "C1",
+  `maîtrise totale des cas : profondeur estimée ${casesOnly.depthLevel} au lieu de C1`
+);
+require_(
+  LEVELS.indexOf(casesOnly.level) < LEVELS.indexOf(casesOnly.depthLevel),
+  "sans aucun module travaillé, l'estimation ne doit pas atteindre le niveau que les cas justifieraient"
+);
+require_(
+  casesOnly.blockedBy !== null,
+  "un plafond appliqué doit nommer le module qui le provoque, sinon l'apprenant ne sait pas quoi faire"
+);
+
+const everything = E.computeLevelEstimate(
+  progressRows({ basic: 1, intermediate: 1, advanced: 1 }),
+  solidCases,
+  ALL_MODULES_SOLID,
+  0
+);
+require_(
+  everything.level === everything.depthLevel,
+  `tous les modules solides : le plafond ne doit plus s'appliquer (niveau ${everything.level}, profondeur ${everything.depthLevel})`
+);
+require_(everything.blockedBy === null, "aucun module ne doit être signalé comme bloquant");
+require_(
+  everything.modules.every((m) => m.state === "solid"),
+  "tous les modules devraient être solides dans ce scénario"
+);
+require_(
+  everything.modules.length === 3,
+  `${everything.modules.length} modules dans l'estimation, 3 attendus`
+);
+
+// Travailler les modules sans travailler les cas ne fait pas monter non plus.
+const modulesOnly = E.computeLevelEstimate([], [], ALL_MODULES_SOLID, 0);
+require_(
+  modulesOnly.level === "A0",
+  `modules seuls, sans maîtrise des cas : estimé ${modulesOnly.level} au lieu de A0`
 );
 
 // Monotonie : maîtriser davantage ne peut jamais faire baisser le niveau.
@@ -162,6 +225,7 @@ for (const share of steps) {
   const est = E.computeLevelEstimate(
     progressRows({ basic: share, intermediate: share * 0.8, advanced: share * 0.6 }),
     solidCases,
+    ALL_MODULES_SOLID,
     0
   );
   const index = LEVELS.indexOf(est.level);
@@ -179,6 +243,7 @@ const shaky = T.TRIGGERS.map((t) => ({ trigger_id: t.id, attempts: 10, correct: 
 const shakyEstimate = E.computeLevelEstimate(
   shaky,
   C.CASES.map((c) => ({ case_id: c.id, attempts: 100, correct: 40 })),
+  ALL_MODULES_SOLID,
   0
 );
 require_(
@@ -192,7 +257,7 @@ require_(
 
 // La maîtrise affichée doit dire la même chose que le tirage des exercices.
 const partial = progressRows({ basic: 1, intermediate: 0, advanced: 0 });
-const estimate = E.computeLevelEstimate(partial, solidCases, 0);
+const estimate = E.computeLevelEstimate(partial, solidCases, ALL_MODULES_SOLID, 0);
 const basicTier = estimate.tiers.find((t) => t.tier === "basic");
 require_(
   basicTier.mastered === basicTier.total,
@@ -227,4 +292,8 @@ console.log(
 );
 console.log(
   `  cas dans l'ordre d'apprentissage : ${C.CASES_BY_LEARNING_ORDER.map((c) => c.nameFr).join(" → ")}`
+);
+console.log(
+  `  couverture : maîtrise totale des cas seule → ${casesOnly.level} ` +
+    `(plafonné depuis ${casesOnly.depthLevel} par « ${casesOnly.blockedBy.label} »)`
 );

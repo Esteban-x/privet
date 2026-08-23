@@ -412,8 +412,16 @@ Deux mesures cohabitent, volontairement :
   reconnaissance, et une seule fois ;
 - **le niveau de pratique** (`lib/progress/level-estimate.ts`) se recalcule
   à chaque visite du tableau de bord depuis ce que l'apprenant produit
-  vraiment : déclencheurs maîtrisés par palier, précision par cas, mots
-  arrivés à un intervalle de révision mature.
+  vraiment. Il croise **deux signaux, et retient le plus faible** :
+  - la *profondeur* sur les cas — part des déclencheurs maîtrisés par palier ;
+  - la *couverture* du programme — les cas ne sont pas toute la grammaire.
+    L'aspect et les verbes de mouvement sont du A2-B1, les participes du
+    B2-C1. Quelqu'un qui n'a jamais touché à l'aspect n'a pas démontré un
+    niveau B1, quelle que soit sa virtuosité sur le génitif.
+
+  Le plafond est **expliqué** plutôt que subi : « ta maîtrise des cas
+  justifierait C1, mais les verbes de mouvement n'ont pas encore été
+  abordés » dit quoi faire, là où un chiffre seul ne dirait rien.
 
 Aucun ne remplace l'autre, et l'écart entre les deux est le signal utile :
 quand la pratique dépasse le niveau testé, le tableau de bord propose de
@@ -455,9 +463,11 @@ de réussite reste estimée A0.
   ne manque que la traduction française.
 - Corpus de classiques du domaine public (Pouchkine, Tchekhov…) pour compléter
   la lecture générée.
-- Élargir les banques des quatre modules de grammaire : chacun tient une
-  vingtaine de contextes, assez pour découvrir une règle, un peu court pour
-  l'ancrer sur la durée.
+- Continuer d'élargir les banques des quatre modules de grammaire : chaque
+  compétence tient entre 7 et 31 contextes distincts. C'est du travail de
+  contenu, et les suites de contrôle valident chaque ajout.
+- Les trois erreurs de lint pré-existantes hors modules (`tutor`,
+  `speech.ts`).
 - Faire entrer `motion_progress` dans l'estimation continue du niveau : les
   seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
   demande de les recalibrer.

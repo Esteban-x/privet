@@ -282,6 +282,42 @@ const PASSIVE_CONTEXTS: PassiveContext[] = [
     fr: "Le travail terminé à temps a reçu un prix.",
     why: "Accord au féminin avec « работа ».",
   },
+  {
+    id: "door-closed",
+    verb: "zakryvat",
+    agreement: "f",
+    expanded: "Дверь, которую закрыли утром, так и осталась закрытой.",
+    compressed: "___ утром дверь так и осталась закрытой.",
+    fr: "La porte fermée le matin est restée close.",
+    why: "Participe passé passif accordé au féminin avec « дверь ».",
+  },
+  {
+    id: "window-opened",
+    verb: "otkryvat",
+    agreement: "n",
+    expanded: "Окно, которое открыли ночью, впустило холод.",
+    compressed: "___ ночью окно впустило холод.",
+    fr: "La fenêtre ouverte pendant la nuit a laissé entrer le froid.",
+    why: "« окно » est neutre : le participe prend la terminaison neutre.",
+  },
+  {
+    id: "work-done",
+    verb: "delat",
+    agreement: "f",
+    expanded: "Работа, которую сделали вчера, всех устроила.",
+    compressed: "___ вчера работа всех устроила.",
+    fr: "Le travail fait hier a satisfait tout le monde.",
+    why: "Accord au féminin avec « работа ».",
+  },
+  {
+    id: "topic-studied",
+    verb: "izuchat",
+    agreement: "f",
+    expanded: "Тема, которую изучили в прошлом году, снова появилась на экзамене.",
+    compressed: "___ в прошлом году тема снова появилась на экзамене.",
+    fr: "Le sujet étudié l'an dernier est réapparu à l'examen.",
+    why: "Le participe se place avant le nom et s'accorde avec lui.",
+  },
 ];
 
 function passiveExercise(random: Rng): ParticipleExercise {
@@ -563,6 +599,27 @@ const SUBJECT_ITEMS: SubjectItem[] = [
     wrong: ["Ожидая поезда, время шло медленно.", "Ожидая поезда, нам было скучно."],
     fr: "En attendant le train, nous buvions du café.",
     why: "Ce n'est pas le temps qui attend le train. Seul « мы » peut à la fois attendre et boire.",
+  },
+  {
+    id: "listening",
+    correct: "Слушая музыку, он делал уроки.",
+    wrong: ["Слушая музыку, уроки были сделаны.", "Слушая музыку, ему было спокойно."],
+    fr: "En écoutant de la musique, il faisait ses devoirs.",
+    why: "Ce ne sont ni « les devoirs » ni « lui » (au datif) qui écoutent : seul un sujet au nominatif peut porter les deux actions.",
+  },
+  {
+    id: "opening",
+    correct: "Открыв дверь, она увидела гостей.",
+    wrong: ["Открыв дверь, в комнату вошёл холод.", "Открыв дверь, ей стало страшно."],
+    fr: "Ayant ouvert la porte, elle a vu les invités.",
+    why: "Le froid n'a pas ouvert la porte, et « ей » n'est pas un sujet : le gérondif resterait sans support.",
+  },
+  {
+    id: "arriving",
+    correct: "Приехав в Москву, мы сразу пошли на Красную площадь.",
+    wrong: ["Приехав в Москву, нас встретили друзья.", "Приехав в Москву, было уже поздно."],
+    fr: "Arrivés à Moscou, nous sommes allés tout de suite sur la place Rouge.",
+    why: "Dans la deuxième phrase, le sujet est « друзья » — ce ne sont pas eux qui arrivent. La troisième n'a pas de sujet du tout.",
   },
 ];
 

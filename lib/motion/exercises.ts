@@ -479,6 +479,34 @@ const GOVERNMENT_ITEMS: GovernmentTarget[] = [
     sentence: "Я зашёл ___.",
     sentenceFr: "Je suis passé chez un ami.",
   },
+  {
+    prefixId: "vy",
+    correct: "из театра",
+    distractors: ["из театр", "от театра", "с театра"],
+    sentence: "Мы вышли ___.",
+    sentenceFr: "Nous sommes sortis du théâtre.",
+  },
+  {
+    prefixId: "pri",
+    correct: "к врачу",
+    distractors: ["к врача", "у врача", "в врача"],
+    sentence: "Он пришёл ___.",
+    sentenceFr: "Il est allé chez le médecin.",
+  },
+  {
+    prefixId: "ob",
+    correct: "площадь",
+    distractors: ["площади", "площадью", "о площади"],
+    sentence: "Они обошли ___.",
+    sentenceFr: "Ils ont contourné la place.",
+  },
+  {
+    prefixId: "do",
+    correct: "до угла",
+    distractors: ["до угол", "к углу", "на угол"],
+    sentence: "Мы дошли ___.",
+    sentenceFr: "Nous sommes allés jusqu'au coin de la rue.",
+  },
 ];
 
 function governmentExercise(random: () => number): MotionExercise {

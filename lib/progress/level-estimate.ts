@@ -1,29 +1,33 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CefrLevel } from "@/lib/supabase/types";
+import { CEFR_LEVELS, type CefrLevel } from "@/lib/supabase/types";
 import type { CaseId } from "@/lib/grammar/types";
 import { CASES } from "@/lib/grammar/cases";
 import { TRIGGERS, type TriggerTier } from "@/lib/grammar/triggers";
 import { MASTERY_ACCURACY, MASTERY_MIN_ATTEMPTS_EACH } from "@/lib/grammar/exercise-selector";
+import { MOTION_SKILLS } from "@/lib/motion/exercises";
+import { ASPECT_SKILLS } from "@/lib/aspect/exercises";
+import { PARTICIPLE_SKILLS } from "@/lib/participles/exercises";
 
 /**
  * Niveau de PRATIQUE : ce que la progression réelle démontre, par opposition
  * au niveau TESTÉ (profiles.level), qui est une photo prise une fois.
  *
  * Pourquoi les deux coexistent :
- * - le test mesure la LARGEUR (aspect, verbes de mouvement, participes — que
- *   l'app n'entraîne nulle part), en une douzaine de questions à choix
- *   multiple, donc en reconnaissance ;
- * - la pratique mesure la PROFONDEUR sur ce que l'app entraîne vraiment,
- *   sur des centaines de réponses produites, pas reconnues.
+ * - le test mesure en une douzaine de QCM, donc en reconnaissance ;
+ * - la pratique mesure sur des centaines de réponses produites.
  *
- * Aucun des deux ne remplace l'autre. Les afficher côte à côte est plus
- * honnête que d'en fabriquer un seul chiffre, et l'écart entre les deux est
- * précisément le signal qui indique qu'il est temps de repasser le test.
+ * DEUX SIGNAUX, ET LE PLUS FAIBLE L'EMPORTE.
  *
- * Le calcul reprend la MÊME définition de la maîtrise que le tirage des
- * exercices (lib/grammar/exercise-selector.ts) : un déclencheur est maîtrisé
- * quand le sélecteur cesse de le proposer en priorité. Sans ça, le tableau
- * de bord dirait « acquis » pendant que les exercices continuent d'insister.
+ * 1. La PROFONDEUR sur les cas : part des déclencheurs maîtrisés par palier.
+ *    C'est le signal le plus riche (136 déclencheurs gradués).
+ * 2. La COUVERTURE du programme : les cas ne sont pas toute la grammaire.
+ *    L'aspect et les verbes de mouvement sont du A2-B1, les participes du
+ *    B2-C1. Quelqu'un qui n'a jamais touché à l'aspect n'a pas démontré un
+ *    niveau B1, quelle que soit sa virtuosité sur le génitif.
+ *
+ * Le niveau retenu est donc le MINIMUM des deux. Le plafond est expliqué à
+ * l'apprenant plutôt que subi : « plafonné à A2 — l'aspect n'a pas encore
+ * été travaillé » indique quoi faire, là où un simple chiffre ne dirait rien.
  */
 
 export interface TriggerProgressRow {
@@ -38,12 +42,17 @@ export interface CaseProgressRow {
   correct: number;
 }
 
+export interface SkillProgressRow {
+  skill_id: string;
+  attempts: number;
+  correct: number;
+}
+
 export type CaseState = "untouched" | "started" | "solid";
 
 export interface CaseMastery {
   caseId: CaseId;
   attempts: number;
-  /** null tant qu'aucune tentative n'a été faite. */
   accuracy: number | null;
   masteredTriggers: number;
   totalTriggers: number;
@@ -56,31 +65,39 @@ export interface TierMastery {
   total: number;
 }
 
+/** Un module de grammaire et ce que la pratique y démontre. */
+export interface ModuleMastery {
+  id: ModuleId;
+  label: string;
+  href: string;
+  solidSkills: number;
+  totalSkills: number;
+  attempts: number;
+  state: CaseState;
+}
+
 export interface LevelEstimate {
-  /** Niveau déduit de la pratique. */
   level: CefrLevel;
+  /** Niveau que la seule maîtrise des cas justifierait. */
+  depthLevel: CefrLevel;
+  /** Plafond imposé par les modules pas encore travaillés. */
+  coverageCeiling: CefrLevel;
+  /** Module qui bloque la progression, s'il y en a un. */
+  blockedBy: ModuleMastery | null;
   masteredTriggers: number;
   totalTriggers: number;
   tiers: TierMastery[];
   cases: CaseMastery[];
-  /** Mots dont l'intervalle de révision montre une vraie mémorisation. */
+  modules: ModuleMastery[];
   vocabKnown: number;
-  /** Assez de pratique pour que l'estimation veuille dire quelque chose. */
   meaningful: boolean;
 }
 
-/** Un déclencheur est maîtrisé s'il a été assez pratiqué ET assez réussi. */
 function isMastered(row: { attempts: number; correct: number } | undefined): boolean {
   if (!row || row.attempts < MASTERY_MIN_ATTEMPTS_EACH) return false;
   return row.correct / row.attempts >= MASTERY_ACCURACY;
 }
 
-/**
- * Seuils du niveau de pratique, exprimés en PART des déclencheurs maîtrisés
- * de chaque palier. Deux principes repris du test de placement :
- * un niveau se valide (il ne se touche pas), et il faut avoir consolidé le
- * palier précédent avant que le suivant compte.
- */
 const THRESHOLDS: { level: CefrLevel; basic: number; intermediate: number; advanced: number }[] = [
   { level: "C1", basic: 0.8, intermediate: 0.7, advanced: 0.55 },
   { level: "B2", basic: 0.8, intermediate: 0.55, advanced: 0.2 },
@@ -89,12 +106,73 @@ const THRESHOLDS: { level: CefrLevel; basic: number; intermediate: number; advan
   { level: "A1", basic: 0.15, intermediate: 0, advanced: 0 },
 ];
 
-/** En dessous, on n'affiche pas d'estimation : ce serait du bruit. */
 const MIN_ATTEMPTS_FOR_ESTIMATE = 30;
+
+// ─── Couverture du programme ───────────────────────────────────────
+export type ModuleId = "motion" | "aspect" | "participles";
+
+/**
+ * Chaque module ouvre un plafond. Tant qu'il n'est pas SOLIDE, la pratique
+ * ne peut pas justifier un niveau au-delà de `unlocks`.
+ *
+ * Les niveaux viennent des compétences du module : les verbes de mouvement
+ * et l'aspect sont introduits en A2 et consolidés en B1, les participes
+ * relèvent du B2. Un apprenant qui n'a jamais quitté le module Cas plafonne
+ * donc à A2 — ce qui est exact : il n'a rien démontré au-delà.
+ */
+const MODULE_SPECS: {
+  id: ModuleId;
+  label: string;
+  href: string;
+  unlocks: CefrLevel;
+  skills: readonly { id: string }[];
+}[] = [
+  { id: "motion", label: "Verbes de mouvement", href: "/motion", unlocks: "B1", skills: MOTION_SKILLS },
+  { id: "aspect", label: "Aspect verbal", href: "/aspect", unlocks: "B1", skills: ASPECT_SKILLS },
+  {
+    id: "participles",
+    label: "Participes et gérondifs",
+    href: "/participles",
+    unlocks: "C1",
+    skills: PARTICIPLE_SKILLS,
+  },
+];
+
+/** Un module est solide quand la majorité de ses compétences le sont. */
+const MODULE_SOLID_RATIO = 0.6;
+
+function moduleMastery(
+  spec: (typeof MODULE_SPECS)[number],
+  rows: SkillProgressRow[]
+): ModuleMastery {
+  const bySkill = new Map(rows.map((r) => [r.skill_id, r]));
+  const solidSkills = spec.skills.filter((s) => isMastered(bySkill.get(s.id))).length;
+  const attempts = rows.reduce((sum, r) => sum + r.attempts, 0);
+  const ratio = spec.skills.length ? solidSkills / spec.skills.length : 0;
+  return {
+    id: spec.id,
+    label: spec.label,
+    href: spec.href,
+    solidSkills,
+    totalSkills: spec.skills.length,
+    attempts,
+    state: attempts === 0 ? "untouched" : ratio >= MODULE_SOLID_RATIO ? "solid" : "started",
+  };
+}
+
+const lower = (a: CefrLevel, b: CefrLevel): CefrLevel =>
+  CEFR_LEVELS.indexOf(a) <= CEFR_LEVELS.indexOf(b) ? a : b;
+
+/** Le niveau juste en dessous de celui qu'un module débloque. */
+function ceilingWithout(unlocks: CefrLevel): CefrLevel {
+  const index = CEFR_LEVELS.indexOf(unlocks);
+  return CEFR_LEVELS[Math.max(0, index - 1)];
+}
 
 export function computeLevelEstimate(
   triggerRows: TriggerProgressRow[],
   caseRows: CaseProgressRow[],
+  moduleRows: Record<ModuleId, SkillProgressRow[]>,
   vocabKnown: number
 ): LevelEstimate {
   const byTrigger = new Map(triggerRows.map((r) => [r.trigger_id, r]));
@@ -126,58 +204,91 @@ export function computeLevelEstimate(
     const caseTriggers = TRIGGERS.filter((t) => t.caseId === c.id);
     const masteredTriggers = caseTriggers.filter((t) => isMastered(byTrigger.get(t.id))).length;
     const accuracy = totals.attempts > 0 ? totals.correct / totals.attempts : null;
-
-    // « Solide » veut dire : assez de déclencheurs de ce cas réellement
-    // maîtrisés, et une précision globale qui tient. Un cas où l'on a
-    // beaucoup répondu au hasard n'est pas solide.
     const solid =
-      masteredTriggers >= Math.min(3, caseTriggers.length) &&
-      accuracy !== null &&
-      accuracy >= 0.75;
-    const state: CaseState = totals.attempts === 0 ? "untouched" : solid ? "solid" : "started";
-
+      masteredTriggers >= Math.min(3, caseTriggers.length) && accuracy !== null && accuracy >= 0.75;
     return {
       caseId: c.id,
       attempts: totals.attempts,
       accuracy,
       masteredTriggers,
       totalTriggers: caseTriggers.length,
-      state,
+      state: totals.attempts === 0 ? "untouched" : solid ? "solid" : "started",
     };
   });
 
-  const totalAttempts = cases.reduce((sum, c) => sum + c.attempts, 0);
+  const modules = MODULE_SPECS.map((spec) => moduleMastery(spec, moduleRows[spec.id] ?? []));
+
+  // Profondeur : ce que la maîtrise des cas justifierait à elle seule.
   const matched = THRESHOLDS.find(
     (t) =>
       ratio("basic") >= t.basic &&
       ratio("intermediate") >= t.intermediate &&
       ratio("advanced") >= t.advanced
   );
+  const depthLevel: CefrLevel = matched?.level ?? "A0";
+
+  // Couverture : chaque module non solide rabat le plafond.
+  let coverageCeiling: CefrLevel = "C2";
+  let blockedBy: ModuleMastery | null = null;
+  for (const spec of MODULE_SPECS) {
+    const mastery = modules.find((m) => m.id === spec.id)!;
+    if (mastery.state === "solid") continue;
+    const ceiling = ceilingWithout(spec.unlocks);
+    if (CEFR_LEVELS.indexOf(ceiling) < CEFR_LEVELS.indexOf(coverageCeiling)) {
+      coverageCeiling = ceiling;
+      blockedBy = mastery;
+    }
+  }
+
+  const level = lower(depthLevel, coverageCeiling);
+  const totalAttempts =
+    cases.reduce((sum, c) => sum + c.attempts, 0) +
+    modules.reduce((sum, m) => sum + m.attempts, 0);
 
   return {
-    level: matched?.level ?? "A0",
+    level,
+    depthLevel,
+    coverageCeiling,
+    // Le module bloquant n'a d'intérêt que s'il rabat réellement le niveau.
+    blockedBy:
+      blockedBy && CEFR_LEVELS.indexOf(coverageCeiling) < CEFR_LEVELS.indexOf(depthLevel)
+        ? blockedBy
+        : null,
     masteredTriggers: tiers.reduce((sum, t) => sum + t.mastered, 0),
     totalTriggers: TRIGGERS.length,
     tiers,
     cases,
+    modules,
     vocabKnown,
     meaningful: totalAttempts >= MIN_ATTEMPTS_FOR_ESTIMATE,
   };
 }
 
-/** Un mot est « su » quand la révision espacée l'a repoussé à 21 jours ou plus. */
 const KNOWN_INTERVAL_DAYS = 21;
 
 export async function loadLevelEstimate(
   supabase: SupabaseClient,
   userId: string
 ): Promise<LevelEstimate> {
-  const [{ data: triggerRows }, { data: caseRows }, { count: vocabKnown }] = await Promise.all([
+  const [
+    { data: triggerRows },
+    { data: caseRows },
+    { data: motionRows },
+    { data: aspectRows },
+    { data: participleRows },
+    { count: vocabKnown },
+  ] = await Promise.all([
     supabase
       .from("case_trigger_progress")
       .select("trigger_id, attempts, correct")
       .eq("user_id", userId),
     supabase.from("case_progress").select("case_id, attempts, correct").eq("user_id", userId),
+    supabase.from("motion_progress").select("skill_id, attempts, correct").eq("user_id", userId),
+    supabase.from("aspect_progress").select("skill_id, attempts, correct").eq("user_id", userId),
+    supabase
+      .from("participle_progress")
+      .select("skill_id, attempts, correct")
+      .eq("user_id", userId),
     supabase
       .from("srs_cards")
       .select("card_id", { count: "exact", head: true })
@@ -185,5 +296,14 @@ export async function loadLevelEstimate(
       .gte("interval_days", KNOWN_INTERVAL_DAYS),
   ]);
 
-  return computeLevelEstimate(triggerRows ?? [], caseRows ?? [], vocabKnown ?? 0);
+  return computeLevelEstimate(
+    triggerRows ?? [],
+    caseRows ?? [],
+    {
+      motion: motionRows ?? [],
+      aspect: aspectRows ?? [],
+      participles: participleRows ?? [],
+    },
+    vocabKnown ?? 0
+  );
 }

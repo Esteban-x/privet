@@ -341,30 +341,36 @@ $$;
 revoke all on function public.delete_own_account() from public;
 grant execute on function public.delete_own_account() to authenticated;
 
--- ─── Migration : suppression des thèmes et de l'objectif ────────────
--- À exécuter une fois sur une base créée avant cette version. Sans effet
--- sur une base neuve (les colonnes n'y ont jamais existé). Les listes de
--- vocabulaire elles-mêmes sont conservées : seul leur rattachement à un
--- thème disparaît.
+-- ════════════════════════════════════════════════════════════════
+-- MISES À JOUR — à exécuter UNE FOIS sur une base créée avant cette
+-- version. Tout ce bloc est sans effet sur une base neuve : les tables et
+-- le type ci-dessus sont déjà créés dans leur forme finale.
+--
+-- Copie-colle ce bloc entier dans Supabase → SQL Editor → New query.
+-- ════════════════════════════════════════════════════════════════
+
+-- 1. Suppression des thèmes et de l'objectif libre.
+--    Les listes de vocabulaire sont conservées : seul leur rattachement à
+--    un thème disparaît.
 drop index if exists vocab_lists_user_topic;
 alter table public.vocab_lists drop column if exists topic_id;
 alter table public.profiles    drop column if exists topics;
 alter table public.profiles    drop column if exists goals;
 
--- ─── Migration : ajout du niveau C2 à l'échelle ────────────────────
--- Sans effet sur une base neuve (le type est déjà créé avec C2 ci-dessus).
--- Le test de placement s'arrête à C1 : C2 sert aux textes de lecture, dont
--- le niveau se demande indépendamment du niveau mesuré.
+-- 2. Niveau C2 sur l'échelle. Le test de placement s'arrête à C1 : C2 sert
+--    aux textes de lecture, dont le niveau se demande indépendamment du
+--    niveau mesuré.
 alter type cefr_level add value if not exists 'C2';
 
--- ─── Migration : module « verbes de mouvement » ─────────────────────
--- Sans effet si la table existe déjà (create ... if not exists ci-dessus).
--- À exécuter sur une base créée avant ce module.
-alter table public.motion_progress enable row level security;
-
--- ─── Migration : module « aspect verbal » ───────────────────────────
--- Sans effet si la table existe déjà.
-alter table public.aspect_progress enable row level security;
-
--- ─── Migration : module « participes et gérondifs » ─────────────────
+-- 3. Tables de progression des trois modules de grammaire ajoutés après la
+--    version initiale. Le `create table if not exists` plus haut les crée
+--    déjà sur une base neuve ; ici on ne fait qu'activer la sécurité au cas
+--    où la table préexisterait sans elle.
+alter table public.motion_progress     enable row level security;
+alter table public.aspect_progress     enable row level security;
 alter table public.participle_progress enable row level security;
+
+-- 4. Politiques « propriétaire uniquement » sur ces trois tables. Le bloc
+--    `do $$` plus haut les couvre déjà : le relancer suffit, cette ligne
+--    n'est là que pour rappeler qu'il FAUT le relancer.
+--    → remonte au bloc « Row Level Security » et réexécute-le.

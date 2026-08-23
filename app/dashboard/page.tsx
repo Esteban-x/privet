@@ -147,12 +147,49 @@ export default async function DashboardPage() {
             })}
           </div>
 
+          {/* Couverture du programme : les cas ne sont pas toute la
+              grammaire, et un module jamais travaillé plafonne l'estimation. */}
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="font-display text-xs font-semibold uppercase tracking-wide text-muted">
+              Couverture du programme
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {estimate.modules.map((m) => (
+                <Link
+                  key={m.id}
+                  href={m.href}
+                  className={`rounded-full border px-3 py-1 font-display text-xs font-semibold transition-colors ${
+                    m.state === "solid"
+                      ? "border-success/50 bg-success/10 text-success"
+                      : m.state === "started"
+                        ? "border-accent/50 bg-accent/10 text-accent"
+                        : "border-border bg-bg3 text-muted hover:border-accent hover:text-accent"
+                  }`}
+                >
+                  {m.label} · {m.solidSkills}/{m.totalSkills}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           <p className="mt-4 font-display text-xs leading-relaxed text-muted">
             {estimate.masteredTriggers} déclencheurs maîtrisés sur {estimate.totalTriggers}
             {estimate.vocabKnown > 0 ? ` · ${estimate.vocabKnown} mots mémorisés` : ""}. Un
             déclencheur compte comme maîtrisé après plusieurs réussites d&apos;affilée — c&apos;est
             aussi à ce moment-là que les exercices cessent de te le proposer en priorité.
           </p>
+
+          {estimate.blockedBy && (
+            <p className="mt-2 font-display text-xs leading-relaxed text-muted">
+              Ta maîtrise des cas justifierait{" "}
+              <span className="font-semibold text-text">{estimate.depthLevel}</span>, mais
+              l&apos;estimation reste à {estimate.level} : les cas ne sont pas toute la grammaire, et{" "}
+              <Link href={estimate.blockedBy.href} className="font-semibold text-accent hover:underline">
+                {estimate.blockedBy.label.toLowerCase()}
+              </Link>{" "}
+              n&apos;a pas encore été {estimate.blockedBy.state === "untouched" ? "abordé" : "consolidé"}.
+            </p>
+          )}
 
           {practiceAhead && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-accent/40 bg-accent/10 px-4 py-3">

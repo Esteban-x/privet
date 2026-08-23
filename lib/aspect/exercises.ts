@@ -410,6 +410,33 @@ const FUTURE_CONTEXTS: FutureContext[] = [
     why: "Un événement unique et daté — futur perfectif.",
     pair: "vstavat",
   },
+  {
+    id: "tselyy-god",
+    template: "Весь год я ___ русский язык.",
+    fr: "Toute l'année, je vais étudier le russe.",
+    schema: "process",
+    answer: "imperfective",
+    why: "« весь год » annonce une occupation étalée dans le temps — futur imperfectif.",
+    pair: "izuchat",
+  },
+  {
+    id: "kak-tolko",
+    template: "Как только приеду, я ___ тебе.",
+    fr: "Dès que j'arrive, je t'appellerai.",
+    schema: "sequence",
+    answer: "perfective",
+    why: "Un événement unique déclenché par un autre — futur perfectif.",
+    pair: "zvonit",
+  },
+  {
+    id: "nikogda-ne",
+    template: "Больше я никогда не ___ об этом.",
+    fr: "Je n'en parlerai plus jamais.",
+    schema: "process",
+    answer: "imperfective",
+    why: "« никогда не » nie l'action en général, pas un résultat manqué — futur imperfectif.",
+    pair: "govorit",
+  },
 ];
 
 function futureExercise(random: Rng): AspectExercise {
@@ -486,6 +513,38 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
     answer: "perfective",
     why: "Une seule action attendue, avec son résultat — perfectif.",
     pair: "davat",
+  },
+  {
+    id: "negation-brat",
+    template: "Не ___ эту книгу без разрешения.",
+    fr: "Ne prends pas ce livre sans autorisation.",
+    answer: "imperfective",
+    why: "Interdiction générale : l'impératif négatif appelle l'imperfectif.",
+    pair: "brat",
+  },
+  {
+    id: "negation-govorit",
+    template: "Не ___ об этом никому!",
+    fr: "N'en parle à personne !",
+    answer: "imperfective",
+    why: "Défense de faire quelque chose, sans limite de temps — imperfectif.",
+    pair: "govorit",
+  },
+  {
+    id: "polite-open",
+    template: "___ , пожалуйста, окно.",
+    fr: "Ouvrez la fenêtre, s'il vous plaît.",
+    answer: "perfective",
+    why: "Une action unique dont on attend le résultat immédiat — perfectif.",
+    pair: "otkryvat",
+  },
+  {
+    id: "invitation-eat",
+    template: "___ , пожалуйста! Всё ещё горячее.",
+    fr: "Mangez, je vous en prie ! C'est encore chaud.",
+    answer: "imperfective",
+    why: "Invitation chaleureuse : l'imperfectif accueille, le perfectif « съешьте » sonnerait comme un ordre.",
+    pair: "est",
   },
 ];
 
