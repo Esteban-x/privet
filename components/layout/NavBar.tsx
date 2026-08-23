@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/cases", label: "Cas" },
   { href: "/motion", label: "Mouvement" },
   { href: "/aspect", label: "Aspect" },
+  { href: "/participles", label: "Participes" },
   { href: "/vocabulary", label: "Vocabulaire" },
   { href: "/reading", label: "Lecture" },
   { href: "/tutor", label: "Professeur IA" },
@@ -57,7 +58,7 @@ export default function NavBar({ initialUser }: { initialUser: User | null }) {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-bg/72 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5">
+        <Link href='/' className="flex items-center gap-2.5">
           <span className="flex h-[30px] w-[30px] items-center justify-center rounded-lg bg-accent font-display text-[15px] font-extrabold text-white">
             П
           </span>

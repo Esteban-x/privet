@@ -157,12 +157,24 @@ create table if not exists public.aspect_progress (
   primary key (user_id, skill_id)
 );
 
+-- ─── participle_progress ────────────────────────────────────────
+-- Précision par compétence du module « participes et gérondifs »
+-- (lib/participles/exercises.ts : active, passive, short, gerund, subject).
+create table if not exists public.participle_progress (
+  user_id   uuid not null references auth.users(id) on delete cascade,
+  skill_id  text not null,
+  attempts  int default 0,
+  correct   int default 0,
+  last_seen timestamptz default now(),
+  primary key (user_id, skill_id)
+);
+
 -- ─── activity_log ───────────────────────────────────────────────
 -- Journal d'activité pour alimenter le dashboard (graphes, streak…).
 create table if not exists public.activity_log (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users(id) on delete cascade,
-  kind       text not null,             -- 'case' | 'motion' | 'aspect' | 'vocab' | 'reading' | 'chat'
+  kind       text not null,             -- 'case' | 'motion' | 'aspect' | 'participle' | 'vocab' | 'reading' | 'chat'
   correct    boolean,
   meta       jsonb,
   created_at timestamptz default now()
@@ -243,6 +255,7 @@ alter table public.case_progress         enable row level security;
 alter table public.case_trigger_progress enable row level security;
 alter table public.motion_progress       enable row level security;
 alter table public.aspect_progress       enable row level security;
+alter table public.participle_progress   enable row level security;
 alter table public.srs_cards             enable row level security;
 alter table public.activity_log          enable row level security;
 alter table public.chat_conversations    enable row level security;
@@ -255,7 +268,7 @@ alter table public.reading_texts         enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['level_tests','case_progress','case_trigger_progress','motion_progress','aspect_progress','srs_cards','activity_log','chat_conversations','chat_messages','vocab_lists','vocab_words','reading_texts']
+  foreach t in array array['level_tests','case_progress','case_trigger_progress','motion_progress','aspect_progress','participle_progress','srs_cards','activity_log','chat_conversations','chat_messages','vocab_lists','vocab_words','reading_texts']
   loop
     execute format('drop policy if exists own_select on public.%I;', t);
     execute format('drop policy if exists own_all on public.%I;', t);
@@ -352,3 +365,6 @@ alter table public.motion_progress enable row level security;
 -- ─── Migration : module « aspect verbal » ───────────────────────────
 -- Sans effet si la table existe déjà.
 alter table public.aspect_progress enable row level security;
+
+-- ─── Migration : module « participes et gérondifs » ─────────────────
+alter table public.participle_progress enable row level security;

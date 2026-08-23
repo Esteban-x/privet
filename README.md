@@ -113,6 +113,7 @@ npm run check:leveltest   # vivier d'items et qualité du placement
 npm run check:progression # adaptation au niveau et estimation continue
 npm run check:motion      # verbes de mouvement : formes et cohérence des exercices
 npm run check:aspect      # aspect verbal : paires et cohérence des exercices
+npm run check:participles # participes : formes, trous réels et accords
 npm run build:nouns     # régénère la banque depuis le dictionnaire (rare)
 ```
 
@@ -157,7 +158,7 @@ app/
   signup/            page d'inscription + action serveur (actions.ts)
   account/           réglages du compte + action serveur (suppression)
   login, onboarding, dashboard, tutor
-  cases, motion, aspect, vocabulary, reading   (modules d'apprentissage)
+  cases, motion, aspect, participles, vocabulary, reading  (modules)
 components/
   auth/              SignupForm, TurnstileWidget
   account/           ProfileSettings, PreferencesSettings, PasswordSettings,
@@ -365,6 +366,42 @@ Les formes sont écrites et vérifiées contre une table relue à la main :
 `говори́ть → сказа́ть`, `брать → взять`, `класть → положи́ть` sont supplétifs,
 aucune règle ne les prédit.
 
+## Les participes et gérondifs
+
+Le dernier domaine que le test mesurait sans que l'app l'entraîne.
+
+**Pas de schéma ici, et c'est délibéré.** Les verbes de mouvement se
+dessinent (un trajet a une forme), l'aspect aussi (un événement a une forme
+dans le temps). Un participe, non : c'est une **subordonnée comprimée**. Ça
+ne se regarde pas, ça se manipule. Le module travaille donc par
+transformation — la proposition dépliée au-dessus, sa version condensée en
+dessous :
+
+```
+Челове́к, кото́рый чита́ет кни́гу   →   челове́к, чита́ющий кни́гу
+Кни́га, кото́рую написа́л Толсто́й   →   кни́га, напи́санная Толсты́м
+Когда́ он зако́нчил рабо́ту, он ушёл →  зако́нчив рабо́ту, он ушёл
+```
+
+Cinq compétences : participes actifs, passifs, forme longue contre forme
+courte (« закры́тая дверь » qualifie, « дверь закры́та » affirme), gérondifs,
+et — en C1 — **la règle du sujet unique**, l'erreur la plus fréquente et la
+plus invisible pour un francophone : « Возвраща́ясь домо́й, начался́ дождь »
+est fautif, ce n'est pas la pluie qui rentrait.
+
+### Les trous sont déclarés
+
+`писа́ть` n'a pas de gérondif imperfectif usuel, `помо́чь` pas de gérondif
+perfectif moderne, un verbe intransitif pas de participe passif. Ces trous
+sont **explicites dans la donnée**, et `check:participles` vérifie qu'aucun
+exercice ne demande une forme absente — sinon il exigerait une réponse qui
+n'existe pas.
+
+Le contrôle a d'ailleurs servi tout de suite, dans l'autre sens : il a
+signalé `решён` / `решена́` comme incohérents. Les données étaient justes —
+l'accent quitte le ё et celui-ci redevient е — c'est le contrôle qui
+ignorait l'alternance.
+
 ## Niveau et progression
 
 Deux mesures cohabitent, volontairement :
@@ -418,11 +455,9 @@ de réussite reste estimée A0.
   ne manque que la traduction française.
 - Corpus de classiques du domaine public (Pouchkine, Tchekhov…) pour compléter
   la lecture générée.
-- Les **participes et gérondifs** : le dernier domaine que le test mesure
-  sans que l'app l'entraîne. À traiter par transformation
-  (« Человек, который читает → читающий человек ») plutôt que par schéma —
-  un participe est une relative comprimée, ça se manipule, ça ne se dessine
-  pas.
+- Élargir les banques des quatre modules de grammaire : chacun tient une
+  vingtaine de contextes, assez pour découvrir une règle, un peu court pour
+  l'ancrer sur la durée.
 - Faire entrer `motion_progress` dans l'estimation continue du niveau : les
   seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
   demande de les recalibrer.
