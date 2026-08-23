@@ -67,6 +67,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Génération indisponible pour le moment." }, { status: 502 });
     }
 
+    // Les tags de cas que la banque de déclinaisons a contredits ont été
+    // retirés par toReadingText. On les journalise : c'est la seule mesure
+    // qu'on ait du taux d'erreur grammaticale du modèle sur ce prompt.
+    if (text.caseCheck && text.caseCheck.contradicted > 0) {
+      console.warn(
+        `reading route: ${text.caseCheck.contradicted} tag(s) de cas retirés ` +
+          `(${text.caseCheck.confirmed} confirmés, ${text.caseCheck.unverified} invérifiables)`
+      );
+    }
+
     // Sauvegardé automatiquement (comme un mot ajouté à une liste de
     // vocabulaire) plutôt qu'éphémère — listé et supprimable depuis
     // /reading. Un échec d'insert ne doit pas priver l'utilisateur du texte

@@ -1,6 +1,7 @@
 import type { GlossedWord, ReadingText } from "./texts";
 import type { CaseId } from "@/lib/grammar/types";
 import { CEFR_LEVELS, type CefrLevel } from "@/lib/supabase/types";
+import { verifyCaseTags } from "./verify-cases";
 
 const CASE_IDS = new Set<CaseId>([
   "nominative",
@@ -32,6 +33,9 @@ export function toReadingText(raw: unknown, fallbackLevel: CefrLevel = "A1"): Re
       if (typeof w.ru !== "string") return null;
       const word: GlossedWord = { ru: w.ru };
       if (typeof w.gloss === "string") word.gloss = w.gloss;
+      // Le cas annoncé est ici seulement RECOPIÉ s'il a la bonne forme ;
+      // sa justesse est éprouvée plus bas par verifyCaseTags, qui retire
+      // les analyses que la banque contredit.
       if (typeof w.case === "string" && CASE_IDS.has(w.case as CaseId)) {
         word.case = w.case as CaseId;
       }
@@ -43,5 +47,17 @@ export function toReadingText(raw: unknown, fallbackLevel: CefrLevel = "A1"): Re
 
   const level = CEFR_LEVELS.includes(t.level as CefrLevel) ? (t.level as CefrLevel) : fallbackLevel;
 
-  return { id: "ai-generated", title: t.title, level, sentences };
+  // Dernière étape, et la seule qui juge du FOND : les tags de cas passent
+  // devant la banque de déclinaisons. Ceux qu'elle contredit disparaissent,
+  // ceux qu'elle confirme sont marqués comme tels. Appliqué ici, donc avant
+  // l'insert en base : un texte stocké est déjà nettoyé.
+  const verified = verifyCaseTags(sentences);
+
+  return {
+    id: "ai-generated",
+    title: t.title,
+    level,
+    sentences: verified.sentences,
+    caseCheck: verified.report,
+  };
 }

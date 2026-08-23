@@ -135,6 +135,25 @@ export function reviewCustomCard(
   }).then((r) => json(r));
 }
 
+/**
+ * Soumet une réponse produite (frappe ou QCM) : c'est le SERVEUR qui la
+ * juge et qui enregistre la révision — voir app/api/vocab/answer. Le client
+ * n'envoie pas l'attendu et ne décide pas de la note.
+ */
+export function submitVocabAnswer(params: {
+  cardId: string;
+  userAnswer: string;
+  expectedLanguage: "ru" | "fr";
+  mode: "typing" | "qcm";
+  revealed?: boolean;
+}): Promise<{ correct: boolean; expected: string; aiAccepted: boolean }> {
+  return fetch("/api/vocab/answer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  }).then((r) => json(r));
+}
+
 // Adapte un mot de liste perso au format VocabItem, pour réutiliser les
 // mêmes pages d'exercice que le catalogue intégré. `fallbackListName` sert
 // en contexte liste unique ; en révision globale, chaque mot porte déjà son

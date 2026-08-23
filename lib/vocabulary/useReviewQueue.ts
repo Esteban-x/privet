@@ -7,6 +7,7 @@ import {
   fetchDueWords,
   fetchListDetail,
   reviewCustomCard,
+  submitVocabAnswer,
   toVocabItem,
   type CustomVocabWord,
 } from "./custom";
@@ -80,6 +81,12 @@ export function useReviewQueue(listId: string | null) {
   const loading = words === null && !loadError;
   const noWordsAtAll = words !== null && allWords.length === 0;
 
+  /**
+   * Auto-évaluation : cartes retournées et mode oral, où l'apprenant est le
+   * seul juge de son souvenir. Pour la frappe et le QCM, utiliser
+   * `submitAnswer` — la réponse y est objectivement vérifiable, et c'est le
+   * serveur qui tranche.
+   */
   async function review(quality: Quality) {
     if (!current) return;
 
@@ -95,6 +102,37 @@ export function useReviewQueue(listId: string | null) {
     setSessionDone((n) => n + 1);
   }
 
+  /**
+   * Soumet une réponse produite et renvoie le verdict du SERVEUR. La carte
+   * n'est retirée de la file qu'à `advance()` : l'apprenant doit d'abord
+   * voir son résultat.
+   *
+   * En cas de panne réseau, on renvoie `null` plutôt qu'un verdict inventé
+   * — la page affiche alors une erreur au lieu de compter faux à tort.
+   */
+  async function submitAnswer(params: {
+    userAnswer: string;
+    expectedLanguage: "ru" | "fr";
+    mode: "typing" | "qcm";
+    revealed?: boolean;
+  }): Promise<{ correct: boolean; expected: string } | null> {
+    if (!current) return null;
+    try {
+      const verdict = await submitVocabAnswer({ cardId: current.id, ...params });
+      setSessionCorrect((n) => n + (verdict.correct ? 1 : 0));
+      return verdict;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Passe au mot suivant, une fois le résultat vu. */
+  function advance() {
+    if (!current) return;
+    setWords((prev) => (prev ? prev.filter((w) => w.id !== current.id) : prev));
+    setSessionDone((n) => n + 1);
+  }
+
   function reload() {
     setWords(null);
     setAllWords([]);
@@ -106,6 +144,8 @@ export function useReviewQueue(listId: string | null) {
   return {
     current,
     review,
+    submitAnswer,
+    advance,
     reload,
     pool,
     loading,

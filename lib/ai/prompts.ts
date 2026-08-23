@@ -161,6 +161,34 @@ export interface ReadingOptions {
   focusCase?: CaseId;
 }
 
+// ─── Explication d'un mot de vocabulaire ────────────────────────
+// Du COMMENTAIRE, pas du calcul : on demande au modèle ce qu'un
+// dictionnaire ne donne pas — la nuance, le registre, le piège pour un
+// francophone. Aucune forme fléchie n'est produite ici ; les déclinaisons
+// restent du ressort du moteur de règles et du dictionnaire.
+export function wordExplanationPrompt(input: {
+  ru: string;
+  fr: string;
+  level: string;
+}) {
+  return `Tu es un professeur de russe qui enseigne à des francophones. Explique le mot russe "${input.ru}", que l'apprenant a noté avec la traduction "${input.fr}". Son niveau est ${input.level}.
+
+Écris pour quelqu'un qui connaît déjà la traduction : ne répète pas simplement le sens, apporte ce qu'une traduction seule ne dit pas.
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour :
+{"meaning":"...","partOfSpeech":"...","register":"...","examples":[{"ru":"...","fr":"..."}],"collocations":["..."],"related":["..."],"pitfall":"..."}
+
+Consignes :
+- "meaning" : deux ou trois phrases en français. Ce que le mot recouvre exactement, ses connotations, dans quelles situations on l'emploie vraiment.
+- "partOfSpeech" : en français ("nom masculin", "verbe imperfectif", "adjectif"...). Pour un verbe, précise l'aspect et donne son partenaire aspectuel.
+- "register" : "courant", "familier", "soutenu", "technique", "vieilli"...
+- "examples" : deux ou trois phrases COURTES adaptées au niveau ${input.level}, chacune employant réellement le mot "${input.ru}" (fléchi si besoin), avec sa traduction française.
+- "collocations" : expressions ou associations habituelles du mot, en russe suivi du français entre parenthèses.
+- "related" : mots proches (synonymes, mots de la même famille, ou l'autre membre de la paire aspectuelle), chacun avec ce qui le DISTINGUE en quelques mots.
+- "pitfall" : le piège pour un francophone — faux-ami, cas exigé par le verbe, aspect à ne pas confondre, préposition inattendue. Omets ce champ s'il n'y a rien de notable ; n'invente pas de difficulté.
+- Tout le français doit être naturel et sans jargon inutile. Le russe doit porter les accents toniques uniquement s'ils sont pédagogiquement utiles.`;
+}
+
 export function readingSystemPrompt({
   level,
   length = "medium",

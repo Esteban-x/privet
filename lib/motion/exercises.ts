@@ -88,23 +88,31 @@ const MODE_DESTINATIONS: Record<MotionMode, { ru: string; fr: string }[]> = {
     { ru: "в школу", fr: "à l'école" },
     { ru: "в магазин", fr: "au magasin" },
     { ru: "домой", fr: "à la maison" },
+    { ru: "на почту", fr: "à la poste" },
+    { ru: "в парк", fr: "au parc" },
+    { ru: "к врачу", fr: "chez le médecin" },
   ],
   vehicle: [
     { ru: "в Москву", fr: "à Moscou" },
     { ru: "на работу", fr: "au travail" },
     { ru: "в центр", fr: "dans le centre" },
+    { ru: "на дачу", fr: "à la datcha" },
+    { ru: "в аэропорт", fr: "à l'aéroport" },
   ],
   air: [
     { ru: "в Париж", fr: "à Paris" },
     { ru: "домой", fr: "à la maison" },
+    { ru: "в Сибирь", fr: "en Sibérie" },
   ],
   water: [
     { ru: "к острову", fr: "vers l'île" },
     { ru: "через реку", fr: "de l'autre côté de la rivière" },
+    { ru: "к берегу", fr: "vers la rive" },
   ],
   carry: [
     { ru: "книги в библиотеку", fr: "des livres à la bibliothèque" },
     { ru: "сумку домой", fr: "un sac à la maison" },
+    { ru: "документы в офис", fr: "des documents au bureau" },
   ],
 };
 
@@ -506,6 +514,20 @@ const GOVERNMENT_ITEMS: GovernmentTarget[] = [
     distractors: ["до угол", "к углу", "на угол"],
     sentence: "Мы дошли ___.",
     sentenceFr: "Nous sommes allés jusqu'au coin de la rue.",
+  },
+  {
+    prefixId: "s",
+    correct: "с поезда",
+    distractors: ["с поезд", "из поезда", "от поезда"],
+    sentence: "Она сошла ___.",
+    sentenceFr: "Elle est descendue du train.",
+  },
+  {
+    prefixId: "za",
+    correct: "за угол",
+    distractors: ["за углом", "за угла", "на угол"],
+    sentence: "Машина заехала ___.",
+    sentenceFr: "La voiture a tourné au coin de la rue.",
   },
 ];
 

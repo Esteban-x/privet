@@ -8,6 +8,7 @@ import SessionSummary from "@/components/exercises/SessionSummary";
 import { loadDirection, saveDirection, type VocabDirection } from "@/lib/storage";
 import { fetchDailyProgress } from "@/lib/vocabulary/custom";
 import { useReviewQueue } from "@/lib/vocabulary/useReviewQueue";
+import WordExplanation from "@/components/vocabulary/WordExplanation";
 import { ReviewCardSkeleton } from "@/components/ui/Skeleton";
 
 export default function FlashcardsPage() {
@@ -132,6 +133,16 @@ function FlashcardsInner() {
           </>
         )}
       </button>
+
+      {/* Une fois la réponse vue, et seulement là : c'est le moment où une
+          nuance ou un piège s'ancre, pas avant, où elle donnerait la
+          réponse. La fiche est mise en cache côté serveur, donc gratuite
+          aux passages suivants. */}
+      {revealed && (
+        <div className="mt-4 flex justify-center">
+          <WordExplanation key={current.id} wordId={current.id} />
+        </div>
+      )}
 
       {revealed && (
         <div className="mt-6 grid grid-cols-4 gap-2.5">

@@ -38,9 +38,11 @@ function QcmInner() {
   }
 
   const [picked, setPicked] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState(false);
   const {
     current,
-    review,
+    submitAnswer,
+    advance,
     reload,
     pool,
     loading,
@@ -62,6 +64,7 @@ function QcmInner() {
   if (current?.id !== seenQuestionId) {
     setSeenQuestionId(current?.id);
     setPicked(null);
+    setSubmitError(false);
   }
 
   const expectedIsRussian = direction !== "ru-first";
@@ -145,14 +148,25 @@ function QcmInner() {
     ? "Quelle est la traduction en russe ?"
     : "Quelle est la traduction en français ?";
 
-  function selectOption(opt: string) {
+  // L'option choisie part au serveur, qui relit le mot en base et décide.
+  // Le surlignage vert/rouge affiché ici reste local — la bonne option est
+  // connue du client, c'est ce qui construit le QCM — mais la note SRS, la
+  // série et l'XP ne dépendent plus de ce que le client affirme.
+  async function selectOption(opt: string) {
     if (picked) return;
     setPicked(opt);
+    setSubmitError(false);
+    const verdict = await submitAnswer({
+      userAnswer: opt,
+      expectedLanguage: expectedIsRussian ? "ru" : "fr",
+      mode: "qcm",
+    });
+    if (!verdict) setSubmitError(true);
   }
 
   function next() {
     if (!picked) return;
-    review(picked === correctAnswer ? 4 : 1);
+    advance();
   }
 
   return (
@@ -202,6 +216,12 @@ function QcmInner() {
             );
           })}
         </div>
+
+        {submitError && (
+          <p className="mt-4 font-display text-sm text-danger">
+            Enregistrement impossible — cette révision n&apos;a pas été comptée.
+          </p>
+        )}
 
         {picked && (
           <button

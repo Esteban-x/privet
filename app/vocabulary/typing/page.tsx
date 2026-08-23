@@ -7,24 +7,15 @@ import DirectionToggle from "@/components/exercises/DirectionToggle";
 import SessionSummary from "@/components/exercises/SessionSummary";
 import { loadDirection, saveDirection, type VocabDirection } from "@/lib/storage";
 import { fetchDailyProgress } from "@/lib/vocabulary/custom";
+import { matchesAnswer } from "@/lib/vocabulary/answer-check";
 import { useReviewQueue } from "@/lib/vocabulary/useReviewQueue";
 import { ReviewCardSkeleton } from "@/components/ui/Skeleton";
 
-// Tolérant aux accents français (café/cafe, garçon/garcon) : ce mode peut
-// attendre une réponse française (direction "ru-first") sans clavier AZERTY
-// à disposition, et il serait injuste de compter un accent oublié comme
-// une vraie faute alors que le mot est correct. La décomposition NFD sépare
-// aussi "ё" en "е" + accent, donc le remplacement explicite ci-dessous est
-// redondant mais gardé par clarté (fonctionne dans les deux ordres).
-function normalize(s: string) {
-  return s
-    .trim()
-    .toLowerCase()
-    .replace(/ё/g, "е")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
-}
+// La comparaison locale ne sert qu'à afficher un retour IMMÉDIAT sur le
+// chemin heureux : le verdict qui compte, celui qui alimente le SRS et la
+// série, est rendu par /api/vocab/answer, qui relit le mot en base. Même
+// fonction des deux côtés (lib/vocabulary/answer-check.ts), donc pas de
+// divergence possible entre ce qui est montré et ce qui est enregistré.
 
 export default function TypingPage() {
   return (
@@ -48,10 +39,12 @@ function TypingInner() {
 
   const [input, setInput] = useState("");
   const [result, setResult] = useState<"correct" | "incorrect" | "revealed" | null>(null);
+  const [submitError, setSubmitError] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const {
     current,
-    review,
+    submitAnswer,
+    advance,
     reload,
     loading,
     loadError,
@@ -88,6 +81,7 @@ function TypingInner() {
     setInput("");
     setResult(null);
     setVerifying(false);
+    setSubmitError(false);
   }
 
   // Ramène le focus sur le champ de saisie pour le nouveau mot — le focus
@@ -144,49 +138,54 @@ function TypingInner() {
 
   async function submit() {
     if (!current || !input.trim() || result || verifying) return;
-    if (normalize(input) === normalize(answer)) {
-      setResult("correct");
+
+    // Affichage optimiste quand la comparaison locale reconnaît la réponse :
+    // le serveur applique la même fonction, il dira la même chose. Sur un
+    // écart, on attend son verdict — c'est là qu'intervient la seconde
+    // vérification IA (synonyme, variante orthographique).
+    const looksRight = matchesAnswer(input, answer);
+    if (looksRight) setResult("correct");
+    else setVerifying(true);
+    setSubmitError(false);
+
+    const verdict = await submitAnswer({
+      userAnswer: input,
+      expectedLanguage: expectedIsRussian ? "ru" : "fr",
+      mode: "typing",
+    });
+    setVerifying(false);
+
+    if (!verdict) {
+      // Panne réseau : on ne fabrique pas de verdict. Rien n'a été
+      // enregistré, l'apprenant peut réessayer.
+      setResult(null);
+      setSubmitError(true);
       return;
     }
-    // Filet de sécurité IA : la comparaison de chaînes dit "faux", mais
-    // avant de l'afficher on demande une seconde vérification — couvre un
-    // synonyme correct, une variante orthographique, ou un bug de la
-    // comparaison elle-même. Ne coûte des tokens que sur une réponse déjà
-    // jugée fausse, jamais sur le chemin heureux.
-    setVerifying(true);
-    try {
-      const res = await fetch("/api/vocab/verify-answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expected: answer,
-          userAnswer: input,
-          expectedLanguage: expectedIsRussian ? "ru" : "fr",
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      setResult(data.acceptable ? "correct" : "incorrect");
-    } catch {
-      setResult("incorrect");
-    } finally {
-      setVerifying(false);
-    }
+    setResult(verdict.correct ? "correct" : "incorrect");
   }
 
   // Pour quelqu'un qui ne sait vraiment pas — évite de taper n'importe quoi
   // juste pour débloquer "Vérifier" et voir la réponse. Compte comme un
-  // échec côté SRS (même `review(1)` que "incorrect" dans next() ci-dessous
-  // : la mémoire a clairement besoin de retravailler ce mot), mais affiché
-  // sans le ton "faute" du rouge — ce n'est pas une erreur, juste un aveu
-  // honnête plutôt qu'une réponse bidon.
-  function reveal() {
-    if (!current || result) return;
+  // échec côté SRS (la mémoire a clairement besoin de retravailler ce mot),
+  // mais affiché sans le ton "faute" du rouge : ce n'est pas une erreur,
+  // juste un aveu honnête plutôt qu'une réponse bidon.
+  async function reveal() {
+    if (!current || result || verifying) return;
     setResult("revealed");
+    setSubmitError(false);
+    const verdict = await submitAnswer({
+      userAnswer: "",
+      expectedLanguage: expectedIsRussian ? "ru" : "fr",
+      mode: "typing",
+      revealed: true,
+    });
+    if (!verdict) setSubmitError(true);
   }
 
   function next() {
     if (!result) return;
-    review(result === "correct" ? 4 : 1);
+    advance();
   }
 
   return (
@@ -255,6 +254,12 @@ function TypingInner() {
               <p className="font-display text-sm text-muted">{current.transliteration}</p>
             )}
           </div>
+        )}
+
+        {submitError && (
+          <p className="mt-4 font-display text-sm text-danger">
+            Enregistrement impossible — vérifie ta connexion et réessaie.
+          </p>
         )}
 
         <button

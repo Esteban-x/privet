@@ -9,6 +9,13 @@ export interface GlossedWord {
   // sert au surlignage couleur pendant la lecture (voir ReadingPassage),
   // en réutilisant la même palette que le module /cases (lib/grammar/cases.ts).
   case?: CaseId;
+  /**
+   * État de vérification du tag de cas (voir lib/reading/verify-cases.ts) :
+   * "confirmed" = la forme est dans la banque et le cas est compatible,
+   * "unverified" = le mot n'y est pas, l'analyse reste celle de l'IA.
+   * Un tag CONTREDIT par la banque est retiré, il n'arrive jamais ici.
+   */
+  caseStatus?: "confirmed" | "unverified";
 }
 
 export interface ReadingText {
@@ -16,6 +23,12 @@ export interface ReadingText {
   title: string;
   level: CefrLevel;
   sentences: GlossedWord[][];
+  /**
+   * Bilan de la vérification des cas, présent sur les textes générés par
+   * l'IA (voir lib/reading/verify-cases.ts). Affiché dans la légende pour
+   * que l'apprenant sache ce qui a été contrôlé et ce qui ne l'a pas été.
+   */
+  caseCheck?: { confirmed: number; contradicted: number; unverified: number };
 }
 
 export const READING_TEXTS: ReadingText[] = [

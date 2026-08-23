@@ -78,6 +78,7 @@ const EXPECTED_PREFIXES = {
   дойти: { imp: "доходить", pastM: "дошёл", pastF: "дошла", governs: "genitive" },
   зайти: { imp: "заходить", pastM: "зашёл", pastF: "зашла", governs: "dative" },
   обойти: { imp: "обходить", pastM: "обошёл", pastF: "обошла", governs: "accusative" },
+  сойти: { imp: "сходить", pastM: "сошёл", pastF: "сошла", governs: "genitive" },
 };
 
 for (const p of V.MOTION_PREFIXES) {

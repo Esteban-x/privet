@@ -10,11 +10,12 @@
     "check:grammar": "node scripts/check-declensions.mjs",
     "build:nouns": "node scripts/build-nouns.mjs",
     "check:leveltest": "node scripts/check-leveltest.mjs",
-    "check": "npm run check:grammar && npm run check:leveltest && npm run check:progression && npm run check:motion && npm run check:aspect && npm run check:participles",
+    "check": "npm run check:grammar && npm run check:leveltest && npm run check:progression && npm run check:motion && npm run check:aspect && npm run check:participles && npm run check:vocab",
     "check:progression": "node scripts/check-progression.mjs",
     "check:motion": "node scripts/check-motion.mjs",
     "check:aspect": "node scripts/check-aspect.mjs",
-    "check:participles": "node scripts/check-participles.mjs"
+    "check:participles": "node scripts/check-participles.mjs",
+    "check:vocab": "node scripts/check-vocab.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",

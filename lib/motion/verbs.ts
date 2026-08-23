@@ -300,6 +300,19 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     governs: "accusative",
     example: { ru: "Он обошёл дом.", fr: "Il a contourné la maison." },
   },
+  {
+    id: "s",
+    prefix: "с-",
+    perfective: "сойти",
+    imperfective: "сходить",
+    translation: "descendre de",
+    schema: "awayfrom",
+    pastM: "сошёл",
+    pastF: "сошла",
+    preposition: "с",
+    governs: "genitive",
+    example: { ru: "Она сошла с поезда.", fr: "Elle est descendue du train." },
+  },
 ];
 
 export function getPair(id: string): MotionPair | undefined {

@@ -14,6 +14,7 @@ import {
 } from "@/lib/vocabulary/custom";
 import type { Animacy, Gender } from "@/lib/grammar/types";
 import { MASTERY_THRESHOLD } from "@/lib/vocabulary/mastery";
+import WordExplanation from "@/components/vocabulary/WordExplanation";
 import { ListRowsSkeleton } from "@/components/ui/Skeleton";
 import Select from "@/components/ui/Select";
 
@@ -310,8 +311,9 @@ export default function VocabListDetailPage() {
             {words.map((w) => (
               <div
                 key={w.id}
-                className="flex items-center justify-between gap-3 rounded-[10px] border border-border bg-bg2 px-4 py-3"
+                className="rounded-[10px] border border-border bg-bg2 px-4 py-3"
               >
+                <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-display text-base font-bold">
                     {w.ru}
@@ -359,6 +361,10 @@ export default function VocabListDetailPage() {
                   >
                     Supprimer
                   </button>
+                </div>
+                </div>
+                <div className="mt-2">
+                  <WordExplanation wordId={w.id} />
                 </div>
               </div>
             ))}

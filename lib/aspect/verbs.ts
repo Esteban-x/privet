@@ -158,6 +158,14 @@ export const ASPECT_PAIRS: AspectPair[] = [
     impImperative: "решайте", perfImperative: "решите",
   },
   {
+    id: "zabyvat",
+    imperfective: "забывать", perfective: "забыть", translation: "oublier",
+    formation: "suffixe",
+    impPast: "забывал", perfPast: "забыл",
+    impPresent1: "забываю", perfFuture1: "забуду",
+    impImperative: "забывайте", perfImperative: "забудьте",
+  },
+  {
     id: "poluchat",
     imperfective: "получать", perfective: "получить", translation: "recevoir",
     formation: "suffixe",

@@ -115,6 +115,12 @@ alter table public.vocab_words add column if not exists indeclinable boolean def
 -- par l'IA de classification.
 alter table public.vocab_words add column if not exists french_gender text;
 
+-- Explication du mot rédigée par l'IA (nuance, registre, exemples, pièges),
+-- mise en cache ici parce qu'elle ne dépend que du mot : la calculer une
+-- fois évite de repayer des tokens à chaque ouverture de la fiche.
+-- Voir lib/vocabulary/explanation.ts et app/api/vocab/explain.
+alter table public.vocab_words add column if not exists explanation jsonb;
+
 -- ─── case_trigger_progress ──────────────────────────────────────
 -- Précision par cas × déclencheur (préposition/verbe/expression, voir
 -- lib/grammar/triggers.ts) — plus fin que case_progress (cas × genre) :
@@ -374,3 +380,7 @@ alter table public.participle_progress enable row level security;
 --    `do $$` plus haut les couvre déjà : le relancer suffit, cette ligne
 --    n'est là que pour rappeler qu'il FAUT le relancer.
 --    → remonte au bloc « Row Level Security » et réexécute-le.
+
+-- 5. Explications de vocabulaire mises en cache (option « Expliquer » sur
+--    un mot d'une liste personnelle). Créée plus haut sur une base neuve.
+alter table public.vocab_words add column if not exists explanation jsonb;

@@ -437,6 +437,33 @@ const FUTURE_CONTEXTS: FutureContext[] = [
     why: "« никогда не » nie l'action en général, pas un résultat manqué — futur imperfectif.",
     pair: "govorit",
   },
+  {
+    id: "poka-ne",
+    template: "Я не уйду, пока не ___ эту задачу.",
+    schema: "sequence",
+    fr: "Je ne partirai pas tant que je n'aurai pas résolu ce problème.",
+    answer: "perfective",
+    why: "« пока не » attend un RÉSULTAT atteint : futur perfectif, malgré la négation.",
+    pair: "reshat",
+  },
+  {
+    id: "kazhdyy-den",
+    template: "В Москве я ___ по-русски каждый день.",
+    schema: "process",
+    fr: "À Moscou, je parlerai russe tous les jours.",
+    answer: "imperfective",
+    why: "Action répétée jour après jour, sans achèvement visé — futur imperfectif composé (буду + infinitif).",
+    pair: "govorit",
+  },
+  {
+    id: "zavtra-utrom",
+    template: "Завтра утром я ___ письмо и отправлю его.",
+    schema: "sequence",
+    fr: "Demain matin j'écrirai la lettre et je l'enverrai.",
+    answer: "perfective",
+    why: "Deux actions uniques qui s'enchaînent, chacune menée à son terme — futur perfectif.",
+    pair: "pisat",
+  },
 ];
 
 function futureExercise(random: Rng): AspectExercise {
@@ -545,6 +572,30 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
     answer: "imperfective",
     why: "Invitation chaleureuse : l'imperfectif accueille, le perfectif « съешьте » sonnerait comme un ordre.",
     pair: "est",
+  },
+  {
+    id: "warning-zabyt",
+    template: "Не ___ ключи!",
+    fr: "N'oublie pas tes clés !",
+    answer: "perfective",
+    why: "Mise en garde contre un accident ponctuel — c'est le cas RARE où l'impératif négatif prend le perfectif.",
+    pair: "zabyvat",
+  },
+  {
+    id: "request-write",
+    template: "___ мне свой адрес, пожалуйста.",
+    fr: "Écris-moi ton adresse, s'il te plaît.",
+    answer: "perfective",
+    why: "Demande d'un acte unique dont on attend le résultat — perfectif.",
+    pair: "pisat",
+  },
+  {
+    id: "habit-read",
+    template: "___ по-русски каждый день — так ты быстрее выучишь язык.",
+    fr: "Lis en russe tous les jours — tu apprendras la langue plus vite.",
+    answer: "imperfective",
+    why: "Conseil de répéter l'action régulièrement, sans point d'arrivée : imperfectif.",
+    pair: "chitat",
   },
 ];
 

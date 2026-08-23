@@ -28,6 +28,17 @@ export default function ReadingPassage({
     return CASES.filter((c) => ids.has(c.id));
   }, [text]);
 
+  // Les tags que la banque de déclinaisons n'a pas pu confirmer. Les textes
+  // écrits à la main n'ont pas de caseStatus : ils sont contrôlés par
+  // check:reading, donc comptés comme confirmés.
+  const unverifiedCount = useMemo(
+    () =>
+      text.sentences
+        .flat()
+        .filter((w) => w.case && w.caseStatus === "unverified").length,
+    [text]
+  );
+
   const [showCases, setShowCases] = useState(true);
 
   // Un nouveau texte (nouvel id, ou texte généré par IA remplacé) repart
@@ -83,6 +94,15 @@ export default function ReadingPassage({
               ))}
             </div>
           )}
+          {showCases && unverifiedCount > 0 && (
+            <p className="w-full font-display text-[11px] leading-relaxed text-muted">
+              Soulignement plein : cas confirmé par le dictionnaire de
+              déclinaisons. Soulignement pointillé ({unverifiedCount}
+              {" "}mot{unverifiedCount > 1 ? "s" : ""}) : analyse de l&apos;IA que
+              l&apos;app n&apos;a pas pu vérifier — à prendre comme une
+              indication.
+            </p>
+          )}
         </div>
       )}
 
@@ -95,15 +115,14 @@ export default function ReadingPassage({
               const active = activeKey === key;
               const caseInfo = showCases && word.case ? CASES.find((c) => c.id === word.case) : undefined;
               const caseInfoForPopover = word.case ? CASES.find((c) => c.id === word.case) : undefined;
+              const unverified = word.caseStatus === "unverified";
               return (
                 <span key={key} className="relative">
                   <button
                     onClick={() => setActiveKey(active ? null : key)}
                     className={`border-b-2 pb-0.5 transition-colors ${
                       caseInfo
-                        ? active
-                          ? "bg-white/10"
-                          : "hover:bg-white/5"
+                        ? `${unverified ? "border-dashed" : ""} ${active ? "bg-white/10" : "hover:bg-white/5"}`
                         : `border-dotted border-accent2 ${active ? "bg-accent2/15" : "hover:bg-accent2/10"}`
                     }`}
                     style={caseInfo ? { borderColor: caseInfo.color } : undefined}
@@ -119,6 +138,12 @@ export default function ReadingPassage({
                           style={{ backgroundColor: caseInfoForPopover.color }}
                         >
                           {caseInfoForPopover.nameFr}
+                          {unverified && " ?"}
+                        </span>
+                      )}
+                      {unverified && (
+                        <span className="ml-1.5 text-[11px] font-normal text-muted">
+                          non vérifié
                         </span>
                       )}
                     </span>
