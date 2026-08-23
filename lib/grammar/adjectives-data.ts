@@ -24,32 +24,32 @@ const EDIBLE = [
 
 export const ADJECTIVES: Adjective[] = [
   // Dur
-  { id: "krasivyy", lemmaM: "красивый", translation: "beau / belle", stemType: "hard" },
-  { id: "novyy", lemmaM: "новый", translation: "nouveau", stemType: "hard" },
-  { id: "staryy", lemmaM: "старый", translation: "vieux", stemType: "hard" },
-  { id: "interesnyy", lemmaM: "интересный", translation: "intéressant", stemType: "hard" },
-  { id: "tyoplyy", lemmaM: "тёплый", translation: "chaud (temps)", stemType: "hard", appliesTo: "inanimate" },
-  { id: "kholodnyy", lemmaM: "холодный", translation: "froid", stemType: "hard", appliesTo: "inanimate" },
-  { id: "vkusnyy", lemmaM: "вкусный", translation: "délicieux", stemType: "hard", onlyNouns: EDIBLE },
-  { id: "umnyy", lemmaM: "умный", translation: "intelligent", stemType: "hard", appliesTo: "animate" },
+  { id: "krasivyy", lemmaM: "красивый", translation: "beau / belle", stemType: "hard", fr: { m: "beau", f: "belle", mVowel: "bel", position: "before" } },
+  { id: "novyy", lemmaM: "новый", translation: "nouveau", stemType: "hard", fr: { m: "nouveau", f: "nouvelle", mVowel: "nouvel", position: "before" } },
+  { id: "staryy", lemmaM: "старый", translation: "vieux", stemType: "hard", fr: { m: "vieux", f: "vieille", mVowel: "vieil", position: "before" } },
+  { id: "interesnyy", lemmaM: "интересный", translation: "intéressant", stemType: "hard", fr: { m: "intéressant", f: "intéressante", position: "after" } },
+  { id: "tyoplyy", lemmaM: "тёплый", translation: "chaud (temps)", stemType: "hard", appliesTo: "inanimate", fr: { m: "chaud", f: "chaude", position: "after" } },
+  { id: "kholodnyy", lemmaM: "холодный", translation: "froid", stemType: "hard", appliesTo: "inanimate", fr: { m: "froid", f: "froide", position: "after" } },
+  { id: "vkusnyy", lemmaM: "вкусный", translation: "délicieux", stemType: "hard", onlyNouns: EDIBLE, fr: { m: "délicieux", f: "délicieuse", position: "after" } },
+  { id: "umnyy", lemmaM: "умный", translation: "intelligent", stemType: "hard", appliesTo: "animate", fr: { m: "intelligent", f: "intelligente", position: "after" } },
 
   // Dur, accent sur la désinence (-ой)
-  { id: "molodoy", lemmaM: "молодой", translation: "jeune", stemType: "hard", stressedEnding: true, appliesTo: "animate" },
+  { id: "molodoy", lemmaM: "молодой", translation: "jeune", stemType: "hard", stressedEnding: true, appliesTo: "animate", fr: { m: "jeune", f: "jeune", position: "before" } },
 
   // Mixte (radical en г к х ж ч ш щ)
-  { id: "russkiy", lemmaM: "русский", translation: "russe", stemType: "mixed" },
-  { id: "malenkiy", lemmaM: "маленький", translation: "petit", stemType: "mixed" },
-  { id: "khoroshiy", lemmaM: "хороший", translation: "bon", stemType: "mixed" },
-  { id: "yarkiy", lemmaM: "яркий", translation: "vif, éclatant", stemType: "mixed", appliesTo: "inanimate" },
+  { id: "russkiy", lemmaM: "русский", translation: "russe", stemType: "mixed", fr: { m: "russe", f: "russe", position: "after" } },
+  { id: "malenkiy", lemmaM: "маленький", translation: "petit", stemType: "mixed", fr: { m: "petit", f: "petite", position: "before" } },
+  { id: "khoroshiy", lemmaM: "хороший", translation: "bon", stemType: "mixed", fr: { m: "bon", f: "bonne", position: "before" } },
+  { id: "yarkiy", lemmaM: "яркий", translation: "brillant", stemType: "mixed", appliesTo: "inanimate", fr: { m: "brillant", f: "brillante", position: "after" } },
 
   // Mixte, accent sur la désinence (-ой)
-  { id: "bolshoy", lemmaM: "большой", translation: "grand", stemType: "mixed", stressedEnding: true },
-  { id: "plokhoy", lemmaM: "плохой", translation: "mauvais", stemType: "mixed", stressedEnding: true },
-  { id: "dorogoy", lemmaM: "дорогой", translation: "cher, précieux", stemType: "mixed", stressedEnding: true },
+  { id: "bolshoy", lemmaM: "большой", translation: "grand", stemType: "mixed", stressedEnding: true, fr: { m: "grand", f: "grande", position: "before" } },
+  { id: "plokhoy", lemmaM: "плохой", translation: "mauvais", stemType: "mixed", stressedEnding: true, fr: { m: "mauvais", f: "mauvaise", position: "before" } },
+  { id: "dorogoy", lemmaM: "дорогой", translation: "cher, précieux", stemType: "mixed", stressedEnding: true, fr: { m: "cher", f: "chère", position: "after" } },
 
   // Mou véritable (radical en н suivi de -ий mou)
-  { id: "siniy", lemmaM: "синий", translation: "bleu (foncé)", stemType: "soft", appliesTo: "inanimate" },
-  { id: "domashniy", lemmaM: "домашний", translation: "domestique, familial", stemType: "soft", appliesTo: "inanimate" },
+  { id: "siniy", lemmaM: "синий", translation: "bleu (foncé)", stemType: "soft", appliesTo: "inanimate", fr: { m: "bleu", f: "bleue", position: "after" } },
+  { id: "domashniy", lemmaM: "домашний", translation: "domestique, familial", stemType: "soft", appliesTo: "inanimate", fr: { m: "domestique", f: "domestique", position: "after" } },
 ];
 
 export function getAdjective(id: string): Adjective | undefined {

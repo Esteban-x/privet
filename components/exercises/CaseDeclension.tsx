@@ -453,12 +453,18 @@ export default function CaseDeclension({
                   <span className="inline-block min-w-[80px] border-b-2 border-accent">&nbsp;</span>
                   {exercise.sentenceTemplate?.split("___")[1]}
                 </p>
-                <p className="mt-1 font-display text-sm italic text-muted">{exercise.sentenceFr}</p>
-                {exercise.kind === "adjective-agreement" && exercise.adjective && (
-                  <p className="mt-1 font-display text-xs text-muted">
-                    Accorde l&apos;adjectif « {exercise.adjective.lemmaM} » ({exercise.adjective.translation}) — le nom est déjà décliné.
-                  </p>
-                )}
+                {/* La traduction porte déjà l'adjectif accordé ; il ne reste
+                    qu'à donner sa forme du dictionnaire, juste à côté. Une
+                    ligne de consigne en plus disait ce que la phrase montre
+                    déjà. */}
+                <p className="mt-1 font-display text-sm italic text-muted">
+                  {exercise.sentenceFr}
+                  {exercise.kind === "adjective-agreement" && exercise.adjective && (
+                    <span className="ml-2 not-italic text-accent2">
+                      ({exercise.adjective.lemmaM})
+                    </span>
+                  )}
+                </p>
               </div>
             )}
 

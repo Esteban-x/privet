@@ -8,6 +8,7 @@ import { CaseTrigger, PROPER_NOUN_TRIGGER_ID, triggersForCase } from "./triggers
 import { CASES } from "./cases";
 import { CountForm, countFormFor, randomCountNumber } from "./numerals";
 import { fillFrenchBlank, frenchNounPhrase } from "./french-article";
+import { categoryOf, type NounCategory } from "./noun-categories";
 
 // Pool unique de tous les exercices : la banque importée, dont chaque forme
 // vient du dictionnaire (voir scripts/build-nouns.mjs). Le vocabulaire perso
@@ -76,8 +77,35 @@ function shuffle<T>(arr: T[]): T[] {
 
 // "Меня зовут ___" n'a de sens qu'avec un prénom : ce déclencheur tire dans
 // la banque de prénoms, pas dans celle des noms communs.
+/**
+ * Noms utilisables avec ce déclencheur.
+ *
+ * Deux restrictions se superposent :
+ * - « Меня́ зову́т ___ » ne prend qu'un prénom ;
+ * - un déclencheur exigeant (`accepts`, voir triggers.ts) n'accepte que
+ *   certaines classes de noms. Sans cela, « Я ем ___ » recevait
+ *   « помо́щник » : « je mange cet assistant ».
+ *
+ * Le repli va à la banque entière avant de renoncer : le pool passé peut
+ * être réduit par niveau (un débutant ne voit que les mots fréquents) et ne
+ * rien contenir de la classe demandée. Mieux vaut alors servir un mot plus
+ * rare qu'une phrase que personne ne dirait.
+ */
 function poolFor(trigger: CaseTrigger, pool: Noun[]): Noun[] {
-  return trigger.id === PROPER_NOUN_TRIGGER_ID ? RUSSIAN_NAMES : pool;
+  if (trigger.id === PROPER_NOUN_TRIGGER_ID) return RUSSIAN_NAMES;
+  if (!trigger.accepts) return pool;
+
+  const accepted = new Set<NounCategory>(trigger.accepts);
+  const keep = (n: Noun) => {
+    const category = categoryOf(n.id);
+    return category !== undefined && accepted.has(category);
+  };
+
+  const filtered = pool.filter(keep);
+  if (filtered.length > 0) return filtered;
+
+  const widened = DECLINABLE_NOUNS.filter(keep);
+  return widened.length > 0 ? widened : pool;
 }
 
 // ─── Déclinaison isolée ────────────────────────────────────────────
@@ -222,6 +250,10 @@ export function generateAdjectiveExercise(
   // adjectif ne trouve aucun nom dans le pool courant — pool réduit par
   // niveau, liste comestible presque vide — on change d'ADJECTIF, jamais de
   // phrase : mieux vaut un autre qualificatif qu'une phrase absurde.
+  // Le déclencheur restreint d'abord ce qui est dicible ; les contraintes
+  // d'adjectif s'appliquent ensuite à ce qu'il reste.
+  const sayable = poolFor(chosenTrigger, pool);
+
   const shuffled = [...adjPool];
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -243,7 +275,7 @@ export function generateAdjectiveExercise(
       )
     );
     const allowed = candidate.onlyNouns ? new Set(candidate.onlyNouns) : null;
-    const found = pool.filter(
+    const found = sayable.filter(
       (n) =>
         usable.has(`${n.gender}:${n.animacy}`) &&
         (candidate.appliesTo === undefined || n.animacy === candidate.appliesTo) &&
@@ -256,7 +288,7 @@ export function generateAdjectiveExercise(
     }
   }
 
-  const noun = pickRandom(candidates.length > 0 ? candidates : pool);
+  const noun = pickRandom(candidates.length > 0 ? candidates : sayable);
   const adjResult = declineAdjective(adjective, targetCase, noun.gender, plural, noun.animacy);
 
   const nounResult = declineNoun(noun, targetCase, plural);
@@ -277,16 +309,20 @@ export function generateAdjectiveExercise(
     // Le nom décliné suit le blanc, avec son accent tonique : la phrase
     // reste lisible et l'apprenant voit sur quoi il accorde.
     sentenceTemplate: chosenTrigger.template.ru.replace("___", `___ ${nounResult.accented}`),
-    // Seul le nom est inséré dans la phrase française (comme pour une phrase
-    // normale) — concaténer aussi la traduction de l'adjectif produisait du
-    // charabia (ex. "vif, éclatant bâtiment") : l'ordre des mots et l'accord
-    // en français ne sont pas les mêmes qu'en russe, et certaines
-    // traductions d'adjectifs sont des listes ("vif, éclatant"). L'adjectif
-    // est déjà révélé séparément (voir `adjective` ci-dessous, affiché par
-    // CaseDeclension juste sous la phrase).
+    // La traduction porte l'adjectif, accordé et placé du bon côté :
+    // « C'est une bague brillante » dit à elle seule ce qu'il faut produire.
+    // Les formes françaises sont écrites dans la banque (voir `fr` sur
+    // Adjective) parce que le français ne place ni n'accorde comme le russe
+    // — concaténer la glose brute donnait « vif, éclatant bâtiment ».
     sentenceFr: fillFrenchBlank(
       chosenTrigger.template.fr,
-      frenchNounPhrase(noun.translation, noun.frenchGender, chosenTrigger.article, plural)
+      frenchNounPhrase(
+        noun.translation,
+        noun.frenchGender,
+        chosenTrigger.article,
+        plural,
+        adjective.fr
+      )
     ),
     adjective,
     adjectiveForm: adjResult.form,

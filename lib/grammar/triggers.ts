@@ -1,5 +1,7 @@
 import { CaseId } from "./types";
 import { ArticleMode } from "./french-article";
+// Type seul : évite un cycle de modules avec noun-categories, qui lit la banque.
+import type { NounCategory } from "./noun-categories";
 
 // Banque des "déclencheurs" de chaque cas : prépositions, verbes à régime
 // et expressions figées qui imposent le cas. Objectif pédagogique : ne pas
@@ -43,6 +45,19 @@ export interface CaseTrigger {
   // (pas de défaut implicite) : chaque déclencheur a été revu au cas par
   // cas plutôt que de laisser un mode par défaut potentiellement faux.
   article: ArticleMode;
+  /**
+   * Classes de noms que ce déclencheur accepte (voir noun-categories.ts).
+   *
+   * Absent = accepte tout, et c'est une décision, pas un oubli : « Я люблю
+   * ___ » ou « Я ду́маю о ___ » vont avec n'importe quel nom, les restreindre
+   * appauvrirait le tirage sans rien corriger.
+   *
+   * Présent = le déclencheur EXIGE quelque chose. « Я ем ___ » tombait sur
+   * « помо́щник » — « je mange cet assistant » : désinence juste, phrase
+   * impossible. La liste est une alternative (l'un OU l'autre), jamais un
+   * cumul.
+   */
+  accepts?: NounCategory[];
 }
 
 // "Меня зовут ___" n'a de sens qu'avec un prénom, jamais un nom commun de
@@ -77,6 +92,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-nom-est",
+    accepts: ["human", "animal", "object", "food", "drink", "text"],
     caseId: "nominative",
     kind: "expression",
     tier: "basic",
@@ -101,6 +117,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-nom-pluriel",
+    accepts: ["human", "animal", "object", "food", "drink", "text"],
     caseId: "nominative",
     kind: "expression",
     tier: "basic",
@@ -148,6 +165,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-gen-neskolko",
+    accepts: ["human", "animal", "object", "food", "drink", "text"],
     caseId: "genitive",
     kind: "expression",
     tier: "intermediate",
@@ -159,6 +177,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-gen-skolko",
+    accepts: ["human", "animal", "object", "food", "drink", "text"],
     caseId: "genitive",
     kind: "expression",
     tier: "basic",
@@ -170,6 +189,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-gen-kusok",
+    accepts: ["food"],
     caseId: "genitive",
     kind: "expression",
     tier: "intermediate",
@@ -180,6 +200,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-gen-stakan",
+    accepts: ["drink"],
     caseId: "genitive",
     kind: "expression",
     tier: "intermediate",
@@ -191,6 +212,7 @@ export const TRIGGERS: CaseTrigger[] = [
   // Possession
   {
     id: "prep-gen-u",
+    accepts: ["human"],
     caseId: "genitive",
     kind: "preposition",
     tier: "basic",
@@ -201,6 +223,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-gen-u-est",
+    accepts: ["human"],
     caseId: "genitive",
     kind: "expression",
     tier: "basic",
@@ -211,6 +234,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-gen-possession",
+    accepts: ["human"],
     caseId: "genitive",
     kind: "expression",
     tier: "intermediate",
@@ -222,6 +246,7 @@ export const TRIGGERS: CaseTrigger[] = [
   // Prépositions
   {
     id: "prep-gen-iz",
+    accepts: ["place", "area"],
     caseId: "genitive",
     kind: "preposition",
     tier: "basic",
@@ -232,6 +257,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-ot",
+    accepts: ["human"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -242,6 +268,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-s",
+    accepts: ["time"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -252,6 +279,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-do",
+    accepts: ["place", "area"],
     caseId: "genitive",
     kind: "preposition",
     tier: "basic",
@@ -262,6 +290,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-posle",
+    accepts: ["time", "abstract"],
     caseId: "genitive",
     kind: "preposition",
     tier: "basic",
@@ -272,6 +301,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-vovremya",
+    accepts: ["time", "abstract"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -282,6 +312,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-okolo",
+    accepts: ["place", "area"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -292,6 +323,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-vokrug",
+    accepts: ["place", "area", "object"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -302,6 +334,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-vdol",
+    accepts: ["place", "area"],
     caseId: "genitive",
     kind: "preposition",
     tier: "advanced",
@@ -312,6 +345,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-mimo",
+    accepts: ["place", "area", "object"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -322,6 +356,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-naprotiv",
+    accepts: ["place", "area"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -332,6 +367,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-sredi",
+    accepts: ["human"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -343,6 +379,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-protiv",
+    accepts: ["human", "abstract"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -353,6 +390,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-krome",
+    accepts: ["human"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -363,6 +401,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-vmesto",
+    accepts: ["food", "drink"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -373,6 +412,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-izza",
+    accepts: ["human", "abstract"],
     caseId: "genitive",
     kind: "preposition",
     tier: "intermediate",
@@ -383,6 +423,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-izpod",
+    accepts: ["object", "place", "area"],
     caseId: "genitive",
     kind: "preposition",
     tier: "advanced",
@@ -403,6 +444,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-dlya",
+    accepts: ["human"],
     caseId: "genitive",
     kind: "preposition",
     tier: "basic",
@@ -413,6 +455,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-vnutri",
+    accepts: ["object", "place"],
     caseId: "genitive",
     kind: "preposition",
     tier: "advanced",
@@ -423,6 +466,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-radi",
+    accepts: ["human", "abstract"],
     caseId: "genitive",
     kind: "preposition",
     tier: "advanced",
@@ -433,6 +477,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-nakanune",
+    accepts: ["time"],
     caseId: "genitive",
     kind: "preposition",
     tier: "advanced",
@@ -443,6 +488,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-gen-vrode",
+    accepts: ["object", "animal", "food", "drink", "abstract"],
     caseId: "genitive",
     kind: "preposition",
     tier: "advanced",
@@ -454,6 +500,7 @@ export const TRIGGERS: CaseTrigger[] = [
   // Verbes
   {
     id: "verb-gen-boyatsya",
+    accepts: ["human", "animal", "abstract"],
     caseId: "genitive",
     kind: "verb",
     tier: "basic",
@@ -464,6 +511,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-izbegat",
+    accepts: ["human", "abstract"],
     caseId: "genitive",
     kind: "verb",
     tier: "intermediate",
@@ -474,6 +522,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-zhelat",
+    accepts: ["abstract"],
     caseId: "genitive",
     kind: "verb",
     tier: "intermediate",
@@ -484,6 +533,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-trebovat",
+    accepts: ["abstract"],
     caseId: "genitive",
     kind: "verb",
     tier: "intermediate",
@@ -494,6 +544,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-kasatsya",
+    accepts: ["human", "abstract"],
     caseId: "genitive",
     kind: "verb",
     tier: "intermediate",
@@ -504,6 +555,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-dostigat",
+    accepts: ["place", "area", "abstract"],
     caseId: "genitive",
     kind: "verb",
     tier: "advanced",
@@ -514,6 +566,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-vypit",
+    accepts: ["drink"],
     caseId: "genitive",
     kind: "verb",
     tier: "intermediate",
@@ -524,6 +577,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-lishitsya",
+    accepts: ["object", "abstract"],
     caseId: "genitive",
     kind: "verb",
     tier: "advanced",
@@ -534,6 +588,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-stesnyatsya",
+    accepts: ["human", "abstract"],
     caseId: "genitive",
     kind: "verb",
     tier: "intermediate",
@@ -544,6 +599,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-gen-slushatsya",
+    accepts: ["human"],
     caseId: "genitive",
     kind: "verb",
     tier: "intermediate",
@@ -555,6 +611,7 @@ export const TRIGGERS: CaseTrigger[] = [
   // Adjectifs / expressions figées
   {
     id: "expr-gen-polnyy",
+    accepts: ["drink", "food"],
     caseId: "genitive",
     kind: "expression",
     tier: "intermediate",
@@ -565,6 +622,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-gen-dostoin",
+    accepts: ["abstract"],
     caseId: "genitive",
     kind: "expression",
     tier: "advanced",
@@ -575,6 +633,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-gen-zhal",
+    accepts: ["human", "abstract"],
     caseId: "genitive",
     kind: "expression",
     tier: "basic",
@@ -587,6 +646,7 @@ export const TRIGGERS: CaseTrigger[] = [
   // ─── Datif ──────────────────────────────────────────────────────
   {
     id: "prep-dat-k",
+    accepts: ["place", "area", "human"],
     caseId: "dative",
     kind: "preposition",
     tier: "basic",
@@ -597,6 +657,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-dat-po",
+    accepts: ["place", "area"],
     caseId: "dative",
     kind: "preposition",
     tier: "basic",
@@ -607,6 +668,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-dat-blagodarya",
+    accepts: ["human", "abstract"],
     caseId: "dative",
     kind: "preposition",
     tier: "intermediate",
@@ -617,6 +679,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-dat-vopreki",
+    accepts: ["abstract"],
     caseId: "dative",
     kind: "preposition",
     tier: "advanced",
@@ -627,6 +690,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-dat-soglasno",
+    accepts: ["human", "abstract"],
     caseId: "dative",
     kind: "preposition",
     tier: "advanced",
@@ -637,6 +701,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-pomogat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "basic",
@@ -647,6 +712,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-zvonit",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "basic",
@@ -657,6 +723,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-nravitsya",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "basic",
@@ -667,6 +734,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-davat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "basic",
@@ -677,6 +745,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-verit",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -687,6 +756,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-doveryat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -697,6 +767,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-sovetovat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -707,6 +778,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-zavidovat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -717,6 +789,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-otvechat",
+    accepts: ["human", "abstract"],
     caseId: "dative",
     kind: "verb",
     tier: "basic",
@@ -727,6 +800,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-meshat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -737,6 +811,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-razreshat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -747,6 +822,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-udivlyatsya",
+    accepts: ["human", "abstract"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -757,6 +833,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-radovatsya",
+    accepts: ["human", "abstract"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -767,6 +844,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-prinadlezhat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -777,6 +855,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-sochuvstvovat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "advanced",
@@ -787,6 +866,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-ugrozhat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "advanced",
@@ -797,6 +877,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-podchinyatsya",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "advanced",
@@ -807,6 +888,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-soprotivlyatsya",
+    accepts: ["human", "abstract"],
     caseId: "dative",
     kind: "verb",
     tier: "advanced",
@@ -817,6 +899,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-aplodirovat",
+    accepts: ["human"],
     caseId: "dative",
     kind: "verb",
     tier: "advanced",
@@ -827,6 +910,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-dat-sluzhit",
+    accepts: ["human", "abstract"],
     caseId: "dative",
     kind: "verb",
     tier: "intermediate",
@@ -839,6 +923,7 @@ export const TRIGGERS: CaseTrigger[] = [
   // ─── Accusatif ──────────────────────────────────────────────────
   {
     id: "verb-acc-videt",
+    accepts: ["human", "animal", "object", "food", "drink", "place", "area"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -859,6 +944,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-chitat",
+    accepts: ["text"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -869,6 +955,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-znat",
+    accepts: ["human", "abstract", "place", "area"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -879,6 +966,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-pokupat",
+    accepts: ["object", "text", "food", "drink", "animal"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -889,6 +977,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-pisat",
+    accepts: ["text"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -899,6 +988,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-ponimat",
+    accepts: ["human", "text", "abstract"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -909,6 +999,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-slushat",
+    accepts: ["human", "abstract"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -919,6 +1010,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-est",
+    accepts: ["food"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -929,6 +1021,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-pit",
+    accepts: ["drink"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -939,6 +1032,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-delat",
+    accepts: ["abstract"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -949,6 +1043,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-vstrechat",
+    accepts: ["human"],
     caseId: "accusative",
     kind: "verb",
     tier: "intermediate",
@@ -959,6 +1054,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-brat",
+    accepts: ["object", "text", "food", "drink"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -969,6 +1065,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-acc-izuchat",
+    accepts: ["abstract", "text"],
     caseId: "accusative",
     kind: "verb",
     tier: "basic",
@@ -989,6 +1086,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-acc-v",
+    accepts: ["place"],
     caseId: "accusative",
     kind: "preposition",
     tier: "basic",
@@ -999,6 +1097,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-acc-na",
+    accepts: ["human", "animal", "object", "place", "area"],
     caseId: "accusative",
     kind: "preposition",
     tier: "basic",
@@ -1009,6 +1108,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-acc-za",
+    accepts: ["abstract", "object", "food", "drink"],
     caseId: "accusative",
     kind: "preposition",
     tier: "intermediate",
@@ -1019,6 +1119,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-acc-cherez",
+    accepts: ["place", "area"],
     caseId: "accusative",
     kind: "preposition",
     tier: "intermediate",
@@ -1039,6 +1140,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-acc-skvoz",
+    accepts: ["object", "place", "area"],
     caseId: "accusative",
     kind: "preposition",
     tier: "advanced",
@@ -1049,6 +1151,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-acc-nesmotrya-na",
+    accepts: ["abstract"],
     caseId: "accusative",
     kind: "preposition",
     tier: "advanced",
@@ -1061,6 +1164,7 @@ export const TRIGGERS: CaseTrigger[] = [
   // ─── Instrumental ───────────────────────────────────────────────
   {
     id: "prep-instr-s",
+    accepts: ["human"],
     caseId: "instrumental",
     kind: "preposition",
     tier: "basic",
@@ -1071,6 +1175,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-instr-pod",
+    accepts: ["object", "place", "area"],
     caseId: "instrumental",
     kind: "preposition",
     tier: "basic",
@@ -1081,6 +1186,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-instr-nad",
+    accepts: ["object", "place", "area"],
     caseId: "instrumental",
     kind: "preposition",
     tier: "intermediate",
@@ -1091,6 +1197,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-instr-pered",
+    accepts: ["object", "place", "area"],
     caseId: "instrumental",
     kind: "preposition",
     tier: "intermediate",
@@ -1101,6 +1208,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-instr-rabotat",
+    accepts: ["human"],
     caseId: "instrumental",
     kind: "expression",
     tier: "basic",
@@ -1111,6 +1219,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-instr-stat",
+    accepts: ["human"],
     caseId: "instrumental",
     kind: "expression",
     tier: "intermediate",
@@ -1121,6 +1230,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-yavlyatsya",
+    accepts: ["abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "advanced",
@@ -1131,6 +1241,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-kazatsya",
+    accepts: ["human", "abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "intermediate",
@@ -1141,6 +1252,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-schitatsya",
+    accepts: ["human", "abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "advanced",
@@ -1151,6 +1263,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-interesovatsya",
+    accepts: ["abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "intermediate",
@@ -1161,6 +1274,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-gorditsya",
+    accepts: ["human", "abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "intermediate",
@@ -1171,6 +1285,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-zanimatsya",
+    accepts: ["abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "basic",
@@ -1181,6 +1296,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-uvlekatsya",
+    accepts: ["abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "intermediate",
@@ -1191,6 +1307,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-polzovatsya",
+    accepts: ["object", "text"],
     caseId: "instrumental",
     kind: "verb",
     tier: "intermediate",
@@ -1201,6 +1318,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-vladet",
+    accepts: ["abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "advanced",
@@ -1211,6 +1329,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-upravlyat",
+    accepts: ["human", "abstract", "place"],
     caseId: "instrumental",
     kind: "verb",
     tier: "intermediate",
@@ -1221,6 +1340,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-voskhishchatsya",
+    accepts: ["human", "abstract", "place", "area"],
     caseId: "instrumental",
     kind: "verb",
     tier: "intermediate",
@@ -1231,6 +1351,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-riskovat",
+    accepts: ["abstract"],
     caseId: "instrumental",
     kind: "verb",
     tier: "advanced",
@@ -1241,6 +1362,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-torgovat",
+    accepts: ["object", "food", "drink"],
     caseId: "instrumental",
     kind: "verb",
     tier: "advanced",
@@ -1251,6 +1373,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-instr-dorozhit",
+    accepts: ["human", "abstract", "object"],
     caseId: "instrumental",
     kind: "verb",
     tier: "advanced",
@@ -1265,6 +1388,7 @@ export const TRIGGERS: CaseTrigger[] = [
   // sa richesse vient des verbes, pas des prépositions.
   {
     id: "prep-prep-v",
+    accepts: ["place"],
     caseId: "prepositional",
     kind: "preposition",
     tier: "basic",
@@ -1275,6 +1399,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-prep-na",
+    accepts: ["place", "abstract"],
     caseId: "prepositional",
     kind: "preposition",
     tier: "basic",
@@ -1295,6 +1420,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "prep-prep-pri",
+    accepts: ["place"],
     caseId: "prepositional",
     kind: "preposition",
     tier: "advanced",
@@ -1305,6 +1431,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "expr-prep-nakhoditsya",
+    accepts: ["place"],
     caseId: "prepositional",
     kind: "verb",
     tier: "intermediate",
@@ -1325,6 +1452,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-prep-sporit",
+    accepts: ["abstract"],
     caseId: "prepositional",
     kind: "verb",
     tier: "intermediate",
@@ -1335,6 +1463,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-prep-mechtat",
+    accepts: ["abstract", "object", "place", "area"],
     caseId: "prepositional",
     kind: "verb",
     tier: "intermediate",
@@ -1365,6 +1494,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-prep-znat",
+    accepts: ["abstract"],
     caseId: "prepositional",
     kind: "verb",
     tier: "intermediate",
@@ -1385,6 +1515,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-prep-zabotitsya",
+    accepts: ["human", "animal"],
     caseId: "prepositional",
     kind: "verb",
     tier: "intermediate",
@@ -1395,6 +1526,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-prep-bespokoitsya",
+    accepts: ["human", "abstract"],
     caseId: "prepositional",
     kind: "verb",
     tier: "intermediate",
@@ -1405,6 +1537,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-prep-soobshchat",
+    accepts: ["abstract"],
     caseId: "prepositional",
     kind: "verb",
     tier: "advanced",
@@ -1425,6 +1558,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-prep-upominat",
+    accepts: ["human", "abstract"],
     caseId: "prepositional",
     kind: "verb",
     tier: "advanced",
@@ -1435,6 +1569,7 @@ export const TRIGGERS: CaseTrigger[] = [
   },
   {
     id: "verb-prep-zhalet",
+    accepts: ["abstract"],
     caseId: "prepositional",
     kind: "verb",
     tier: "intermediate",

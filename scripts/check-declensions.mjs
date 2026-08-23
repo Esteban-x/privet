@@ -32,7 +32,13 @@ const { NOUNS } = await jiti.import("../lib/grammar/nouns-data.ts");
 const { RUSSIAN_NAMES } = await jiti.import("../lib/grammar/names-data.ts");
 const { ADJECTIVES } = await jiti.import("../lib/grammar/adjectives-data.ts");
 const { CASE_ORDER } = await jiti.import("../lib/grammar/types.ts");
-const { generateAdjectiveExercise } = await jiti.import("../lib/grammar/exercise-generator.ts");
+const { generateAdjectiveExercise, generateSentenceExercise } = await jiti.import(
+  "../lib/grammar/exercise-generator.ts"
+);
+const { TRIGGERS } = await jiti.import("../lib/grammar/triggers.ts");
+const { categoryOf, DECLARED_CATEGORIES } = await jiti.import(
+  "../lib/grammar/noun-categories.ts"
+);
 
 const failures = [];
 let checks = 0;
@@ -392,6 +398,121 @@ for (const adj of ADJECTIVES) {
       }
     }
   }
+}
+
+// ─── 6. Genre français des traductions ─────────────────────────────
+// Le genre français est écrit à la main dans scripts/data/nouns-fr.tsv, et
+// il est INDÉPENDANT du genre russe : гости́ница est féminin en russe, mais
+// « hôtel » est masculin. La confusion est facile à faire en saisissant les
+// données, et elle se voyait à peine — jusqu'à ce que le mode « accord
+// adjectif » écrive la traduction complète et produise « d'hôtel chaude ».
+//
+// Ce contrôle ne connaît pas le français : il applique les terminaisons qui
+// ne trompent pas, avec la liste explicite de leurs exceptions. Il ne
+// prétend donc pas tout couvrir, seulement empêcher qu'une faute de ce type
+// revienne sans qu'on s'en aperçoive.
+{
+  const RULES = [
+    [/(?:tion|sion)$/i, "f"],
+    [/té$/i, "f"],
+    [/ette$/i, "f"],
+    [/(?:ance|ence)$/i, "f"],
+    [/ure$/i, "f"],
+    [/esse$/i, "f"],
+    [/ment$/i, "m"],
+    [/eau$/i, "m"],
+    [/oir$/i, "m"],
+    [/el$/i, "m"],
+    [/age$/i, "m"],
+  ];
+  // Mots qui contredisent leur terminaison — le français en est plein.
+  // « invité » est un participe substantivé, pas un nom en -té comme
+  // « liberté » : la terminaison ne dit rien de son genre.
+  const EXCEPTIONS = new Set(["côté", "été", "eau", "peau", "image", "invité"]);
+
+  for (const noun of NOUNS) {
+    // Le premier mot seul : « ticket de caisse », « nom de famille ».
+    const head = noun.translation.split(/[\s(]/)[0].toLowerCase();
+    if (EXCEPTIONS.has(head)) continue;
+    for (const [pattern, gender] of RULES) {
+      if (!pattern.test(head)) continue;
+      expect(
+        `genre français de « ${noun.translation} » (${noun.lemma})`,
+        noun.frenchGender,
+        gender
+      );
+      break;
+    }
+  }
+}
+
+// ─── 7. Classes sémantiques et déclencheurs ────────────────────────
+// Un exercice de phrase colle un déclencheur et un nom tirés séparément.
+// Sans contrainte, « Я ем ___ » recevait « помо́щник » : « je mange cet
+// assistant ». Trois choses doivent tenir.
+{
+  // a) La classification couvre la banque, une classe et une seule par nom.
+  //    C'est ce qui rend le fichier relisable : une omission se voit ici,
+  //    elle ne se dilue pas dans un tirage.
+  const declared = new Map();
+  for (const [category, words] of DECLARED_CATEGORIES) {
+    for (const word of words) {
+      expect(
+        `« ${word} » classé deux fois (${declared.get(word)} et ${category})`,
+        declared.has(word),
+        false
+      );
+      declared.set(word, category);
+    }
+  }
+  const known = new Set(NOUNS.map((n) => n.translation));
+  for (const word of declared.keys()) {
+    expect(`« ${word} » classé mais absent de la banque`, known.has(word), true);
+  }
+  for (const noun of NOUNS) {
+    expect(`« ${noun.translation} » (${noun.lemma}) sans classe sémantique`, categoryOf(noun.id) !== undefined, true);
+  }
+
+  // b) Aucun déclencheur ne peut se retrouver sans nom à servir. Une classe
+  //    trop étroite viderait son pool en silence, et l'exercice retomberait
+  //    sur le repli — donc sur des phrases absurdes, sans que rien ne le dise.
+  const MIN_NOUNS = 4;
+  for (const trigger of TRIGGERS) {
+    if (!trigger.accepts) continue;
+    const accepted = new Set(trigger.accepts);
+    const count = NOUNS.filter((n) => accepted.has(categoryOf(n.id))).length;
+    expect(
+      `déclencheur « ${trigger.id} » : ${count} nom(s) disponibles, minimum ${MIN_NOUNS}`,
+      count >= MIN_NOUNS,
+      true
+    );
+  }
+
+  // c) Sur un vrai tirage, le nom servi appartient bien à une classe acceptée.
+  let outOfClass = 0;
+  let draws = 0;
+  for (const trigger of TRIGGERS) {
+    if (!trigger.accepts) continue;
+    const accepted = new Set(trigger.accepts);
+    for (let i = 0; i < 40; i += 1) {
+      const ex = generateSentenceExercise(trigger.caseId, trigger);
+      draws += 1;
+      if (!accepted.has(categoryOf(ex.noun.id))) outOfClass += 1;
+    }
+  }
+  expect(`nom hors classe acceptée (${draws} phrases tirées)`, outOfClass, 0);
+
+  // Le mode « accord adjectif » passe par le même filtre.
+  let adjOutOfClass = 0;
+  for (const trigger of TRIGGERS) {
+    if (!trigger.accepts || trigger.id === "expr-nom-zovut") continue;
+    const accepted = new Set(trigger.accepts);
+    for (let i = 0; i < 12; i += 1) {
+      const ex = generateAdjectiveExercise(trigger.caseId, trigger);
+      if (!accepted.has(categoryOf(ex.noun.id))) adjOutOfClass += 1;
+    }
+  }
+  expect("accord adjectif : nom hors classe acceptée", adjOutOfClass, 0);
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────

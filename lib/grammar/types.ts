@@ -95,6 +95,22 @@ export interface Adjective {
    */
   appliesTo?: "animate" | "inanimate";
   /**
+   * Formes françaises, pour écrire la traduction de la phrase d'exercice.
+   *
+   * Le russe antépose toujours l'adjectif et n'a qu'une forme par cas ; le
+   * français le place tantôt avant, tantôt après, et l'accorde autrement.
+   * Concaténer la traduction brute donnait « vif, éclatant bâtiment » : les
+   * formes sont donc écrites, pas devinées.
+   */
+  fr: {
+    m: string;
+    f: string;
+    /** Masculin devant voyelle : bel, nouvel, vieil. Absent si identique. */
+    mVowel?: string;
+    /** Place habituelle en français. */
+    position: "before" | "after";
+  };
+  /**
    * Adjectif trop étroit pour se laisser décrire par l'animacité : la liste
    * des noms qu'il peut qualifier, par identifiant. « вку́сный » ne va
    * qu'avec de la nourriture, et aucun champ de la banque ne dit qu'un mot

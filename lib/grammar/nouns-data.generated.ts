@@ -482,7 +482,7 @@ export const GENERATED_NOUNS: GeneratedNoun[] = [
     forms: { singular: ["университе́т", "университе́та", "университе́ту", "университе́т", "университе́том", "университе́те"], plural: ["университе́ты", "университе́тов", "университе́там", "университе́ты", "университе́тами", "университе́тах"] } },
   { id: "bolnitsa", lemma: "больница", translation: "hôpital", frenchGender: "m", gender: "feminine", animacy: "inanimate", rank: 5492,
     forms: { singular: ["больни́ца", "больни́цы", "больни́це", "больни́цу", "больни́цей", "больни́це"], plural: ["больни́цы", "больни́ц", "больни́цам", "больни́цы", "больни́цами", "больни́цах"] } },
-  { id: "gostinitsa", lemma: "гостиница", translation: "hôtel", frenchGender: "f", gender: "feminine", animacy: "inanimate", rank: 14183,
+  { id: "gostinitsa", lemma: "гостиница", translation: "hôtel", frenchGender: "m", gender: "feminine", animacy: "inanimate", rank: 14183,
     forms: { singular: ["гости́ница", "гости́ницы", "гости́нице", "гости́ницу", "гости́ницей", "гости́нице"], plural: ["гости́ницы", "гости́ниц", "гости́ницам", "гости́ницы", "гости́ницами", "гости́ницах"] } },
   { id: "vokzal", lemma: "вокзал", translation: "gare", frenchGender: "f", gender: "masculine", animacy: "inanimate", rank: 13889,
     forms: { singular: ["вокза́л", "вокза́ла", "вокза́лу", "вокза́л", "вокза́лом", "вокза́ле"], plural: ["вокза́лы", "вокза́лов", "вокза́лам", "вокза́лы", "вокза́лами", "вокза́лах"] } },
