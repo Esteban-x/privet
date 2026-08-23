@@ -6,8 +6,8 @@ import ReadingPassage from "./ReadingPassage";
 import { LoadingDots, SkeletonLines } from "@/components/ui/Skeleton";
 import Select from "@/components/ui/Select";
 import { generateReadingText, type GenerateReadingOptions } from "@/lib/reading/client";
-import { TOPIC_CATALOG } from "@/lib/supabase/types";
 import { CASES } from "@/lib/grammar/cases";
+import { READING_LEVELS, type CefrLevel } from "@/lib/supabase/types";
 import type { ReadingLength, ReadingStyle } from "@/lib/ai/prompts";
 import type { CaseId } from "@/lib/grammar/types";
 
@@ -30,10 +30,13 @@ export default function AiReadingGenerator({
 }) {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState<ReadingText | null>(null);
+  const [completedTitle, setCompletedTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
 
-  const [topic, setTopic] = useState<string>("");
+  // "" = laisser le serveur prendre le niveau du profil, ce qui évite au
+  // client d'aller le chercher juste pour préremplir un menu.
+  const [level, setLevel] = useState<CefrLevel | "">("");
   const [length, setLength] = useState<ReadingLength>("medium");
   const [style, setStyle] = useState<ReadingStyle>("narrative");
   const [focusCase, setFocusCase] = useState<CaseId | "">("");
@@ -41,9 +44,10 @@ export default function AiReadingGenerator({
   async function generate() {
     setLoading(true);
     setError(null);
+    setCompletedTitle(null);
     try {
       const options: GenerateReadingOptions = { length, style };
-      if (topic) options.topics = [topic];
+      if (level) options.level = level;
       if (focusCase) options.focusCase = focusCase;
       const { text: generated, id } = await generateReadingText(options);
       // L'id validé côté client vaut toujours "ai-generated" (placeholder) —
@@ -96,16 +100,16 @@ export default function AiReadingGenerator({
         <div className="animate-fade-in mt-5 grid grid-cols-1 gap-4 rounded-[14px] border border-border bg-bg2 p-5 sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block font-display text-xs font-semibold uppercase tracking-wide text-muted">
-              Thème
+              Niveau
             </label>
             <Select
-              value={topic}
-              onChange={setTopic}
+              value={level}
+              onChange={(v) => setLevel(v as CefrLevel | "")}
               wrapperClassName="w-full"
               className="w-full rounded-[10px] border border-border bg-bg px-3 py-2.5 font-display text-sm text-text focus:border-accent focus:outline-none"
               options={[
-                { value: "", label: "Mes thèmes habituels" },
-                ...TOPIC_CATALOG.map((t) => ({ value: t.id, label: `${t.emoji} ${t.label}` })),
+                { value: "", label: "Mon niveau" },
+                ...READING_LEVELS.map((l) => ({ value: l, label: l })),
               ]}
             />
           </div>
@@ -201,6 +205,26 @@ export default function AiReadingGenerator({
         </div>
       )}
 
+      {/* Texte terminé : on referme la lecture au lieu de laisser le pavé
+          ouvert sous le générateur. Le texte n'est pas perdu pour autant —
+          il a été enregistré à la génération et reste accessible dans
+          « Mes textes », ce que la confirmation dit explicitement pour que
+          la fermeture ne ressemble pas à une perte. */}
+      {!loading && !text && completedTitle && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-accent/40 bg-accent/10 px-5 py-4 animate-fade-in">
+          <p className="font-display text-sm text-text">
+            <span className="font-semibold text-accent">✓ Texte terminé</span> — «&nbsp;
+            {completedTitle}&nbsp;» reste dans « Mes textes » ci-dessous.
+          </p>
+          <button
+            onClick={generate}
+            className="rounded-[10px] bg-accent px-4 py-2 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+          >
+            Un autre texte
+          </button>
+        </div>
+      )}
+
       {!loading && text && (
         <div className="mt-6 animate-fade-in">
           <div className="mb-3 flex items-center gap-2">
@@ -209,7 +233,13 @@ export default function AiReadingGenerator({
             </span>
             <h4 className="font-display text-xl font-bold">{text.title}</h4>
           </div>
-          <ReadingPassage text={text} />
+          <ReadingPassage
+            text={text}
+            onCompleted={() => {
+              setCompletedTitle(text.title);
+              setText(null);
+            }}
+          />
         </div>
       )}
     </div>

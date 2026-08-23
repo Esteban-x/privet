@@ -5,7 +5,7 @@
 
 -- ─── Types ──────────────────────────────────────────────────────
 do $$ begin
-  create type cefr_level as enum ('A0','A1','A2','B1','B2','C1');
+  create type cefr_level as enum ('A0','A1','A2','B1','B2','C1','C2');
 exception when duplicate_object then null; end $$;
 
 -- ─── profiles ───────────────────────────────────────────────────
@@ -18,9 +18,7 @@ create table if not exists public.profiles (
   last_name     text,
   avatar_url    text,
   level         cefr_level default 'A0',
-  goals         text,                    -- objectif libre ("voyager", "lire Dostoïevski"…)
-  topics        text[] default '{}',     -- thèmes choisis à l'inscription
-  onboarded     boolean default false,   -- test de niveau + thèmes complétés ?
+  onboarded     boolean default false,   -- test de niveau passé ?
   streak_count  int default 0,
   streak_last   date,
   xp            int default 0,
@@ -83,17 +81,9 @@ create table if not exists public.vocab_lists (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users(id) on delete cascade,
   name       text not null,
-  topic_id   text,                     -- lie la liste à un TOPIC_CATALOG (onboarding) ; null = liste 100% perso
   created_at timestamptz default now()
 );
 create index if not exists vocab_lists_user on public.vocab_lists (user_id);
-alter table public.vocab_lists add column if not exists topic_id text;
--- Un seul amorçage par thème et par utilisateur (évite les doublons si la
--- synchronisation est appelée plusieurs fois) ; les listes purement perso
--- (topic_id null) ne sont pas concernées par cette contrainte.
-create unique index if not exists vocab_lists_user_topic
-  on public.vocab_lists (user_id, topic_id)
-  where topic_id is not null;
 
 create table if not exists public.vocab_words (
   id              uuid primary key default gen_random_uuid(),
@@ -308,3 +298,19 @@ $$;
 
 revoke all on function public.delete_own_account() from public;
 grant execute on function public.delete_own_account() to authenticated;
+
+-- ─── Migration : suppression des thèmes et de l'objectif ────────────
+-- À exécuter une fois sur une base créée avant cette version. Sans effet
+-- sur une base neuve (les colonnes n'y ont jamais existé). Les listes de
+-- vocabulaire elles-mêmes sont conservées : seul leur rattachement à un
+-- thème disparaît.
+drop index if exists vocab_lists_user_topic;
+alter table public.vocab_lists drop column if exists topic_id;
+alter table public.profiles    drop column if exists topics;
+alter table public.profiles    drop column if exists goals;
+
+-- ─── Migration : ajout du niveau C2 à l'échelle ────────────────────
+-- Sans effet sur une base neuve (le type est déjà créé avec C2 ci-dessus).
+-- Le test de placement s'arrête à C1 : C2 sert aux textes de lecture, dont
+-- le niveau se demande indépendamment du niveau mesuré.
+alter type cefr_level add value if not exists 'C2';

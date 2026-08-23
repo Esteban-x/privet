@@ -4,7 +4,19 @@ import { useMemo, useState } from "react";
 import { ReadingText } from "@/lib/reading/texts";
 import { CASES } from "@/lib/grammar/cases";
 
-export default function ReadingPassage({ text }: { text: ReadingText }) {
+/**
+ * `onCompleted` : quand le parent le fournit, c'est LUI qui décide de la
+ * suite (le générateur referme le texte). Sans lui — pages /reading/[id] et
+ * /reading/mine/[id], où le texte EST la page — le bouton se contente de
+ * passer à l'état « terminé » sur place.
+ */
+export default function ReadingPassage({
+  text,
+  onCompleted,
+}: {
+  text: ReadingText;
+  onCompleted?: () => void;
+}) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [completion, setCompletion] = useState<"idle" | "saving" | "done">("idle");
 
@@ -41,6 +53,7 @@ export default function ReadingPassage({ text }: { text: ReadingText }) {
       // best-effort, comme le reste du suivi de progression de l'app
     }
     setCompletion("done");
+    onCompleted?.();
   }
 
   return (

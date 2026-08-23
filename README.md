@@ -3,7 +3,7 @@
 App Next.js (App Router, TypeScript, Tailwind v4) : déclinaison des 6 cas,
 vocabulaire (SRS + frappe), lecture graduée, **inscription email/mot de passe
 (confirmation par email + captcha)**, **auth Google via Supabase**,
-**test de niveau**, **onboarding par thèmes**, **tuteur IA** et **dashboard**.
+**test de niveau**, **tuteur IA** et **dashboard**.
 
 L'IA (Anthropic) sert à générer exercices contextuels, textes de lecture
 originaux et dialogue. Elle ne calcule **jamais** une déclinaison : ça reste
@@ -106,27 +106,34 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAA...  # Cloudflare, clé PUBLIQUE
 ## 5. Lancer
 
 ```bash
-npm run dev      # http://localhost:3000
+npm run dev             # http://localhost:3000
+npm run check           # tous les contrôles (grammaire + test de placement)
+npm run check:grammar   # banque de noms et moteur de déclinaison
+npm run check:leveltest # vivier d'items et qualité du placement
+npm run build:nouns     # régénère la banque depuis le dictionnaire (rare)
 ```
+
+Voir « Le module Cas » et « Le test de placement » plus bas.
 
 Parcours utilisateur :
 
 - **Inscription** : `/signup` (prénom, nom, email, mot de passe + confirmation,
   captcha) → email de confirmation → clic sur le lien → `/auth/confirm` →
-  `/onboarding` (test de niveau + thèmes + objectif) → `/dashboard`.
+  `/onboarding` (test de placement) → `/dashboard`.
 - **Connexion** : `/login`, email/mot de passe ou Google → `/dashboard`.
-- **Compte** : `/account` — profil, thèmes/objectif, mot de passe,
-  déconnexion de tous les appareils, suppression du compte.
+- **Compte** : `/account` — profil, mot de passe, déconnexion de tous les
+  appareils, suppression du compte.
 
 Tant que l'email n'est pas confirmé, la connexion est refusée ; l'écran de
 login propose alors de renvoyer le lien.
 
-Tant que l'onboarding (test de niveau + thèmes) n'est pas terminé, toute page
+Tant que l'onboarding (test de niveau) n'est pas terminé, toute page
 protégée redirige vers `/onboarding` — pas seulement le dashboard.
 
 Sans clés configurées, l'app se lance quand même : les pages publiques
-(accueil, cas, vocabulaire, lecture de la bibliothèque) fonctionnent, et les
-routes privées redirigent vers `/login`.
+(accueil, login, inscription) fonctionnent, et les routes privées — dont
+`/cases`, `/vocabulary` et `/reading` — redirigent vers `/login` (voir
+`PUBLIC_PATHS` dans `proxy.ts`).
 
 ---
 
@@ -138,8 +145,9 @@ app/
     ai/exercise      génère un exercice contextuel pour un cas (Haiku)
     ai/reading       génère un texte de lecture original gradué (Haiku)
     ai/chat          tuteur IA en streaming (Sonnet)
-    level-test/evaluate  enregistre le score → niveau CEFR
-    profile          met à jour thèmes/objectif/onboarded
+    level-test/evaluate  rejoue le calcul du niveau côté serveur
+    profile          met à jour le profil (nom affiché, onboarded, objectif
+                     quotidien de révision)
   auth/callback      échange le code OAuth Google → session
   auth/confirm       valide le lien reçu par email → session
   auth/confirmed     écran de confirmation avant de continuer
@@ -153,22 +161,104 @@ components/
                      SecurityActions, DangerZone
 lib/
   auth/              config Turnstile, validation des champs, état du form
-  grammar/           moteur de déclinaison déterministe (cœur fiable)
+  grammar/           déclinaison : paradigmes importés + moteur d'explication
+                     (nouns-data.generated.ts est généré, ne pas l'éditer)
   ai/                client Anthropic serveur + prompts système
   supabase/          clients navigateur/serveur + types
   srs/, vocabulary/, reading/, leveltest/
 supabase/schema.sql  schéma complet (tables + RLS + trigger)
 proxy.ts             rafraîchit la session + protège les routes privées
+scripts/
+  build-nouns.mjs      importe les paradigmes du dictionnaire -> banque
+  check-declensions.mjs contrôles de la banque et du moteur
+  data/nouns-fr.tsv     sélection + traductions françaises (écrit à la main)
 ```
+
+## Le module Cas
+
+Une app d'apprentissage affiche la forme qu'elle calcule comme LA bonne
+réponse : une terminaison fausse n'y est pas un bug d'affichage, c'est une
+faute enseignée à quelqu'un qui n'a aucun moyen de la détecter. D'où une
+règle unique : **on ne fait décliner que des mots dont les formes sont
+vérifiées.**
+
+Une partie de la morphologie russe n'est pas dérivable de l'orthographe du
+lemme — voyelle mobile (`кусо́к → куск-` mais `уро́к → урок-`), schéma
+accentuel (`врачо́м` vs `ме́сяцем`), pluriels supplétifs (`челове́к → лю́ди`).
+Mesuré sur les 17 800 noms du dictionnaire, un moteur de règles retrouve la
+bonne forme dans ~76 % des cas. C'est assez pour EXPLIQUER une terminaison,
+pas pour la produire. D'où le partage :
+
+- **la forme** vient du paradigme importé (`lib/grammar/nouns-data.generated.ts`) ;
+- **la règle** est calculée par `lib/grammar/decline.ts`, qui sert aussi à
+  repérer ce qui lui échappe : quand la règle et le paradigme divergent, le
+  module ne récite pas une règle que la forme contredit, il dit à
+  l'apprenant que c'est une forme à mémoriser.
+
+Conséquence assumée : le vocabulaire personnel de l'apprenant n'alimente
+PAS les exercices de cas. Un mot ajouté à la volée n'a pas de paradigme
+vérifié, et lui inventer une déclinaison plausible serait exactement le
+problème qu'on cherche à éviter.
+
+### Faire évoluer la banque
+
+1. Ajouter une ligne à `scripts/data/nouns-fr.tsv` :
+   `lemme_ru <TAB> traduction_fr <TAB> genre_fr(m|f)` (+ une 4e colonne
+   `m|f|n` si le dictionnaire ne renseigne pas le genre russe).
+2. `npm run build:nouns` — télécharge le dictionnaire au premier lancement
+   (cache dans `scripts/.cache/`, ignoré par git), puis régénère la banque.
+   Tout mot absent, indéclinable, sans pluriel, aux formes douteuses ou dont
+   la traduction française est déjà prise par un autre mot est **signalé et
+   écarté** : il n'entre jamais dans un exercice.
+3. `npm run check:grammar` — invariants de la banque, paradigmes témoins,
+   prénoms, adjectifs, et taux d'accord moteur/dictionnaire.
+
+### Attribution
+
+Les paradigmes et les accents toniques proviennent du dictionnaire
+[OpenRussian](https://github.com/Badestrand/russian-dictionary), publié sous
+licence **Creative Commons Attribution-ShareAlike 4.0**. Les données dérivées
+présentes dans `lib/grammar/nouns-data.generated.ts` restent sous cette
+licence : si l'app est distribuée, l'attribution doit être visible.
+
+## Le test de placement
+
+`/onboarding` place l'apprenant sur l'échelle CECR. Deux principes, repris
+des tests réels :
+
+**Un niveau se VALIDE, il ne se touche pas.** Le ТРКИ demande 66 % de
+réussite à un sous-test pour délivrer le niveau correspondant. Ici : un bloc
+de 4 items d'un même niveau, validé à partir de 3 bonnes réponses sur 4
+(75 %, très au-dessus des 25 % du hasard sur 4 options). Validé → on monte,
+échoué → on descend, jusqu'à encadrer le niveau réel. Le résultat est le plus
+haut palier validé — jamais un item isolé.
+
+La version précédente montait d'un cran à chaque bonne réponse et retenait
+« le plus haut palier réussi parmi les 4 dernières questions » : une seule
+bonne réponse en C1, même noyée dans les échecs, suffisait à décrocher C1.
+Mesuré par simulation, un vrai A2 était classé B1 ou plus dans 58 % des cas.
+
+**Les items suivent le référentiel ТРКИ** (`lib/leveltest/questions.ts`) :
+A1 présent et prépositionnel de lieu, A2 passé/futur et opposition
+lieu/direction, B1 instrumental et aspect en contexte, B2 participes,
+gérondifs et régime verbal, C1 phraséologie et registre. Chaque item teste
+une compétence en contexte, avec une seule réponse défendable — les items
+dont deux options se disent réellement en russe ont été écartés.
+
+`npm run check:leveltest` vérifie le vivier (4 options, bonne réponse dans
+les bornes, assez d'items par palier) ET le comportement statistique :
+simulation de candidats de niveau connu, avec des seuils qui échouent si le
+placement se dégrade. Mesure actuelle : 69 % de placement exact, 95 % à un
+palier près, et un candidat qui répond au hasard finit en A0/A1 dans 95 %
+des cas.
 
 ## Ce qui reste à faire (pistes)
 
-- Écrire la progression des exercices vers Supabase (aujourd'hui le module cas
-  écrit encore en localStorage ; les tables `case_progress` / `activity_log`
-  sont prêtes à recevoir ces données via une petite route ou un client).
+- Élargir la banque de noms (voir « Faire évoluer la banque » plus haut) :
+  451 noms aujourd'hui, le dictionnaire en contient 17 800 exploitables — il
+  ne manque que la traduction française.
 - Corpus de classiques du domaine public (Pouchkine, Tchekhov…) pour compléter
   la lecture générée.
-- Calcul et mise à jour du streak / XP après chaque session.
 - Conjugaison verbale (aspects perfectif/imperfectif).
 - Audio / prononciation via un TTS.
 
@@ -211,5 +301,6 @@ la console Anthropic et régénères-en une.
 L'inscription ne dit jamais si une adresse est déjà utilisée : le même écran
 « vérifie ta boîte mail » s'affiche dans tous les cas, pour éviter d'énumérer
 les comptes existants.
-#   p r i v e t  
+#   p r i v e t 
+ 
  

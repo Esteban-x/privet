@@ -1,5 +1,11 @@
-export type CefrLevel = "A0" | "A1" | "A2" | "B1" | "B2" | "C1";
-export const CEFR_LEVELS: CefrLevel[] = ["A0", "A1", "A2", "B1", "B2", "C1"];
+export type CefrLevel = "A0" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+export const CEFR_LEVELS: CefrLevel[] = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
+
+// Niveaux proposés à la génération de textes de lecture. A0 en est exclu :
+// un texte suivi n'a pas de sens sans un minimum de langue. C2 y figure
+// alors que le test de placement s'arrête à C1 — c'est voulu, la difficulté
+// d'un texte qu'on demande est indépendante du niveau qu'on a mesuré.
+export const READING_LEVELS: CefrLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 export interface Profile {
   id: string;
@@ -8,8 +14,6 @@ export interface Profile {
   last_name: string | null;
   avatar_url: string | null;
   level: CefrLevel;
-  goals: string | null;
-  topics: string[];
   onboarded: boolean;
   streak_count: number;
   streak_last: string | null;
@@ -49,7 +53,6 @@ export interface VocabListRow {
   id: string;
   user_id: string;
   name: string;
-  topic_id: string | null;
   created_at: string;
 }
 
@@ -90,17 +93,3 @@ export interface SrsCardRow {
   due_at: string;
   last_reviewed: string | null;
 }
-
-// Catalogue de thèmes proposés à l'inscription.
-export const TOPIC_CATALOG: { id: string; label: string; emoji: string }[] = [
-  { id: "travel", label: "Voyage", emoji: "✈️" },
-  { id: "food", label: "Cuisine & restaurant", emoji: "🍲" },
-  { id: "business", label: "Travail & affaires", emoji: "💼" },
-  { id: "literature", label: "Littérature classique", emoji: "📚" },
-  { id: "daily", label: "Vie quotidienne", emoji: "🏠" },
-  { id: "news", label: "Actualité & société", emoji: "📰" },
-  { id: "cinema", label: "Cinéma & culture", emoji: "🎬" },
-  { id: "science", label: "Science & tech", emoji: "🔬" },
-  { id: "sport", label: "Sport", emoji: "⚽" },
-  { id: "music", label: "Musique", emoji: "🎵" },
-];

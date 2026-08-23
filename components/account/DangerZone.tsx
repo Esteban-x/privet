@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { deleteAccountAction, INITIAL_DELETE_ACCOUNT_STATE } from "@/app/account/actions";
+import { deleteAccountAction } from "@/app/account/actions";
+import { INITIAL_DELETE_ACCOUNT_STATE } from "@/lib/auth/delete-account-state";
 
 const CONFIRM_WORD = "SUPPRIMER";
 

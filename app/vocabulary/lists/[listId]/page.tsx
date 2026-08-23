@@ -331,7 +331,7 @@ export default function VocabListDetailPage() {
                         w.animacy === "animate" ? "animate" : "inanimate"
                       )
                     }
-                    title="Genre grammatical (utilisé pour les exercices de cas)"
+                    title="Genre grammatical du mot russe"
                     className="rounded-lg border border-border bg-bg px-2 py-1 font-display text-xs text-text focus:border-accent focus:outline-none"
                     options={[
                       { value: "", label: "genre ?" },

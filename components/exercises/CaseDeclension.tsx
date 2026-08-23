@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CaseInfo, FrenchGender, Noun } from "@/lib/grammar/types";
+import { CaseInfo } from "@/lib/grammar/types";
 import { CefrLevel } from "@/lib/supabase/types";
 import { declineNoun } from "@/lib/grammar/decline";
 import { fillFrenchBlank, frenchNounPhrase } from "@/lib/grammar/french-article";
 import {
   CaseExercise,
-  DECLINABLE_NOUNS,
   checkAnswer,
   generateAdjectiveExercise,
   generateIsolatedExercise,
@@ -15,23 +14,19 @@ import {
   generateNumeralExercise,
   generateSentenceExercise,
 } from "@/lib/grammar/exercise-generator";
-import { ADJECTIVES } from "@/lib/grammar/adjectives-data";
 import { PROPER_NOUN_TRIGGER_ID, triggersForCase } from "@/lib/grammar/triggers";
 import { getNoun } from "@/lib/grammar/nouns-data";
 import { pickWeightedTrigger } from "@/lib/grammar/exercise-selector";
-import {
-  accuracyFor,
-  loadCaseProgress,
-  loadTriggerProgress,
-  recordCaseAttempt,
-  recordTriggerAttempt,
-  syncCaseAttempt,
-} from "@/lib/storage";
-import { declinableToNoun, fetchDeclinableWords } from "@/lib/vocabulary/custom";
 
 type Tab = "isolated" | "sentence" | "mcq" | "numeral" | "adjective";
-type Feedback = { status: "correct" | "incorrect" | "revealed"; exercise: CaseExercise; picked?: string } | null;
+type Feedback = {
+  status: "correct" | "incorrect" | "revealed";
+  exercise: CaseExercise;
+  picked?: string;
+  reason?: string | null;
+} | null;
 type TriggerStats = Record<string, { attempts: number; correct: number }>;
+type CaseAccuracy = Record<string, number>; // clé = `${caseId}:${gender}`
 
 const TAB_LABEL: Record<Tab, string> = {
   isolated: "Déclinaison isolée",
@@ -53,26 +48,93 @@ const COUNT_FORM_LABEL: Record<string, string> = {
   "gen-pl": "0, 5-20, 25-30… → génitif pluriel",
 };
 
-// Filet de sécurité si l'IA choisit un emprunt indéclinable sans le
-// signaler via son champ "indeclinable" — liste des cas les plus courants
-// (le prompt lui demande déjà explicitement de les éviter, voir
-// lib/ai/prompts.ts).
-const KNOWN_INDECLINABLE = new Set([
-  "кофе",
-  "метро",
-  "такси",
-  "кино",
-  "меню",
-  "пальто",
-  "кафе",
-  "шоссе",
-  "купе",
-  "радио",
-  "какао",
-  "пианино",
-  "бюро",
-  "жалюзи",
-]);
+/**
+ * Construit l'exercice suivant. Fonction PURE au sens React (aucun setState) :
+ * elle est appelée depuis un effet et son résultat n'est appliqué qu'au
+ * retour de la promesse, ce qui évite la cascade de rendus d'un setState
+ * synchrone dans l'effet.
+ */
+async function buildExercise(
+  tab: Tab,
+  caseInfo: CaseInfo,
+  triggerStats: TriggerStats,
+  userLevel: CefrLevel | undefined,
+  recentLemmas: string[]
+): Promise<CaseExercise> {
+  if (tab === "isolated") return generateIsolatedExercise(caseInfo.id);
+  if (tab === "numeral") return generateNumeralExercise();
+
+  // L'onglet "Accord adjectif" exclut "Меня зовут ___" du tirage : ce
+  // gabarit demande un prénom, sur lequel accorder un adjectif n'a pas de
+  // sens ("Меня зовут синий Александр"). Filtré AVANT la pondération pour
+  // que le tirage adaptatif porte sur les déclencheurs réellement jouables.
+  const eligible =
+    tab === "adjective"
+      ? triggersForCase(caseInfo.id).filter((t) => t.id !== PROPER_NOUN_TRIGGER_ID)
+      : triggersForCase(caseInfo.id);
+  const trigger = pickWeightedTrigger(eligible, triggerStats, userLevel);
+
+  if (tab === "mcq") return generateMcqExercise(caseInfo.id, trigger);
+  if (tab === "adjective") return generateAdjectiveExercise(caseInfo.id, trigger);
+
+  // "Phrase" : IA en premier (phrase personnalisée, ciblée sur le
+  // déclencheur choisi), repli SILENCIEUX sur le gabarit fixe si
+  // indisponible/erreur.
+  //
+  // Exception : "Меня зовут ___" n'a de sens qu'avec un prénom et reste
+  // toujours au nominatif (aucune vraie déclinaison à tester) — le gabarit
+  // fixe + la banque de prénoms couvrent déjà l'exercice parfaitement,
+  // aucune valeur à risquer une phrase IA imprévisible ici.
+  if (trigger.id === PROPER_NOUN_TRIGGER_ID) {
+    return generateSentenceExercise(caseInfo.id, trigger);
+  }
+
+  try {
+    const res = await fetch("/api/ai/exercise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseId: caseInfo.id, triggerId: trigger.id, recentLemmas }),
+    });
+    if (!res.ok) throw new Error("ai unavailable");
+    const ai = await res.json();
+    // Le serveur ne renvoie que l'ID d'un mot de la banque curée : on
+    // recharge l'objet complet plutôt que de reconstruire un Noun à partir
+    // du JSON, sinon irrégularités (друзья), voyelle mobile (отца) et
+    // schéma accentuel (днём) seraient perdus.
+    const noun = getNoun(ai.noun_id);
+    if (!noun) throw new Error("mot hors banque");
+
+    const plural = trigger.plural ?? false;
+    const result = declineNoun(noun, caseInfo.id, plural);
+    // Filet de sécurité : le prompt demande une traduction française sans
+    // trou, mais si le modèle en laisse quand même un (ambiguïté du style
+    // "sans ___" — impossible de deviner sucre/lait sans indice), on le
+    // comble avec la traduction de la banque plutôt que de laisser
+    // l'apprenant deviner à l'aveugle.
+    const sentenceFr =
+      typeof ai.sentence_fr === "string" && ai.sentence_fr.includes("___")
+        ? fillFrenchBlank(
+            ai.sentence_fr,
+            frenchNounPhrase(noun.translation, noun.frenchGender, trigger.article, plural)
+          )
+        : ai.sentence_fr;
+    return {
+      kind: "sentence-ai",
+      noun,
+      targetCase: caseInfo.id,
+      plural,
+      correctForm: result.form,
+      accentedForm: result.accented,
+      ruleApplied: result.ruleApplied,
+      trigger,
+      sentenceTemplate: ai.sentence_ru,
+      sentenceFr,
+      hint: noun.translation,
+    };
+  } catch {
+    return generateSentenceExercise(caseInfo.id, trigger);
+  }
+}
 
 export default function CaseDeclension({
   caseInfo,
@@ -90,288 +152,202 @@ export default function CaseDeclension({
   );
 
   const [tab, setTab] = useState<Tab>("isolated");
+  const [round, setRound] = useState(0); // incrémenté à chaque "Suivant" pour relancer le tirage
   const [exercise, setExercise] = useState<CaseExercise | null>(null);
-  const [exerciseSeq, setExerciseSeq] = useState(0); // incrémenté à chaque nouvel exercice, pour rejouer l'animation d'entrée
   const [input, setInput] = useState("");
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [streak, setStreak] = useState(0);
-  const [progressTick, setProgressTick] = useState(0);
-  const [aiLoading, setAiLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  // Incrémenté à chaque loadExercise("sentence") : permet à un appel IA
-  // devenu périmé (l'utilisateur a changé d'onglet/de cas entre-temps) de
-  // se reconnaître obsolète à son retour et de ne PAS écraser l'exercice
-  // affiché depuis — un simple AbortController ne suffirait pas à lui seul
-  // ici puisque le repli sur le gabarit fixe (catch) doit, lui aussi, être
-  // ignoré s'il est périmé.
-  const aiRequestSeq = useRef(0);
+  const [triggerStats, setTriggerStats] = useState<TriggerStats>({});
+  const [caseAccuracy, setCaseAccuracy] = useState<CaseAccuracy>({});
+
   // Derniers lemmes vus en mode "Phrase" IA (tous cas confondus, cette
   // session) — envoyés au prompt pour qu'il évite de reproposer les mêmes
-  // mots en boucle (typiquement le mot le plus "évident" d'un thème avec un
-  // seul thème choisi). Volontairement en mémoire seule (pas persisté) :
-  // juste assez pour casser une répétition immédiate, pas un vrai suivi de
-  // fréquence.
+  // mots en boucle. Volontairement en mémoire seule (pas persisté) : juste
+  // assez pour casser une répétition immédiate, pas un vrai suivi.
   const recentAiLemmas = useRef<string[]>([]);
 
-  function applyExercise(ex: CaseExercise) {
-    setExercise(ex);
-    setExerciseSeq((s) => s + 1);
-  }
-
-  const [personalNouns, setPersonalNouns] = useState<Noun[]>([]);
-  const [usePersonalVocab, setUsePersonalVocab] = useState(false);
-  const [triggerStats, setTriggerStats] = useState<TriggerStats>({});
-
-  // Vocabulaire perso classifié (genre connu) : vient enrichir le pool par
-  // défaut si l'utilisateur en a assez pour que ce soit utile.
+  // Progression serveur : pilote le tirage adaptatif (par déclencheur) et
+  // l'indicateur de précision (par cas × genre). Source unique — le module
+  // exige un compte (voir proxy.ts), il n'y a pas de mode hors-ligne à
+  // couvrir avec un stockage local parallèle.
   useEffect(() => {
-    fetchDeclinableWords()
-      .then(({ words }) => {
-        const nouns = words.map(declinableToNoun);
-        setPersonalNouns(nouns);
-        if (nouns.length >= 5) setUsePersonalVocab(true);
-      })
-      .catch(() => {});
-  }, []);
-
-  // Progression par déclencheur : locale d'abord (fonctionne hors-ligne),
-  // complétée par le serveur si connecté — pilote le tirage adaptatif.
-  useEffect(() => {
-    const local = loadTriggerProgress();
-    const initial: TriggerStats = {};
-    for (const [id, entry] of Object.entries(local)) {
-      initial[id] = { attempts: entry.attempts, correct: entry.correct };
-    }
-    setTriggerStats(initial);
-
+    let cancelled = false;
     fetch("/api/cases/progress")
       .then((r) => r.json())
-      .then((data: { triggerProgress?: { case_id: string; trigger_id: string; attempts: number; correct: number }[] }) => {
-        const rows = data.triggerProgress ?? [];
-        if (!rows.length) return;
-        setTriggerStats((prev) => {
-          const next = { ...prev };
-          for (const row of rows) next[row.trigger_id] = { attempts: row.attempts, correct: row.correct };
-          return next;
-        });
-      })
+      .then(
+        (data: {
+          caseProgress?: { case_id: string; gender: string; attempts: number; correct: number }[];
+          triggerProgress?: { trigger_id: string; attempts: number; correct: number }[];
+        }) => {
+          if (cancelled) return;
+          const triggers: TriggerStats = {};
+          for (const row of data.triggerProgress ?? []) {
+            triggers[row.trigger_id] = { attempts: row.attempts, correct: row.correct };
+          }
+          setTriggerStats(triggers);
+
+          const accuracy: CaseAccuracy = {};
+          for (const row of data.caseProgress ?? []) {
+            if (row.attempts > 0) {
+              accuracy[`${row.case_id}:${row.gender}`] = Math.round(
+                (row.correct / row.attempts) * 100
+              );
+            }
+          }
+          setCaseAccuracy(accuracy);
+        }
+      )
       .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // DECLINABLE_NOUNS est déjà filtré, mais le vocabulaire perso peut
-  // contenir un mot classifié indéclinable (кофе, метро...) — filtré ici
-  // aussi, sinon un exercice de cas lui inventerait une fausse déclinaison.
-  const pool = useMemo(() => {
-    const combined =
-      usePersonalVocab && personalNouns.length > 0 ? [...DECLINABLE_NOUNS, ...personalNouns] : DECLINABLE_NOUNS;
-    return combined.filter((n) => !n.indeclinable);
-  }, [usePersonalVocab, personalNouns]);
+  // Tirage de l'exercice. `exercise === null` sert d'état de chargement :
+  // les gestionnaires de clic (onglet, "Suivant") le remettent à null, ce
+  // qui relance cet effet et affiche le squelette entre-temps.
+  useEffect(() => {
+    let cancelled = false;
+    buildExercise(tab, caseInfo, triggerStats, userLevel, recentAiLemmas.current)
+      .then((ex) => {
+        if (cancelled) return;
+        if (ex.kind === "sentence-ai") {
+          // Fenêtre glissante : garde les ~12 plus récents pour rester un
+          // signal utile côté prompt sans le laisser grossir indéfiniment.
+          recentAiLemmas.current = [...recentAiLemmas.current, ex.noun.lemma].slice(-12);
+        }
+        setExercise(ex);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // triggerStats/userLevel ne sont volontairement pas des dépendances :
+    // ils biaisent le tirage suivant, ils ne doivent pas remplacer
+    // l'exercice affiché quand la progression arrive du serveur.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, caseInfo.id, round]);
 
-  async function loadExercise(nextTab: Tab) {
+  function nextExercise() {
     setFeedback(null);
     setInput("");
     setVerifying(false);
-    // Invalide toute requête IA encore en vol : quel que soit le prochain
-    // onglet, sa réponse tardive ne doit plus pouvoir écraser l'exercice
-    // affiché entre-temps.
-    aiRequestSeq.current += 1;
-
-    if (nextTab === "isolated") {
-      applyExercise(generateIsolatedExercise(caseInfo.id, pool));
-      return;
-    }
-    if (nextTab === "numeral") {
-      applyExercise(generateNumeralExercise(pool));
-      return;
-    }
-    if (nextTab === "mcq") {
-      const trigger = pickWeightedTrigger(triggersForCase(caseInfo.id), triggerStats, userLevel);
-      applyExercise(generateMcqExercise(caseInfo.id, pool, trigger));
-      return;
-    }
-    if (nextTab === "adjective") {
-      const trigger = pickWeightedTrigger(triggersForCase(caseInfo.id), triggerStats, userLevel);
-      applyExercise(generateAdjectiveExercise(caseInfo.id, pool, ADJECTIVES, trigger));
-      return;
-    }
-
-    // "Phrase" : IA en premier (personnalisée, ciblée sur le déclencheur
-    // choisi), repli SILENCIEUX sur le gabarit fixe si indisponible/erreur.
-    const trigger = pickWeightedTrigger(triggersForCase(caseInfo.id), triggerStats, userLevel);
-
-    // Exception : "Меня зовут ___" n'a de sens qu'avec un prénom (jamais un
-    // nom commun) et reste toujours au nominatif (aucune vraie déclinaison
-    // à tester) — le gabarit fixe + la banque de prénoms réservée
-    // (RUSSIAN_NAMES, voir exercise-generator.ts) couvrent déjà l'exercice
-    // parfaitement. Pas de valeur à risquer une phrase IA imprévisible ici.
-    if (trigger.id === PROPER_NOUN_TRIGGER_ID) {
-      applyExercise(generateSentenceExercise(caseInfo.id, pool, trigger));
-      return;
-    }
-
-    const requestId = aiRequestSeq.current;
-    setAiLoading(true);
-    try {
-      const res = await fetch("/api/ai/exercise", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          caseId: caseInfo.id,
-          triggerId: trigger.id,
-          recentLemmas: recentAiLemmas.current,
-        }),
-      });
-      if (requestId !== aiRequestSeq.current) return; // périmé (nouvel exercice demandé entre-temps)
-      if (!res.ok) throw new Error("ai unavailable");
-      const { exercise: ai, pool_noun_id: poolNounId } = await res.json();
-      // Le prompt demande explicitement d'éviter les emprunts indéclinables
-      // (кофе, метро...), mais si le modèle en choisit quand même un —
-      // qu'il l'ait signalé via "indeclinable" ou pas —, décliner ce mot
-      // produirait une fausse forme (ex. "кофеа"). On traite ça comme un
-      // échec IA : repli silencieux sur le gabarit fixe (pool sans mots
-      // indéclinables, voir plus haut).
-      if (ai.indeclinable || KNOWN_INDECLINABLE.has((ai.lemma ?? "").toLowerCase())) {
-        throw new Error("indeclinable lemma");
-      }
-      if (ai.lemma) {
-        // Fenêtre glissante : garde les ~12 plus récents pour rester un
-        // signal utile côté prompt sans le laisser grossir indéfiniment.
-        recentAiLemmas.current = [...recentAiLemmas.current, ai.lemma].slice(-12);
-      }
-      const hint: string = (ai.hint || ai.lemma || "").trim();
-      const frenchGender: FrenchGender = ai.french_gender === "f" ? "f" : "m";
-      // Le serveur ne renvoie un pool_noun_id que pour un mot de la banque
-      // curée (jamais le vocabulaire perso, qui n'a pas cette donnée) — s'il
-      // est présent, on va chercher l'objet Noun complet plutôt que d'en
-      // reconstruire un de zéro à partir des seuls champs JSON, pour ne pas
-      // perdre d'éventuelles formes irrégulières mémorisées (noun.irregular).
-      const noun: Noun = (poolNounId && getNoun(poolNounId)) || {
-        id: `ai:${ai.lemma}`,
-        lemma: ai.lemma,
-        translation: hint,
-        frenchGender,
-        gender: ai.gender,
-        animacy: ai.animate ? "animate" : "inanimate",
-        stemType: "hard",
-      };
-      // Certains déclencheurs imposent le pluriel (много/мало/несколько,
-      // среди, "мн. число"...) — ignoré ici, la forme attendue était
-      // toujours calculée au singulier même quand l'IA écrivait à raison
-      // une phrase au pluriel (ex. "музыканты", pas "музыкант").
-      const plural = trigger.plural ?? false;
-      const result = declineNoun(noun, caseInfo.id, plural);
-      // Filet de sécurité : le prompt demande une traduction française sans
-      // trou, mais si le modèle en laisse quand même un (ambiguïté du style
-      // "sans ___" — impossible de deviner sucre/lait sans indice), on le
-      // comble nous-mêmes avec le hint (et l'article approprié) plutôt que
-      // de laisser l'apprenant deviner à l'aveugle.
-      const sentenceFr =
-        hint && ai.sentence_fr?.includes("___")
-          ? fillFrenchBlank(ai.sentence_fr, frenchNounPhrase(hint, frenchGender, trigger.article, plural))
-          : ai.sentence_fr;
-      applyExercise({
-        kind: "sentence-ai",
-        noun,
-        targetCase: caseInfo.id,
-        plural,
-        correctForm: result.form,
-        ruleApplied: result.ruleApplied,
-        trigger,
-        sentenceTemplate: ai.sentence_ru,
-        sentenceFr,
-        hint,
-      });
-    } catch {
-      if (requestId === aiRequestSeq.current) {
-        applyExercise(generateSentenceExercise(caseInfo.id, pool, trigger));
-      }
-    } finally {
-      if (requestId === aiRequestSeq.current) setAiLoading(false);
-    }
+    setExercise(null);
+    setRound((r) => r + 1);
   }
 
-  useEffect(() => {
-    loadExercise(tab);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, caseInfo.id]);
+  function selectTab(next: Tab) {
+    if (next === tab) return;
+    setFeedback(null);
+    setInput("");
+    setVerifying(false);
+    setExercise(null);
+    setTab(next);
+  }
 
-  const progress = useMemo(() => {
-    const map = loadCaseProgress();
-    if (!exercise) return null;
-    const entry = map[`${caseInfo.id}:${exercise.noun.gender}`];
-    return accuracyFor(entry);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progressTick, exercise, caseInfo.id]);
-
-  function recordResult(isCorrect: boolean, picked?: string, revealed = false) {
+  /**
+   * Envoie la réponse au serveur, qui recalcule lui-même la forme attendue
+   * et tranche (avec, si besoin, une seconde lecture par l'IA). Le client
+   * n'enregistre aucun verdict de son côté : il affiche celui du serveur,
+   * donc l'écran et la base disent toujours la même chose.
+   */
+  async function record(
+    userAnswer: string,
+    options: { revealed?: boolean; optimistic?: boolean; multipleChoice?: boolean } = {}
+  ) {
     if (!exercise) return;
-    recordCaseAttempt(caseInfo.id, exercise.noun.gender, isCorrect);
-    // Vérifiable côté serveur seulement si le nom vient de la banque curée ou
-    // du vocabulaire perso (identifiable par id) et que l'exercice ne dépend
-    // pas d'une phrase générée par IA — le serveur recalcule alors la forme
-    // attendue lui-même plutôt que de faire confiance au booléen `isCorrect`
-    // (qui reste envoyé en repli pour les cas non vérifiables).
-    const verifiable = !exercise.noun.id.startsWith("ai:");
-    syncCaseAttempt(caseInfo.id, exercise.noun.gender, isCorrect, exercise.trigger?.id, {
-      nounId: exercise.noun.id,
-      plural: exercise.plural,
-      userAnswer: picked ?? input,
-      verifiable,
-      adjectiveId: exercise.adjective?.id,
-    });
-    if (exercise.trigger) {
-      const triggerId = exercise.trigger.id;
-      recordTriggerAttempt(triggerId, isCorrect);
-      setTriggerStats((prev) => {
-        const cur = prev[triggerId] ?? { attempts: 0, correct: 0 };
-        return { ...prev, [triggerId]: { attempts: cur.attempts + 1, correct: cur.correct + (isCorrect ? 1 : 0) } };
-      });
-    }
-    setFeedback({ status: revealed ? "revealed" : isCorrect ? "correct" : "incorrect", exercise, picked });
-    setStreak((s) => (isCorrect ? s + 1 : 0));
-    setProgressTick((t) => t + 1);
-  }
+    const { revealed = false, optimistic = false, multipleChoice = false } = options;
 
-  async function submit() {
-    if (!exercise || !input.trim() || verifying) return;
-    if (checkAnswer(exercise, input)) {
-      recordResult(true);
-      return;
+    if (optimistic) {
+      // La comparaison locale a déjà dit "juste" et le serveur applique le
+      // même calcul sur les mêmes données : afficher tout de suite évite
+      // une latence réseau sur le chemin le plus fréquent.
+      applyVerdict(true, revealed, userAnswer, null);
+    } else {
+      setVerifying(true);
     }
-    // Filet de sécurité IA : le moteur de règles dit "faux", mais avant
-    // d'afficher ça à l'apprenant on demande une seconde vérification —
-    // couvre à la fois une vraie faute (confirmée par l'IA) ET une
-    // variante correcte que la comparaison de chaînes aurait refusée à
-    // tort (accent, orthographe alternative, ou bug du moteur lui-même).
-    // Ne coûte des tokens QUE sur une réponse déjà jugée fausse, jamais
-    // sur le chemin heureux.
-    setVerifying(true);
+
     try {
-      const res = await fetch("/api/cases/verify-answer", {
+      const res = await fetch("/api/cases/attempt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lemma: exercise.noun.lemma,
-          gender: exercise.noun.gender,
-          animacy: exercise.noun.animacy,
           targetCase: exercise.targetCase,
+          nounId: exercise.noun.id,
+          adjectiveId: exercise.adjective?.id,
+          triggerId: exercise.trigger?.id,
           plural: exercise.plural,
-          computedForm: exercise.correctForm,
-          userAnswer: input,
+          userAnswer,
+          revealed,
+          // En QCM, la réponse est une des formes proposées : inutile de
+          // payer une vérification IA pour un choix qu'on sait faux.
+          multipleChoice,
         }),
       });
       const data = await res.json().catch(() => ({}));
-      recordResult(Boolean(data.acceptable));
+      if (!res.ok) throw new Error(data.error ?? "échec");
+      if (typeof data.caseAccuracy === "number") {
+        setCaseAccuracy((prev) => ({
+          ...prev,
+          [`${exercise.targetCase}:${exercise.noun.gender}`]: data.caseAccuracy,
+        }));
+      }
+      if (!optimistic) applyVerdict(data.correct === true, revealed, userAnswer, data.reason);
     } catch {
-      recordResult(false);
+      // Serveur indisponible : on affiche quand même un retour à partir du
+      // calcul local, l'exercice reste utilisable même si la progression de
+      // cette tentative est perdue.
+      if (!optimistic) applyVerdict(checkAnswer(exercise, userAnswer), revealed, userAnswer, null);
     } finally {
       setVerifying(false);
     }
   }
 
+  function applyVerdict(
+    isCorrect: boolean,
+    revealed: boolean,
+    picked: string,
+    reason: string | null | undefined
+  ) {
+    if (!exercise) return;
+    setFeedback({
+      status: revealed ? "revealed" : isCorrect ? "correct" : "incorrect",
+      exercise,
+      picked,
+      reason,
+    });
+    setStreak((s) => (isCorrect && !revealed ? s + 1 : 0));
+    // Le déclencheur vient d'être pratiqué : on met à jour le poids local
+    // pour que le tirage suivant en tienne compte sans attendre un
+    // rechargement de la progression serveur.
+    const triggerId = exercise.trigger?.id;
+    if (triggerId) {
+      setTriggerStats((prev) => {
+        const cur = prev[triggerId] ?? { attempts: 0, correct: 0 };
+        return {
+          ...prev,
+          [triggerId]: {
+            attempts: cur.attempts + 1,
+            correct: cur.correct + (isCorrect ? 1 : 0),
+          },
+        };
+      });
+    }
+  }
+
+  function submit() {
+    if (!exercise || !input.trim() || verifying || feedback) return;
+    // Réponse déjà reconnue juste localement : affichage immédiat, le
+    // serveur confirmera (même moteur, mêmes données). Sinon on attend son
+    // verdict — c'est là qu'intervient la vérification IA, qui rattrape une
+    // variante correcte que la comparaison de chaînes refuserait.
+    record(input, { optimistic: checkAnswer(exercise, input) });
+  }
+
   function selectOption(opt: string) {
-    if (!exercise || feedback) return;
-    recordResult(opt === exercise.correctForm, opt);
+    if (!exercise || feedback || verifying) return;
+    record(opt, { optimistic: opt === exercise.correctForm, multipleChoice: true });
   }
 
   // Pour quelqu'un qui ne sait vraiment pas — évite de taper n'importe quoi
@@ -380,18 +356,20 @@ export default function CaseDeclension({
   // (même logique que "incorrect" : la maîtrise doit encore progresser sur
   // ce déclencheur), mais affiché sans le ton "faute" du rouge.
   function reveal() {
-    if (!exercise || feedback) return;
-    recordResult(false, undefined, true);
+    if (!exercise || feedback || verifying) return;
+    record("", { revealed: true });
   }
 
-  function nextExercise() {
-    loadExercise(tab);
-  }
+  const accuracy = exercise
+    ? caseAccuracy[`${exercise.targetCase}:${exercise.noun.gender}`]
+    : undefined;
 
-  if (!exercise) return null;
-
-  const isMcq = exercise.kind === "trigger-mcq";
-  const isSentenceLike = exercise.kind === "sentence-fixed" || exercise.kind === "sentence-ai" || isMcq || exercise.kind === "adjective-agreement";
+  const isMcq = exercise?.kind === "trigger-mcq";
+  const isSentenceLike =
+    exercise?.kind === "sentence-fixed" ||
+    exercise?.kind === "sentence-ai" ||
+    isMcq ||
+    exercise?.kind === "adjective-agreement";
 
   return (
     <div className="overflow-hidden rounded-[20px] border border-border bg-bg2 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
@@ -410,34 +388,23 @@ export default function CaseDeclension({
       <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-6 py-3.5">
         <div className="inline-flex flex-wrap rounded-full border border-border bg-bg p-1">
           {tabs.map((t) => (
-            <ModeButton key={t} active={tab === t} onClick={() => setTab(t)}>
+            <ModeButton key={t} active={tab === t} onClick={() => selectTab(t)}>
               {TAB_LABEL[t]}
             </ModeButton>
           ))}
         </div>
-        {personalNouns.length > 0 && (
-          <label className="ml-2 flex items-center gap-1.5 font-display text-xs text-muted">
-            <input
-              type="checkbox"
-              checked={usePersonalVocab}
-              onChange={(e) => setUsePersonalVocab(e.target.checked)}
-              className="accent-accent"
-            />
-            Utiliser mon vocabulaire ({personalNouns.length})
-          </label>
-        )}
-        {progress !== null && (
+        {exercise && accuracy !== undefined && (
           <span className="ml-auto font-display text-xs text-muted">
-            Précision ({GENDER_LABEL[exercise.noun.gender]}) : {progress}%
+            Précision ({GENDER_LABEL[exercise.noun.gender]}) : {accuracy}%
           </span>
         )}
       </div>
 
       <div className="p-7">
-        {aiLoading ? (
-          <SentencePhraseSkeleton />
+        {!exercise ? (
+          <ExerciseSkeleton aiSentence={tab === "sentence"} />
         ) : (
-          <div key={exerciseSeq} className="animate-fade-in">
+          <div key={`${tab}-${round}`} className="animate-fade-in">
             {exercise.trigger && (
               <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-bg3 px-3 py-1 font-display text-xs font-semibold text-muted">
                 Déclencheur :
@@ -453,7 +420,7 @@ export default function CaseDeclension({
                   {exercise.targetCase === "nominative" ? "Mets ce mot au pluriel :" : "Décline ce mot :"}
                 </p>
                 <p className="font-display text-3xl font-bold">
-                  {exercise.noun.lemma}{" "}
+                  {exercise.noun.forms.singular[0]}{" "}
                   <span className="font-display text-lg font-normal text-muted">({exercise.noun.translation})</span>
                 </p>
               </div>
@@ -463,7 +430,7 @@ export default function CaseDeclension({
               <div className="mb-6">
                 <p className="font-display text-sm text-muted">Accorde le nom avec le chiffre :</p>
                 <p className="font-display text-3xl font-bold">
-                  {exercise.numeral} + {exercise.noun.lemma}{" "}
+                  {exercise.numeral} + {exercise.noun.forms.singular[0]}{" "}
                   <span className="font-display text-lg font-normal text-muted">({exercise.noun.translation})</span>
                 </p>
                 {exercise.countForm && (
@@ -498,7 +465,7 @@ export default function CaseDeclension({
                     <button
                       key={opt}
                       onClick={() => selectOption(opt)}
-                      disabled={!!feedback}
+                      disabled={!!feedback || verifying}
                       className={`rounded-[10px] border px-4 py-3 font-display text-lg font-semibold transition-colors ${
                         isCorrectOpt
                           ? "border-success bg-success/10 text-success"
@@ -580,8 +547,18 @@ export default function CaseDeclension({
                       ? "Réponse"
                       : "✗ Pas tout à fait"}
                 </p>
-                <p className="mt-1 font-display text-xl font-bold">{exercise.correctForm}</p>
+                {/* Forme accentuée : l'accent tonique n'est jamais écrit en
+                    russe courant, donc jamais exigé de l'apprenant (voir
+                    normalizeAnswer), mais c'est l'information la plus utile
+                    et la moins devinable pour un francophone — autant la
+                    montrer chaque fois qu'on donne la réponse. */}
+                <p className="mt-1 font-display text-xl font-bold">
+                  {exercise.accentedForm ?? exercise.correctForm}
+                </p>
                 <p className="mt-1 font-display text-sm text-muted">{exercise.ruleApplied}</p>
+                {feedback.reason && (
+                  <p className="mt-2 font-display text-sm text-muted">{feedback.reason}</p>
+                )}
               </div>
             )}
           </div>
@@ -591,21 +568,23 @@ export default function CaseDeclension({
   );
 }
 
-// Pendant l'appel IA du mode "Phrase" : plutôt que de laisser l'ancien
-// exercice affiché avec juste un libellé changé (source de confusion —
-// contenu et onglet ne correspondaient plus), un squelette qui épouse la
-// forme du contenu à venir (déclencheur, phrase, ligne de réponse).
-function SentencePhraseSkeleton() {
+// Pendant le tirage (et l'appel IA du mode "Phrase") : plutôt que de laisser
+// l'ancien exercice affiché avec juste un libellé changé (source de
+// confusion — contenu et onglet ne correspondaient plus), un squelette qui
+// épouse la forme du contenu à venir.
+function ExerciseSkeleton({ aiSentence }: { aiSentence: boolean }) {
   return (
     <div className="animate-fade-in">
-      <p className="mb-4 inline-flex items-center gap-2 font-display text-xs font-semibold text-muted">
-        <span className="flex gap-1">
-          <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-accent [animation-delay:0ms]" />
-          <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-accent [animation-delay:160ms]" />
-          <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-accent [animation-delay:320ms]" />
-        </span>
-        Génération d&apos;une phrase…
-      </p>
+      {aiSentence && (
+        <p className="mb-4 inline-flex items-center gap-2 font-display text-xs font-semibold text-muted">
+          <span className="flex gap-1">
+            <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-accent [animation-delay:0ms]" />
+            <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-accent [animation-delay:160ms]" />
+            <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-accent [animation-delay:320ms]" />
+          </span>
+          Génération d&apos;une phrase…
+        </p>
+      )}
       <div className="mb-6 space-y-3">
         <div className="skeleton h-4 w-24 rounded-full" />
         <div className="skeleton h-8 w-4/5 rounded-lg" />

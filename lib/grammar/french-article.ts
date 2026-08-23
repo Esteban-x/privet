@@ -14,7 +14,13 @@ import { FrenchGender } from "./types";
 //                     évite d'avoir à gérer les contractions au cas par cas.
 export type ArticleMode = "none" | "indefinite" | "demonstrative";
 
-const VOWEL_SOUND = /^[aeiouyàâäéèêëîïôöùûü]/i;
+// Le h muet compte comme une voyelle pour l'élision ("cet homme", "cet
+// hôtel"). Aucun h aspiré dans les traductions de la banque curée.
+const VOWEL_SOUND = /^[aeiouyàâäéèêëîïôöùûüh]/i;
+
+// Pluriels français irréguliers présents dans la banque (le -eau -> -eaux
+// est traité par la règle ci-dessous ; "travail" ne suit aucune des deux).
+const IRREGULAR_PLURALS: Record<string, string> = { travail: "travaux" };
 
 // Pluralise juste le premier "mot" de la traduction (avant un espace ou une
 // parenthèse) — suffisant pour la petite banque de noms de ce projet, pas
@@ -25,6 +31,8 @@ function pluralizeFirstWord(translation: string): string {
   const match = /^(\S+)(.*)$/.exec(translation);
   if (!match) return translation;
   const [, first, rest] = match;
+  const irregular = IRREGULAR_PLURALS[first.toLowerCase()];
+  if (irregular) return `${irregular}${rest}`;
   if (/[sxz]$/i.test(first)) return translation;
   if (/eau$/i.test(first)) return `${first}x${rest}`;
   return `${first}s${rest}`;

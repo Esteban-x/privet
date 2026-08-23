@@ -90,7 +90,7 @@ export async function POST(req: Request) {
   }
 
   const [{ data: profile }, weakCases, recentVocab] = await Promise.all([
-    supabase.from("profiles").select("level, goals, topics").eq("id", user.id).single(),
+    supabase.from("profiles").select("level").eq("id", user.id).single(),
     getWeakCasesSummary(supabase, user.id),
     getRecentVocabSummary(supabase, user.id),
   ]);
@@ -114,13 +114,7 @@ export async function POST(req: Request) {
         const anthropicStream = getAnthropic().messages.stream({
           model: MODEL_CHAT,
           max_tokens: 1024,
-          system: tutorSystemPrompt(
-            profile?.level ?? "A1",
-            profile?.goals ?? null,
-            profile?.topics ?? [],
-            weakCases,
-            recentVocab
-          ),
+          system: tutorSystemPrompt(profile?.level ?? "A1", weakCases, recentVocab),
           // Le contexte utile (niveau, points faibles, vocabulaire récent)
           // est déjà dans le system prompt ci-dessus : pas besoin de
           // renvoyer TOUT l'historique à chaque tour, ce qui grossirait le

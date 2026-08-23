@@ -25,7 +25,7 @@ function accuracyWeight(trigger: CaseTrigger, progress: TriggerProgressMap): num
 // sans sur-ingénierie. Un cran au-dessus reste possible mais rare
 // (exposition progressive), jamais totalement exclu.
 const TIER_RANK: Record<TriggerTier, number> = { basic: 0, intermediate: 1, advanced: 2 };
-const LEVEL_STAGE: Record<CefrLevel, number> = { A0: 0, A1: 0, A2: 1, B1: 1, B2: 2, C1: 2 };
+const LEVEL_STAGE: Record<CefrLevel, number> = { A0: 0, A1: 0, A2: 1, B1: 1, B2: 2, C1: 2, C2: 2 };
 const MAX_STAGE = 2;
 
 // Seuils de "maîtrise" pour débloquer le palier suivant plus tôt que le

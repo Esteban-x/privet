@@ -3,10 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
 import { readingSystemPrompt, type ReadingLength, type ReadingStyle } from "@/lib/ai/prompts";
 import { toReadingText } from "@/lib/reading/validate";
-import { TOPIC_CATALOG } from "@/lib/supabase/types";
 import { CaseId } from "@/lib/grammar/types";
+import { READING_LEVELS, type CefrLevel } from "@/lib/supabase/types";
 
-const VALID_TOPIC_IDS = new Set(TOPIC_CATALOG.map((t) => t.id));
 const VALID_LENGTHS = new Set<ReadingLength>(["short", "medium", "long"]);
 const VALID_STYLES = new Set<ReadingStyle>(["narrative", "dialogue", "description"]);
 const VALID_CASES = new Set<CaseId>([
@@ -27,20 +26,21 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("level, topics")
+    .select("level")
     .eq("id", user.id)
     .single();
 
   const body = await req.json().catch(() => ({}));
   // Chaque option est facultative et retombe sur un choix par défaut
   // raisonnable si absente/invalide — jamais bloquant.
-  const topics: string[] = Array.isArray(body.topics)
-    ? body.topics.filter((t: unknown): t is string => typeof t === "string" && VALID_TOPIC_IDS.has(t))
-    : (profile?.topics ?? []);
   const length: ReadingLength = VALID_LENGTHS.has(body.length) ? body.length : "medium";
   const style: ReadingStyle = VALID_STYLES.has(body.style) ? body.style : "narrative";
   const focusCase: CaseId | undefined = VALID_CASES.has(body.focusCase) ? body.focusCase : undefined;
-  const level = profile?.level ?? "A1";
+  // Niveau demandé explicitement, sinon celui du profil : on peut vouloir
+  // lire plus facile pour se détendre, ou plus dur pour se pousser.
+  const requested = body.level as CefrLevel | undefined;
+  const level: CefrLevel =
+    requested && READING_LEVELS.includes(requested) ? requested : (profile?.level ?? "A1");
 
   try {
     const msg = await getAnthropic().messages.create({
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       // un niveau élevé (B1+), produisant un JSON tronqué invalide plutôt
       // qu'un texte plus court.
       max_tokens: 4096,
-      system: readingSystemPrompt({ level, topics, length, style, focusCase }),
+      system: readingSystemPrompt({ level, length, style, focusCase }),
       messages: [{ role: "user", content: "Écris un texte de lecture gradué." }],
     });
     if (msg.stop_reason === "max_tokens") {

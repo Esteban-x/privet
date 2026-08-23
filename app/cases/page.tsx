@@ -43,9 +43,10 @@ export default async function CasesPage() {
         Choisis un cas à travailler
       </h1>
       <p className="mb-12 max-w-2xl font-display leading-relaxed text-muted">
-        Chaque cas se pratique en deux temps : déclinaison isolée d&apos;un
-        mot, puis phrase à trou en contexte. Ta précision par cas est suivie
-        localement dans ton navigateur.
+        Chaque cas se pratique sous plusieurs angles : déclinaison isolée,
+        phrase à trou en contexte, QCM, accord avec un adjectif. Ta précision
+        par cas est enregistrée sur ton compte et oriente les exercices
+        suivants vers ce que tu maîtrises le moins.
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

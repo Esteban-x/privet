@@ -1,15 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getCase, CASES } from "@/lib/grammar/cases";
+// La page lit la session (niveau CEFR) : elle est rendue à la demande.
+// Un generateStaticParams n'y changeait rien — le build la marquait déjà
+// dynamique — il donnait juste l'illusion d'un prérendu.
+import { getCase } from "@/lib/grammar/cases";
 import CaseDeclension from "@/components/exercises/CaseDeclension";
 import ReferenceTable from "@/components/exercises/ReferenceTable";
 import TriggerReference from "@/components/exercises/TriggerReference";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { CefrLevel } from "@/lib/supabase/types";
-
-export function generateStaticParams() {
-  return CASES.map((c) => ({ caseSlug: c.id }));
-}
 
 // `undefined` (déconnecté, ou Supabase non configuré) = pas de biais côté
 // sélection de déclencheurs, comportement inchangé.

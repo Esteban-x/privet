@@ -1,6 +1,6 @@
 import { CefrLevel } from "@/lib/supabase/types";
 import { CaseId } from "@/lib/grammar/types";
-import { CaseTrigger, PROPER_NOUN_TRIGGER_ID } from "@/lib/grammar/triggers";
+import { CaseTrigger } from "@/lib/grammar/triggers";
 import { CASES } from "@/lib/grammar/cases";
 
 const LEVEL_GUIDANCE: Record<CefrLevel, string> = {
@@ -10,28 +10,25 @@ const LEVEL_GUIDANCE: Record<CefrLevel, string> = {
   B1: "intermédiaire : aspects verbaux, subordonnées, vocabulaire thématique",
   B2: "intermédiaire avancé : nuances, expressions idiomatiques courantes, textes plus longs",
   C1: "avancé : registre soutenu, idiomatismes, structures complexes",
+  C2: "maîtrise : langue nuancée et précise, registres variés y compris littéraire et scientifique, sous-entendus, syntaxe très libre",
 };
 
 // ─── Génération d'exercices contextuels pour un cas donné ───────
 //
-// Le "lemma" n'est PLUS un choix libre de l'IA : un nom russe pris au
-// hasard dans le vocabulaire courant peut être irrégulier d'une façon que
-// le moteur de règles (lib/grammar/decline.ts) ne connaît pas — ex. стул
-// (chaise) a un pluriel irrégulier стулья/стульев, jamais "стулы"/"стулов"
-// que produirait la règle générale, et rien ne le signale sans table
-// d'exceptions. On restreint donc le choix à `candidatePool` : la banque
-// curée (lib/grammar/nouns-data.ts, irréguliers déjà tagués via
-// `noun.irregular`) + le vocabulaire perso de l'apprenant — exactement le
-// même pool que les modes non-IA (isolé, phrase figée, QCM). Le serveur
-// (app/api/ai/exercise/route.ts) revérifie ensuite que le lemme renvoyé
-// correspond bien à une entrée du pool, et écrase genre/animacité/traduction
-// par les valeurs déjà vérifiées de cette entrée plutôt que de faire
-// confiance à ce que l'IA en dit — ça couvre aussi le risque de mauvaise
-// traduction française (ex. "чаша" traduit à tort par "chaise").
+// L'IA ne choisit PAS le mot et ne calcule AUCUNE forme fléchie : elle
+// écrit seulement la phrase qui met en situation un mot imposé.
+// `candidatePool` est la banque curée (lib/grammar/nouns-data.ts), dont
+// chaque déclinaison est vérifiée par `npm run check:grammar` — un nom
+// russe pris au hasard hors de cette banque serait irrégulier d'une façon
+// que le moteur de règles ne peut pas connaître (стул -> стулья, отец ->
+// отца, человек -> люди), et l'exercice afficherait une forme fausse comme
+// bonne réponse. Le serveur (app/api/ai/exercise/route.ts) revérifie que le
+// lemme renvoyé appartient bien au pool, puis ne transmet au client que
+// l'ID de l'entrée : traduction, genre et animacité viennent de la banque,
+// jamais de ce que l'IA en dit.
 export function exerciseSystemPrompt(
   caseId: CaseId,
   level: CefrLevel,
-  topics: string[],
   candidatePool: { ru: string; fr: string }[],
   trigger?: CaseTrigger,
   recentLemmas?: string[]
@@ -39,16 +36,6 @@ export function exerciseSystemPrompt(
   const triggerInstruction = trigger
     ? `Le déclencheur à illustrer est précisément : "${trigger.ru}" (${trigger.meaningFr}). La phrase doit utiliser ce déclencheur exact (cette préposition, ce verbe ou cette expression), pas un autre.`
     : `Choisis toi-même un déclencheur naturel du cas "${caseId}" (préposition, verbe à régime ou expression figée) — indique-le dans le champ "trigger_id" si tu peux l'identifier, sinon laisse-le vide.`;
-  const isProperNounTrigger = trigger?.id === PROPER_NOUN_TRIGGER_ID;
-  const properNounInstruction = isProperNounTrigger
-    ? `\nCas particulier pour CE déclencheur précis ("${trigger?.ru}") : "Je m'appelle ___" n'a de sens qu'avec un PRÉNOM, jamais un nom commun. Le "lemma" DOIT être un prénom russe courant (ex. Анна, Иван, Мария, Дмитрий), écrit avec une majuscule. "hint" est alors la transcription usuelle de ce prénom en français (ex. "Anna", "Ivan"), PAS une traduction — et si "sentence_fr" est une phrase complète sans trou, ce prénom transcrit doit y apparaître tel quel (jamais le mot russe brut, jamais "cet/cette/ce" devant).`
-    : "";
-  const poolInstruction = isProperNounTrigger
-    ? ""
-    : `\nListe FERMÉE de mots autorisés (russe = français) : ${candidatePool
-        .map((w) => `${w.ru} = ${w.fr}`)
-        .join(", ")}.
-Le "lemma" DOIT être recopié EXACTEMENT (même orthographe, même casse) depuis cette liste — aucun autre mot n'est accepté, même s'il te semble plus adapté ou plus naturel. Si un thème est donné ci-dessous, préfère (sans obligation) un mot de la liste en lien avec ce thème pour environ un exercice sur trois ; les autres fois, choisis un mot varié de la liste sans lien avec le thème (voir VARIÉTÉ LEXICALE plus bas).`;
   const avoidRepeatInstruction =
     recentLemmas && recentLemmas.length
       ? `Parmi les mots autorisés, évite ceux déjà vus dans les exercices récents de l'apprenant si d'autres choix restent possibles : ${recentLemmas.join(", ")}.`
@@ -56,25 +43,25 @@ Le "lemma" DOIT être recopié EXACTEMENT (même orthographe, même casse) depui
 
   return `Tu es un concepteur d'exercices de russe langue étrangère, pour un apprenant francophone.
 Niveau CEFR de l'apprenant : ${level} (${LEVEL_GUIDANCE[level]}).
-Thèmes qui l'intéressent : ${topics.length ? topics.join(", ") : "généraliste"}.
-${poolInstruction}
+
+Liste FERMÉE de mots autorisés (russe = français) : ${candidatePool
+    .map((w) => `${w.ru} = ${w.fr}`)
+    .join(", ")}.
+Le "lemma" DOIT être recopié EXACTEMENT (même orthographe, même casse) depuis cette liste — aucun autre mot n'est accepté, même s'il te semble plus adapté ou plus naturel.
 
 Tâche : produire UN exercice à trou testant le cas grammatical "${caseId}" (cas russe).
 ${triggerInstruction}
-${properNounInstruction}
 Contraintes STRICTES :
-- VARIÉTÉ LEXICALE : même avec un thème donné, ne choisis un mot lié à ce thème qu'environ UNE fois sur trois — les autres fois, pioche un mot varié de la liste autorisée sans rapport avec ce thème. Ne choisis JAMAIS deux fois de suite un mot de la même famille de sens.
+- VARIÉTÉ LEXICALE : pioche largement dans la liste et ne choisis JAMAIS deux fois de suite un mot de la même famille de sens.
 ${avoidRepeatInstruction}
 - La phrase russe contient exactement un trou noté "___" à l'emplacement du mot à décliner.
-- Le mot à décliner est donné à sa forme du dictionnaire (nominatif singulier) dans le champ "lemma"${isProperNounTrigger ? "" : " — voir la liste fermée ci-dessus"}${isProperNounTrigger ? " — SAUF pour ce déclencheur précis, voir le cas particulier ci-dessus (un prénom, pas un nom commun)" : ""}.
-- Tu ne fournis PAS la forme fléchie attendue : elle sera calculée par un moteur de règles côté serveur à partir du lemme et du genre. Fournis quand même le genre et l'animacité du mot (facultatif si tu piochais dans la liste fermée, mais utile si tu hésites).
+- Le mot à décliner est donné à sa forme du dictionnaire (nominatif singulier) dans le champ "lemma", recopié depuis la liste fermée.
+- Tu ne fournis PAS la forme fléchie attendue : elle est calculée par un moteur de règles, pas par toi. N'essaie pas de la deviner ni de l'écrire dans la phrase.
 - La traduction française ("sentence_fr") est COMPLÈTE et naturelle, SANS trou ni "___" : le mot à deviner y apparaît normalement traduit. C'est ce qui permet à l'apprenant de savoir QUEL mot français il doit chercher en russe — un trou aussi côté français le laisserait deviner à l'aveugle (ex. pour "sans ___", impossible de savoir s'il faut dire "sucre" ou "lait").
-- "hint" est UNIQUEMENT la traduction française du mot "lemma" seul (un ou deux mots, pas une phrase) — reprends EXACTEMENT la traduction donnée dans la liste fermée pour ce mot, ne la réinvente pas.
-- "french_gender" est le genre grammatical du mot français donné dans "hint" ("m" ou "f") — sert de filet de sécurité pour choisir le bon article si jamais "sentence_fr" contenait quand même un trou par erreur.
 - La phrase doit rendre le cas "${caseId}" naturel et non ambigu.
 
 Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de la forme :
-{"sentence_ru":"phrase avec ___","sentence_fr":"traduction française complète, sans trou","lemma":"nominatif singulier, recopié depuis la liste fermée","gender":"masculine|feminine|neuter","animate":true|false,"hint":"traduction française du seul mot lemma, reprise de la liste","french_gender":"m|f","indeclinable":false,"trigger_id":"identifiant du déclencheur si connu, sinon chaîne vide"}`;
+{"sentence_ru":"phrase avec ___","sentence_fr":"traduction française complète, sans trou","lemma":"nominatif singulier, recopié depuis la liste fermée","trigger_id":"identifiant du déclencheur si connu, sinon chaîne vide"}`;
 }
 
 // ─── Filet de sécurité : vérification IA d'une réponse jugée fausse ──
@@ -169,7 +156,6 @@ export type ReadingStyle = keyof typeof READING_STYLE_GUIDANCE;
 
 export interface ReadingOptions {
   level: CefrLevel;
-  topics: string[];
   length?: ReadingLength;
   style?: ReadingStyle;
   focusCase?: CaseId;
@@ -177,7 +163,6 @@ export interface ReadingOptions {
 
 export function readingSystemPrompt({
   level,
-  topics,
   length = "medium",
   style = "narrative",
   focusCase,
@@ -189,12 +174,11 @@ export function readingSystemPrompt({
 
   return `Tu es un auteur de textes pédagogiques de russe langue étrangère pour francophones.
 Niveau CEFR : ${level} (${LEVEL_GUIDANCE[level]}).
-Thèmes de prédilection : ${topics.length ? topics.join(", ") : "vie quotidienne"}.
 Longueur souhaitée : ${READING_LENGTH_GUIDANCE[length]}.
 Forme : ${READING_STYLE_GUIDANCE[style]}.
 ${focusInstruction}
 
-Tâche : écrire un TEXTE ORIGINAL, gradué, adapté au niveau, sur l'un des thèmes.
+Tâche : écrire un TEXTE ORIGINAL, gradué, adapté au niveau, sur une situation concrète de la vie quotidienne.
 IMPORTANT — droit d'auteur :
 - Écris un texte 100% original. Ne reproduis JAMAIS d'extrait d'œuvre existante sous droit d'auteur.
 - Tu ne dois pas prétendre citer un livre réel. Ce texte est un contenu pédagogique original.
@@ -217,15 +201,11 @@ Réponds UNIQUEMENT avec un JSON valide de la forme :
 // ─── Professeur IA conversationnel ────────────────────────────────
 export function tutorSystemPrompt(
   level: CefrLevel,
-  goals: string | null,
-  topics: string[],
   weakCases?: string | null,
   recentVocab?: string | null
 ) {
   return `Tu es Приветик, un professeur de russe bienveillant et patient pour un apprenant francophone.
 Niveau actuel de l'apprenant : ${level} (${LEVEL_GUIDANCE[level]}).
-${goals ? `Objectif déclaré : ${goals}.` : ""}
-Thèmes d'intérêt : ${topics.length ? topics.join(", ") : "variés"}.
 ${weakCases ? `Points faibles mesurés dans le module "Cas" (à garder en tête, à mentionner seulement quand c'est naturel — pas à chaque message) : ${weakCases}.` : ""}
 ${recentVocab ? `Mots récemment révisés dans le module "Vocabulaire" (réutilise-les dans tes exemples/questions quand c'est naturel, pour ancrer ce qu'il vient d'apprendre) : ${recentVocab}.` : ""}
 

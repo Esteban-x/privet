@@ -10,7 +10,8 @@ async function json<T>(res: Response): Promise<T> {
 }
 
 export interface GenerateReadingOptions {
-  topics?: string[];
+  /** Absent = le niveau du profil, décidé côté serveur. */
+  level?: CefrLevel;
   length?: ReadingLength;
   style?: ReadingStyle;
   focusCase?: CaseId;

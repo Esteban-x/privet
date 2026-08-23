@@ -13,7 +13,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("vocab_lists")
-    .select("id, name, topic_id, created_at, vocab_words(count)")
+    .select("id, name, created_at, vocab_words(count)")
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -21,7 +21,6 @@ export async function GET() {
   const lists = (data ?? []).map((l) => ({
     id: l.id,
     name: l.name,
-    topicId: l.topic_id,
     createdAt: l.created_at,
     wordCount: (l.vocab_words as { count: number }[] | null)?.[0]?.count ?? 0,
   }));
@@ -49,6 +48,6 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({
-    list: { id: data.id, name: data.name, topicId: null, createdAt: data.created_at, wordCount: 0 },
+    list: { id: data.id, name: data.name, createdAt: data.created_at, wordCount: 0 },
   });
 }

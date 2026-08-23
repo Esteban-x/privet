@@ -15,11 +15,11 @@ interface AiGrammar {
 // Classification best-effort : heuristique locale d'abord (déterministe),
 // puis un appel IA cheap pour combler ce qu'elle ne peut pas déduire
 // (surtout l'animacité, et le genre français qui ne se déduit d'aucune
-// règle — arbitraire d'une langue à l'autre). Ne bloque JAMAIS l'ajout du
-// mot : un échec IA laisse simplement les colonnes grammaticales à null —
-// le mot reste utilisable en vocabulaire classique, juste absent des
-// exercices de cas tant qu'il n'est pas classifié (voir toNoun() dans
-// lib/vocabulary/custom.ts).
+// règle — arbitraire d'une langue à l'autre). Information d'affichage et
+// de révision : elle n'alimente PAS le module "Cas", qui ne décline que la
+// banque curée et vérifiée (lib/grammar/nouns-data.ts). Ne bloque JAMAIS
+// l'ajout du mot : un échec IA laisse simplement les colonnes
+// grammaticales à null.
 async function classifyWord(ru: string, fr: string) {
   const heuristic = heuristicClassify(ru);
   try {

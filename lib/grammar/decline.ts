@@ -1,45 +1,78 @@
-import { CaseId, DeclensionResult, Noun } from "./types";
+import { CASE_ORDER, CaseId, DeclensionResult, Noun } from "./types";
 
 /**
- * Moteur de déclinaison RULE-BASED (pas d'IA) : la déclinaison russe suit des
- * patterns fermés et bien documentés. On préfère un moteur déterministe +
- * table d'exceptions plutôt qu'une génération IA, qui pourrait halluciner
- * une forme fautive. L'IA n'intervient qu'en amont/aval (génération de
- * phrases, correction pédagogique), jamais pour "calculer" la forme elle-même.
+ * Deux responsabilités, volontairement séparées :
  *
- * Limite assumée : la voyelle mobile о/е dans certaines terminaisons
- * instrumentales/génitives (dépendante de l'accentuation) est simplifiée.
- * Les exceptions notables sont couvertes via `noun.irregular`.
+ * 1. LA FORME est lue dans le paradigme du mot (`noun.forms`), importé du
+ *    dictionnaire OpenRussian et vérifié (voir scripts/build-nouns.mjs).
+ *    Le module affiche cette forme comme "la bonne réponse" : elle ne peut
+ *    pas être le produit d'une règle approximative.
+ *
+ * 2. LA RÈGLE est calculée ici, par un moteur déterministe. Mesuré sur les
+ *    17 800 noms du dictionnaire, ce moteur retombe sur la bonne forme dans
+ *    ~76 % des cas : assez pour EXPLIQUER une terminaison, pas assez pour la
+ *    produire. Ce qui lui échappe — voyelle mobile (оте́ц -> отца́), schéma
+ *    accentuel (врачо́м vs ме́сяцем), pluriels supplétifs (челове́к -> лю́ди)
+ *    — n'est pas dérivable de l'orthographe du lemme, par nature.
+ *
+ * Quand les deux divergent, `isIrregular` passe à vrai et le libellé
+ * explique de quel genre d'écart il s'agit, au lieu d'énoncer une règle que
+ * la forme affichée contredit.
  */
 
-// Règle des 7 lettres (jamais ы après -> и) : г к х ж ч ш щ. Le ц N'EN FAIT
-// PAS PARTIE (contrairement à une confusion fréquente avec la règle des 5
-// lettres ci-dessous) : les terminaisons après ц gardent ы (улица ->
-// улицы/улицей au génitif/nominatif pluriel, отец -> отцов au génitif
-// pluriel, jamais "улици"/"отцей"). Voir `spellO` pour la règle distincte
-// qui, elle, inclut bien ц.
-const HISSING = ["г", "к", "х", "ж", "ч", "ш", "щ"];
-const ALWAYS_SOFT_HISSING = ["ж", "ч", "ш", "щ"];
+// ─── Les deux règles d'orthographe russes, à ne pas confondre ──────
+//
+// Règle des 7 lettres : jamais ы après г к х ж ч ш щ (-> и). Le ц N'EN FAIT
+// PAS PARTIE : отцы, улицы, jamais "отци"/"улици".
+const SEVEN_LETTERS = ["г", "к", "х", "ж", "ч", "ш", "щ"];
+// Chuintantes + ц : imposent (a) о non accentué -> е et (b) l'impossibilité
+// d'écrire я/ю après elles (-> а/у : се́рдце -> се́рдца, ночь -> ноча́м).
+// г к х n'en font PAS partie : c'est cette confusion qui produisait
+// "мальчикей" au génitif pluriel.
+const SIBILANTS_AND_TS = ["ж", "ч", "ш", "щ", "ц"];
+const SIBILANTS = ["ж", "ч", "ш", "щ"];
 
-function endsWith(str: string, suffix: string) {
-  return str.endsWith(suffix);
+const ACCENT = /́/g;
+
+/** Retire l'accent tonique combinant : "рабо́та" -> "работа". */
+export function stripAccent(form: string): string {
+  return form.replace(ACCENT, "");
 }
 
 function lastChar(str: string) {
   return str[str.length - 1];
 }
 
-// Applique la règle d'orthographe russe : jamais ы après г к х ж ч ш щ (-> и)
+/** Règle des 7 lettres : ы -> и après г к х ж ч ш щ. */
 function spellY(stemLastLetter: string, wanted: "ы" | "и"): "ы" | "и" {
-  if (wanted === "ы" && HISSING.includes(stemLastLetter)) return "и";
+  if (wanted === "ы" && SEVEN_LETTERS.includes(stemLastLetter)) return "и";
   return wanted;
 }
 
-// Applique la règle : о non accentué -> е après ж ч ш щ ц
-function spellO(stemLastLetter: string, wanted: "о" | "е"): "о" | "е" {
-  if (wanted === "о" && ALWAYS_SOFT_HISSING.includes(stemLastLetter)) return "е";
-  if (wanted === "о" && stemLastLetter === "ц") return "е";
-  return wanted;
+/**
+ * Interdiction orthographique de я/ю après une chuintante ou ц : la
+ * désinence molle s'écrit avec la voyelle dure correspondante. Ne touche que
+ * la voyelle initiale — "ью" (но́чью) commence par ь et reste intact.
+ */
+function hardenSoftVowel(stemLastLetter: string, ending: string): string {
+  if (!SIBILANTS_AND_TS.includes(stemLastLetter)) return ending;
+  if (ending.startsWith("я")) return "а" + ending.slice(1);
+  if (ending.startsWith("ю")) return "у" + ending.slice(1);
+  return ending;
+}
+
+// ─── Classe de déclinaison ─────────────────────────────────────────
+//
+// Déterminée par la TERMINAISON, jamais par le genre seul : "па́па" est
+// masculin mais se décline exactement comme "кни́га". Brancher sur le genre
+// produisait "папаа/папау/папаом".
+type DeclensionClass = "first" | "second" | "third";
+
+function declensionClass(noun: Noun): DeclensionClass {
+  const last = lastChar(noun.lemma);
+  if ((last === "а" || last === "я") && noun.gender !== "neuter") return "second";
+  if (noun.gender === "feminine" && last === "ь") return "third";
+  return "first";
 }
 
 interface StemInfo {
@@ -51,276 +84,232 @@ interface StemInfo {
 function getStem(noun: Noun): StemInfo {
   const lemma = noun.lemma;
   const last = lastChar(lemma);
+  let stem: string;
+  let isSoft: boolean;
 
-  if (noun.gender === "masculine") {
-    if (endsWith(lemma, "й") || endsWith(lemma, "ь")) {
-      const stem = lemma.slice(0, -1);
-      return { stem, lastStemLetter: lastChar(stem), isSoft: true };
-    }
-    return { stem: lemma, lastStemLetter: last, isSoft: false };
+  if (last === "а" || last === "о") {
+    stem = lemma.slice(0, -1);
+    isSoft = false;
+  } else if (last === "я" || last === "е" || last === "ё" || last === "ь" || last === "й") {
+    stem = lemma.slice(0, -1);
+    isSoft = true;
+  } else {
+    stem = lemma; // terminaison consonantique
+    isSoft = false;
   }
-
-  if (noun.gender === "feminine") {
-    if (endsWith(lemma, "ь")) {
-      const stem = lemma.slice(0, -1);
-      return { stem, lastStemLetter: lastChar(stem), isSoft: true }; // 3e déclinaison
-    }
-    if (endsWith(lemma, "я")) {
-      const stem = lemma.slice(0, -1);
-      return { stem, lastStemLetter: lastChar(stem), isSoft: true };
-    }
-    // -а (par défaut)
-    const stem = lemma.slice(0, -1);
-    return { stem, lastStemLetter: lastChar(stem), isSoft: false };
-  }
-
-  // neuter
-  if (endsWith(lemma, "е") || endsWith(lemma, "ё")) {
-    const stem = lemma.slice(0, -1);
-    return { stem, lastStemLetter: lastChar(stem), isSoft: true };
-  }
-  const stem = lemma.slice(0, -1); // -о
-  return { stem, lastStemLetter: lastChar(stem), isSoft: false };
+  return { stem, lastStemLetter: lastChar(stem), isSoft };
 }
 
-// Détecte si le nom relève de la 3e déclinaison féminine (en -ь : дверь, ночь…)
-function isThirdDeclensionFeminine(noun: Noun) {
-  return noun.gender === "feminine" && endsWith(noun.lemma, "ь");
+/** Forme prédite par la règle, avec la désinence qu'elle ajoute au radical. */
+interface RuleResult {
+  form: string;
+  ending: string;
+  rule: string;
 }
 
-function declineSingular(noun: Noun, c: CaseId): { form: string; rule: string } {
-  const { stem, lastStemLetter, isSoft } = getStem(noun);
+const dictionaryForm = (noun: Noun): RuleResult => ({
+  form: noun.lemma,
+  ending: "",
+  rule: "forme du dictionnaire",
+});
 
-  if (isThirdDeclensionFeminine(noun)) {
-    switch (c) {
-      case "nominative":
-        return { form: noun.lemma, rule: "forme du dictionnaire (3e déclinaison, -ь)" };
-      case "genitive":
-      case "dative":
-      case "prepositional":
-        return { form: stem + "и", rule: "3e déclinaison fém. (-ь) : datif/génitif/prép. -и" };
-      case "accusative":
-        return { form: noun.lemma, rule: "3e déclinaison fém. : accusatif = nominatif" };
-      case "instrumental":
-        return { form: stem + "ью", rule: "3e déclinaison fém. : instrumental -ью" };
-    }
-  }
+// ─── Singulier ─────────────────────────────────────────────────────
 
-  if (noun.gender === "masculine") {
-    switch (c) {
-      case "nominative":
-        return { form: noun.lemma, rule: "forme du dictionnaire" };
-      case "genitive":
-        return {
-          form: stem + (isSoft ? "я" : "а"),
-          rule: isSoft ? "masc. mou : génitif -я" : "masc. dur : génitif -а",
-        };
-      case "dative":
-        return {
-          form: stem + (isSoft ? "ю" : "у"),
-          rule: isSoft ? "masc. mou : datif -ю" : "masc. dur : datif -у",
-        };
-      case "accusative": {
-        if (noun.animacy === "animate") {
-          const gen = stem + (isSoft ? "я" : "а");
-          return { form: gen, rule: "masc. animé : accusatif = génitif" };
-        }
-        return { form: noun.lemma, rule: "masc. inanimé : accusatif = nominatif" };
-      }
-      case "instrumental": {
-        const ending = spellO(lastStemLetter, "о") === "е" ? "ем" : isSoft ? "ем" : "ом";
-        return { form: stem + ending, rule: `masc. : instrumental -${ending}` };
-      }
-      case "prepositional":
-        return { form: stem + "е", rule: "masc. : prépositionnel -е (о + prép.)" };
-    }
-  }
+function firstSingular(noun: Noun, c: CaseId, s: StemInfo): RuleResult {
+  const { stem, lastStemLetter, isSoft } = s;
+  const label = noun.gender === "neuter" ? "neutre" : "masc.";
+  const build = (ending: string, rule: string): RuleResult => ({ form: stem + ending, ending, rule });
 
-  if (noun.gender === "feminine") {
-    switch (c) {
-      case "nominative":
-        return { form: noun.lemma, rule: "forme du dictionnaire" };
-      case "genitive": {
-        const ending = isSoft ? "и" : spellY(lastStemLetter, "ы");
-        return { form: stem + ending, rule: `fém. : génitif -${ending}` };
-      }
-      case "dative":
-      case "prepositional": {
-        // Radical en -и (-ия : фамилия, история...) : datif/prépositionnel
-        // en -ии, jamais "-ие" (фамилии, jamais "фамилие" ; о фами́лии).
-        const ending = isSoft && stem.endsWith("и") ? "и" : "е";
-        return { form: stem + ending, rule: `fém. : datif/prépositionnel -${ending}` };
-      }
-      case "accusative":
-        return { form: stem + (isSoft ? "ю" : "у"), rule: "fém. : accusatif -у/-ю" };
-      case "instrumental": {
-        // Même alternance о/е (accent) que pour le masculin ci-dessus,
-        // appliquée ici aux radicaux durs en chuintante/ц (улица ->
-        // улицей et non "улицой" par défaut ; voir `noun.irregular` pour
-        // les rares exceptions accentuées sur la finale, ex. душа -> душой).
-        const ending = isSoft ? "ей" : spellO(lastStemLetter, "о") === "е" ? "ей" : "ой";
-        return { form: stem + ending, rule: `fém. : instrumental -${ending}` };
-      }
-    }
-  }
-
-  // neuter
   switch (c) {
     case "nominative":
-      return { form: noun.lemma, rule: "forme du dictionnaire" };
-    case "genitive":
-      return { form: stem + (isSoft ? "я" : "а"), rule: "neutre : génitif -а/-я" };
-    case "dative":
-      return { form: stem + (isSoft ? "ю" : "у"), rule: "neutre : datif -у/-ю" };
-    case "accusative":
-      return { form: noun.lemma, rule: "neutre : accusatif = nominatif" };
-    case "instrumental": {
-      const ending = isSoft ? "ем" : "ом";
-      return { form: stem + ending, rule: `neutre : instrumental -${ending}` };
+      return dictionaryForm(noun);
+    case "genitive": {
+      const e = hardenSoftVowel(lastStemLetter, isSoft ? "я" : "а");
+      return build(e, `${label} : génitif -${e}`);
     }
-    case "prepositional": {
-      // Radical en -и (-ие : здание, собрание...) : prépositionnel en -ии,
-      // jamais "-ие" (в зда́нии, jamais "здание").
-      const ending = isSoft && stem.endsWith("и") ? "и" : "е";
-      return { form: stem + ending, rule: `neutre : prépositionnel -${ending}` };
-    }
-  }
-
-  return { form: noun.lemma, rule: "non résolu" };
-}
-
-function declineGenitivePlural(noun: Noun): { form: string; rule: string } {
-  const { stem, lastStemLetter, isSoft } = getStem(noun);
-  if (noun.gender === "masculine") {
-    // -й (semi-voyelle : музей, герой) suit un patron différent de -ь
-    // (словарь) bien que getStem() traite les deux comme "mous" pour le
-    // reste de la déclinaison (leurs formes singulières coïncident) :
-    // musée -> musées, jamais "museей". Approximé sans accent mobile
-    // (musées -> музеев, pas музеёв), même simplification assumée que pour
-    // la voyelle mobile о/е ailleurs dans ce fichier.
-    if (endsWith(noun.lemma, "й")) {
-      return { form: stem + "ев", rule: "masc. en -й : génitif pluriel -ев" };
-    }
-    if (HISSING.includes(lastStemLetter) || isSoft) {
-      return { form: stem + "ей", rule: "masc. (mou -ь / chuintante) : génitif pluriel -ей" };
-    }
-    return { form: stem + "ов", rule: "masc. dur : génitif pluriel -ов" };
-  }
-  if (isThirdDeclensionFeminine(noun)) {
-    return { form: stem + "ей", rule: "fém. (-ь) : génitif pluriel -ей" };
-  }
-  // Radical en -и (noms en -ия féminins ou -ие neutres : фамилия, здание,
-  // собрание...) : le génitif pluriel ajoute -й à la place de la
-  // terminaison zéro habituelle (фамилия -> фамилий, здание -> зданий,
-  // jamais "фамили"/"здани"). Ne couvre pas les -ья/-ье (платье -> платьев,
-  // voyelle mobile différente) : à traiter au cas par cas via
-  // `noun.irregular` si un tel nom est ajouté.
-  if (isSoft && stem.endsWith("и")) {
-    return { form: stem + "й", rule: "radical en -и (-ия/-ие) : génitif pluriel -й" };
-  }
-  // Neutres mous en -е hors -ие (море, поле...) : -ей, comme le 3e groupe
-  // féminin ci-dessus malgré le genre différent.
-  if (noun.gender === "neuter" && isSoft) {
-    return { form: stem + "ей", rule: "neutre mou (-е) : génitif pluriel -ей" };
-  }
-  // Féminins mous en -я hors -ия (неделя -> недель) : -ь.
-  if (noun.gender === "feminine" && isSoft) {
-    return { form: stem + "ь", rule: "fém. mou (-я) : génitif pluriel -ь" };
-  }
-  if (noun.gender === "feminine" || noun.gender === "neuter") {
-    // терминaison zéro (radicaux durs : книга -> книг, окно -> окон)
-    return { form: stem, rule: "fém./neutre dur : génitif pluriel Ø (terminaison zéro)" };
-  }
-  return { form: stem, rule: "génitif pluriel (approx.)" };
-}
-
-function declineNominativePlural(noun: Noun): { form: string; rule: string } {
-  const { stem, lastStemLetter, isSoft } = getStem(noun);
-  if (noun.gender === "masculine") {
-    const ending = spellY(lastStemLetter, isSoft ? "и" : "ы");
-    return { form: stem + ending, rule: `masc. : nominatif pluriel -${ending}` };
-  }
-  if (noun.gender === "feminine") {
-    const ending = isSoft ? "и" : spellY(lastStemLetter, "ы");
-    return { form: stem + ending, rule: `fém. : nominatif pluriel -${ending}` };
-  }
-  // neutre
-  const ending = isSoft ? "я" : "а";
-  return { form: stem + ending, rule: `neutre : nominatif pluriel -${ending}` };
-}
-
-function declinePlural(noun: Noun, c: CaseId): { form: string; rule: string } {
-  const { stem, lastStemLetter, isSoft } = getStem(noun);
-  // Radical mou (hors chuintante véritable, qui interdit orthographiquement
-  // le я/ю après elle — жи-ши/ча-ща : дверь -> дверям, mais ночь -> ночам,
-  // pas "ночям") : terminaisons en -ям/-ями/-ях plutôt que -ам/-ами/-ах.
-  const useSoftEnding = isSoft && !ALWAYS_SOFT_HISSING.includes(lastStemLetter);
-  switch (c) {
-    case "nominative":
-      return declineNominativePlural(noun);
-    case "genitive":
-      return declineGenitivePlural(noun);
     case "dative": {
-      const ending = useSoftEnding ? "ям" : "ам";
-      return { form: stem + ending, rule: `pluriel (tous genres) : datif -${ending}` };
-    }
-    case "instrumental": {
-      const ending = useSoftEnding ? "ями" : "ами";
-      return { form: stem + ending, rule: `pluriel (tous genres) : instrumental -${ending}` };
-    }
-    case "prepositional": {
-      const ending = useSoftEnding ? "ях" : "ах";
-      return { form: stem + ending, rule: `pluriel (tous genres) : prépositionnel -${ending}` };
+      const e = hardenSoftVowel(lastStemLetter, isSoft ? "ю" : "у");
+      return build(e, `${label} : datif -${e}`);
     }
     case "accusative": {
-      // Passe par `noun.irregular` d'abord : appeler directement
-      // declineGenitivePlural/declineNominativePlural ignorerait une forme
-      // irrégulière mémorisée pour ce cas-là (ex. друг -> accusatif pluriel
-      // "друзей", qui vient de irregular.plural.genitive, jamais du calcul
-      // générique "другей").
-      if (noun.animacy === "animate") {
-        const overridden = noun.irregular?.plural?.genitive;
-        const gen = overridden ? { form: overridden } : declineGenitivePlural(noun);
-        return { form: gen.form, rule: "pluriel animé : accusatif = génitif pluriel" };
+      if (noun.gender === "neuter") {
+        return { form: noun.lemma, ending: "", rule: "neutre : accusatif = nominatif" };
       }
-      const overriddenNom = noun.irregular?.plural?.nominative;
-      const nom = overriddenNom ? { form: overriddenNom } : declineNominativePlural(noun);
-      return { form: nom.form, rule: "pluriel inanimé : accusatif = nominatif pluriel" };
+      if (noun.animacy === "animate") {
+        const e = hardenSoftVowel(lastStemLetter, isSoft ? "я" : "а");
+        return build(e, "masc. animé : accusatif = génitif");
+      }
+      return { form: noun.lemma, ending: "", rule: "masc. inanimé : accusatif = nominatif" };
+    }
+    case "instrumental": {
+      // о/е après chuintante ou ц dépend de l'accent (врачо́м vs ме́сяцем) :
+      // non décidable ici, on donne la variante non accentuée et le
+      // paradigme tranche.
+      const e = isSoft ? "ем" : SIBILANTS_AND_TS.includes(lastStemLetter) ? "ем" : "ом";
+      return build(e, `${label} : instrumental -${e}`);
+    }
+    case "prepositional": {
+      // Radical en -и (-ий / -ие : санато́рий, зда́ние) : -ии, jamais "-ие".
+      const e = isSoft && stem.endsWith("и") ? "и" : "е";
+      return build(e, `${label} : prépositionnel -${e}`);
     }
   }
 }
 
+function secondSingular(noun: Noun, c: CaseId, s: StemInfo): RuleResult {
+  const { stem, lastStemLetter, isSoft } = s;
+  const build = (ending: string, rule: string): RuleResult => ({ form: stem + ending, ending, rule });
+
+  switch (c) {
+    case "nominative":
+      return dictionaryForm(noun);
+    case "genitive": {
+      const e = isSoft ? "и" : spellY(lastStemLetter, "ы");
+      return build(e, `2e déclinaison (-а/-я) : génitif -${e}`);
+    }
+    case "dative":
+    case "prepositional": {
+      // Radical en -и (-ия : фами́лия) : datif/prépositionnel en -ии.
+      const e = isSoft && stem.endsWith("и") ? "и" : "е";
+      return build(e, `2e déclinaison : datif/prépositionnel -${e}`);
+    }
+    case "accusative": {
+      const e = hardenSoftVowel(lastStemLetter, isSoft ? "ю" : "у");
+      return build(e, `2e déclinaison : accusatif -${e}`);
+    }
+    case "instrumental": {
+      const e = isSoft ? "ей" : SIBILANTS_AND_TS.includes(lastStemLetter) ? "ей" : "ой";
+      return build(e, `2e déclinaison : instrumental -${e}`);
+    }
+  }
+}
+
+function thirdSingular(noun: Noun, c: CaseId, s: StemInfo): RuleResult {
+  const build = (ending: string, rule: string): RuleResult => ({ form: s.stem + ending, ending, rule });
+  switch (c) {
+    case "nominative":
+      return { form: noun.lemma, ending: "", rule: "forme du dictionnaire (3e déclinaison, -ь)" };
+    case "genitive":
+    case "dative":
+    case "prepositional":
+      return build("и", "3e déclinaison fém. (-ь) : génitif/datif/prép. -и");
+    case "accusative":
+      return { form: noun.lemma, ending: "", rule: "3e déclinaison fém. : accusatif = nominatif" };
+    case "instrumental":
+      return build("ью", "3e déclinaison fém. : instrumental -ью");
+  }
+}
+
+// ─── Pluriel ───────────────────────────────────────────────────────
+
+function nominativePlural(noun: Noun, s: StemInfo): RuleResult {
+  const { stem, lastStemLetter, isSoft } = s;
+  const cls = declensionClass(noun);
+  const build = (ending: string, rule: string): RuleResult => ({ form: stem + ending, ending, rule });
+
+  if (cls === "third") return build("и", "3e déclinaison : nominatif pluriel -и");
+  if (cls === "second" || noun.gender !== "neuter") {
+    const e = isSoft ? "и" : spellY(lastStemLetter, "ы");
+    return build(e, `nominatif pluriel -${e}`);
+  }
+  const e = hardenSoftVowel(lastStemLetter, isSoft ? "я" : "а");
+  return build(e, `neutre : nominatif pluriel -${e}`);
+}
+
+function genitivePlural(noun: Noun, s: StemInfo): RuleResult {
+  const { stem, lastStemLetter, isSoft } = s;
+  const cls = declensionClass(noun);
+  const build = (ending: string, rule: string): RuleResult => ({ form: stem + ending, ending, rule });
+
+  if (cls === "third") return build("ей", "3e déclinaison (-ь) : génitif pluriel -ей");
+
+  if (cls === "first" && noun.gender !== "neuter") {
+    // -й (semi-voyelle : музе́й) : -ев, distinct du -ь (слова́рь).
+    if (lastChar(noun.lemma) === "й") return build("ев", "masc. en -й : génitif pluriel -ев");
+    if (SIBILANTS.includes(lastStemLetter)) return build("ей", "masc. en chuintante : génitif pluriel -ей");
+    if (lastStemLetter === "ц") return build("ев", "masc. en ц : génitif pluriel -ев");
+    if (isSoft) return build("ей", "masc. mou (-ь) : génitif pluriel -ей");
+    return build("ов", "masc. dur : génitif pluriel -ов");
+  }
+  // Radical en -и (-ия / -ие : фами́лия, зда́ние) : -й.
+  if (isSoft && stem.endsWith("и")) return build("й", "radical en -и (-ия/-ие) : génitif pluriel -й");
+  if (noun.gender === "neuter" && isSoft) return build("ей", "neutre mou (-е) : génitif pluriel -ей");
+  if (cls === "second" && isSoft) return build("ь", "2e déclinaison molle (-я) : génitif pluriel -ь");
+  return build("", "génitif pluriel Ø (terminaison zéro)");
+}
+
+function decliningPlural(noun: Noun, c: CaseId, s: StemInfo): RuleResult {
+  const { stem, lastStemLetter, isSoft } = s;
+  const softOrHard = (soft: string, hard: string) =>
+    isSoft ? hardenSoftVowel(lastStemLetter, soft) : hard;
+  const build = (ending: string, rule: string): RuleResult => ({ form: stem + ending, ending, rule });
+
+  switch (c) {
+    case "nominative":
+      return nominativePlural(noun, s);
+    case "genitive":
+      return genitivePlural(noun, s);
+    case "dative": {
+      const e = softOrHard("ям", "ам");
+      return build(e, `pluriel (tous genres) : datif -${e}`);
+    }
+    case "instrumental": {
+      const e = softOrHard("ями", "ами");
+      return build(e, `pluriel (tous genres) : instrumental -${e}`);
+    }
+    case "prepositional": {
+      const e = softOrHard("ях", "ах");
+      return build(e, `pluriel (tous genres) : prépositionnel -${e}`);
+    }
+    case "accusative": {
+      if (noun.animacy === "animate") {
+        const gen = genitivePlural(noun, s);
+        return { ...gen, rule: "pluriel animé : accusatif = génitif pluriel" };
+      }
+      const nom = nominativePlural(noun, s);
+      return { ...nom, rule: "pluriel inanimé : accusatif = nominatif pluriel" };
+    }
+  }
+}
+
+/** Ce que la règle générale prédit — pas forcément ce que la langue fait. */
+function byRule(noun: Noun, targetCase: CaseId, plural: boolean): RuleResult {
+  const stem = getStem(noun);
+  if (plural) return decliningPlural(noun, targetCase, stem);
+  const cls = declensionClass(noun);
+  if (cls === "second") return secondSingular(noun, targetCase, stem);
+  if (cls === "third") return thirdSingular(noun, targetCase, stem);
+  return firstSingular(noun, targetCase, stem);
+}
+
+// ─── Point d'entrée ────────────────────────────────────────────────
+
 export function declineNoun(noun: Noun, targetCase: CaseId, plural = false): DeclensionResult {
-  if (noun.indeclinable) {
-    return { case: targetCase, form: noun.lemma, ruleApplied: "mot indéclinable (emprunt)", isIrregular: true };
+  const index = CASE_ORDER.indexOf(targetCase);
+  const accented = (plural ? noun.forms.plural : noun.forms.singular)[index];
+  const form = stripAccent(accented);
+
+  const predicted = byRule(noun, targetCase, plural);
+  if (predicted.form === form) {
+    return { case: targetCase, form, accented, ruleApplied: predicted.rule, isIrregular: false };
   }
 
-  const irregularSet = plural ? noun.irregular?.plural : noun.irregular?.singular;
-  if (irregularSet?.[targetCase]) {
-    return {
-      case: targetCase,
-      form: irregularSet[targetCase]!,
-      ruleApplied: "forme irrégulière à mémoriser",
-      isIrregular: true,
-    };
-  }
-
-  if (targetCase === "nominative" && !plural) {
-    return { case: targetCase, form: noun.lemma, ruleApplied: "forme du dictionnaire", isIrregular: false };
-  }
-
-  const { form, rule } = plural ? declinePlural(noun, targetCase) : declineSingular(noun, targetCase);
-  return { case: targetCase, form, ruleApplied: rule, isIrregular: false };
+  // La règle se trompe : reste à dire en quoi, pour que l'apprenant sache
+  // quoi mémoriser. Si la désinence prédite est la bonne, c'est le radical
+  // qui bouge (voyelle mobile, alternance) ; sinon la terminaison elle-même
+  // est irrégulière.
+  const sameEnding = predicted.ending.length > 0 && form.endsWith(predicted.ending);
+  return {
+    case: targetCase,
+    form,
+    accented,
+    ruleApplied: sameEnding
+      ? `${predicted.rule} — mais le radical change (voyelle mobile ou alternance)`
+      : "forme irrégulière : à mémoriser telle quelle",
+    isIrregular: true,
+  };
 }
 
 export function declineAll(noun: Noun, plural = false): DeclensionResult[] {
-  const order: CaseId[] = [
-    "nominative",
-    "genitive",
-    "dative",
-    "accusative",
-    "instrumental",
-    "prepositional",
-  ];
-  return order.map((c) => declineNoun(noun, c, plural));
+  return CASE_ORDER.map((c) => declineNoun(noun, c, plural));
 }

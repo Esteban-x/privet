@@ -1,0 +1,486 @@
+# Banque de noms du module "Cas" — partie française, écrite et relue à la main.
+#
+# La MORPHOLOGIE (les 12 formes + accents toniques) ne vient PAS d'ici : elle
+# est importée du dictionnaire OpenRussian par scripts/build-nouns.mjs, qui
+# génère lib/grammar/nouns-data.generated.ts. Ce fichier ne fournit que ce
+# que le dictionnaire n'a pas : la traduction française et le genre du mot
+# FRANÇAIS (pour l'article : un/une, ce/cette).
+#
+# Colonnes : lemme_ru <TAB> traduction_fr <TAB> genre_fr(m|f)
+#            [<TAB> genre_ru(m|f|n), seulement si le dictionnaire est muet]
+#
+# Un lemme absent du dictionnaire, ou dont une forme y est douteuse, est
+# signalé et ignoré par le script : il n'entre jamais dans les exercices.
+
+# ─── Personnes, famille ────────────────────────────────────────────
+человек	personne	f
+мама	maman	f
+папа	papa	m
+отец	père	m
+мать	mère	f
+дочь	fille (de qqn)	f
+брат	frère	m
+сестра	sœur	f
+бабушка	grand-mère	f
+дедушка	grand-père	m
+тётя	tante	f
+жена	épouse	f
+муж	mari	m
+семья	famille	f
+друг	ami	m
+подруга	amie	f
+сосед	voisin	m
+соседка	voisine	f
+ребёнок	enfant	m
+мальчик	garçon	m
+девочка	fillette	f
+девушка	jeune fille	f
+женщина	femme	f
+мужчина	homme	m
+парень	gars	m
+гость	invité	m
+хозяин	patron	m
+старик	vieillard	m
+малыш	bébé	m
+жених	fiancé	m
+невеста	fiancée	f
+кузен	cousin	m
+дама	dame	f
+господин	monsieur	m
+товарищ	camarade	m
+приятель	copain	m
+гений	génie	m
+
+# ─── Métiers ───────────────────────────────────────────────────────
+врач	médecin	m
+медсестра	infirmière	f
+пациент	patient	m
+учитель	professeur	m
+студент	étudiant	m
+директор	directeur	m
+начальник	chef	m
+секретарь	secrétaire	m
+менеджер	gérant	m
+специалист	spécialiste	m
+эксперт	expert	m
+клиент	client	m
+адвокат	avocat	m
+судья	juge	m
+свидетель	témoin	m
+прокурор	procureur	m
+солдат	soldat	m
+офицер	officier	m
+командир	commandant	m
+капитан	capitaine	m
+водитель	conducteur	m
+пилот	pilote	m
+писатель	écrivain	m
+автор	auteur	m
+художник	peintre	m
+актриса	actrice	f
+оператор	opérateur	m
+режиссёр	réalisateur	m
+чемпион	champion	m
+игрок	joueur	m
+тренер	entraîneur	m
+охотник	chasseur	m
+охранник	gardien	m
+помощник	assistant	m
+владелец	propriétaire	m
+председатель	président (d'assemblée)	m
+президент	président	m
+министр	ministre	m
+губернатор	gouverneur	m
+сенатор	sénateur	m
+король	roi	m
+королева	reine	f
+принц	prince	m
+принцесса	princesse	f
+герой	héros	m
+священник	prêtre	m
+ангел	ange	m
+призрак	fantôme	m
+ведьма	sorcière	f
+вор	voleur	m
+преступник	criminel	m
+враг	ennemi	m
+шпион	espion	m
+
+# ─── Animaux ───────────────────────────────────────────────────────
+кот	chat	m
+кошка	chatte	f
+собака	chien	m
+лошадь	cheval	m
+птица	oiseau	m
+медведь	ours	m
+волк	loup	m
+змея	serpent	m
+кролик	lapin	m
+крыса	rat	m
+свинья	cochon	m
+
+# ─── Vie quotidienne, maison ───────────────────────────────────────
+дом	maison	f
+квартира	appartement	m
+комната	pièce	f
+кухня	cuisine	f
+дверь	porte	f
+окно	fenêtre	f
+стена	mur	m
+пол	sol	m
+крыша	toit	m
+подвал	cave	f
+двор	cour	f
+сад	jardin	m
+стол	table	f
+стул	chaise	f
+кресло	fauteuil	m
+диван	canapé	m
+кровать	lit	m
+постель	literie	f
+зеркало	miroir	m
+лампа	lampe	f
+ящик	tiroir	m
+ключ	clé	f
+холодильник	réfrigérateur	m
+телевизор	téléviseur	m
+телефон	téléphone	m
+компьютер	ordinateur	m
+полотенце	serviette	f
+одежда	vêtement	m
+платье	robe	f
+рубашка	chemise	f
+костюм	costume	m
+пиджак	veste	f
+галстук	cravate	f
+сумка	sac	m
+чемодан	valise	f
+кольцо	bague	f
+браслет	bracelet	m
+зонт	parapluie	m
+нож	couteau	m
+стакан	verre	m
+бокал	verre (à pied)	m
+тарелка	assiette	f
+бумага	papier	m
+книга	livre	m
+письмо	lettre	f
+газета	journal	m
+журнал	magazine	m
+дневник	journal intime	m
+картина	tableau	m
+фотография	photo	f
+подарок	cadeau	m
+цена	prix	m
+счёт	addition	f
+чек	ticket de caisse	m
+магазин	magasin	m
+рынок	marché	m
+ресторан	restaurant	m
+
+# ─── Nourriture ────────────────────────────────────────────────────
+вода	eau	f
+чай	thé	m
+сок	jus	m
+вино	vin	m
+пиво	bière	f
+напиток	boisson	f
+суп	soupe	f
+мясо	viande	f
+сыр	fromage	m
+яйцо	œuf	m
+рыба	poisson	m	f
+яблоко	pomme	f
+хлеб	pain	m
+соль	sel	m
+сахар	sucre	m
+масло	beurre	m
+рис	riz	m
+салат	salade	f
+торт	gâteau	m
+пирог	tarte	f
+печенье	biscuit	m
+шоколад	chocolat	m
+десерт	dessert	m
+блюдо	plat	m
+завтрак	petit-déjeuner	m
+обед	déjeuner	m
+ужин	dîner	m
+рецепт	recette	f
+кусок	morceau	m
+банка	bocal	m
+пакет	sachet	m
+
+# ─── Temps ─────────────────────────────────────────────────────────
+время	temps	m
+день	jour	m
+ночь	nuit	f
+утро	matin	m
+вечер	soir	m
+неделя	semaine	f
+месяц	mois	m
+час	heure	f
+минута	minute	f
+момент	moment	m
+секунда	seconde	f
+лето	été	m
+зима	hiver	m
+весна	printemps	m
+осень	automne	m
+понедельник	lundi	m
+вторник	mardi	m
+четверг	jeudi	m
+воскресенье	dimanche	m
+свадьба	mariage (cérémonie)	m
+начало	début	m
+конец	fin	f
+срок	délai	m
+возраст	âge	m
+век	siècle	m
+
+# ─── Ville, voyage ─────────────────────────────────────────────────
+город	ville	f
+страна	pays	m
+улица	rue	f
+дорога	route	f
+площадь	place	f
+мост	pont	m
+здание	bâtiment	m
+этаж	étage	m
+лифт	ascenseur	m
+центр	centre	m
+район	quartier	m
+парк	parc	m
+музей	musée	m
+театр	théâtre	m
+школа	école	f
+университет	université	f
+больница	hôpital	m
+гостиница	hôtel	f
+вокзал	gare	f
+станция	station	f
+аэропорт	aéroport	m
+остановка	arrêt	m
+машина	voiture	f
+автомобиль	automobile	f
+автобус	bus	m
+поезд	train	m
+самолёт	avion	m
+корабль	navire	m
+лодка	barque	f
+велосипед	vélo	m
+мотоцикл	moto	f
+грузовик	camion	m
+билет	billet	m
+паспорт	passeport	m
+рейс	vol	m
+поездка	trajet	m
+путешествие	voyage	m
+путь	chemin	m
+выход	sortie	f
+вход	entrée	f
+адрес	adresse	f
+карта	carte	f
+угол	coin	m
+место	endroit	m
+сторона	côté	m
+край	bord	m
+
+# ─── Nature ────────────────────────────────────────────────────────
+земля	terre	f
+небо	ciel	m
+солнце	soleil	m
+луна	lune	f
+звезда	étoile	f
+море	mer	f
+океан	océan	m
+озеро	lac	m
+река	rivière	f
+лес	forêt	f
+поле	champ	m
+гора	montagne	f
+остров	île	f
+дерево	arbre	m
+цветок	fleur	f	m
+камень	pierre	f
+огонь	feu	m
+снег	neige	f
+дождь	pluie	f
+погода	météo	f
+природа	nature	f
+животное	animal	m
+планета	planète	f
+космос	espace	m
+
+# ─── Corps, santé ──────────────────────────────────────────────────
+голова	tête	f
+лицо	visage	m
+глаз	œil	m
+нос	nez	m
+рот	bouche	f
+ухо	oreille	f
+волос	cheveu	m
+рука	main	f
+нога	jambe	f
+палец	doigt	m
+плечо	épaule	f
+спина	dos	m
+живот	ventre	m
+сердце	cœur	m
+кровь	sang	m
+кожа	peau	f
+кость	os	m
+мозг	cerveau	m
+голос	voix	f
+здоровье	santé	f
+болезнь	maladie	f
+боль	douleur	f
+рана	blessure	f
+лекарство	médicament	m	n
+операция	opération	f
+жизнь	vie	f
+смерть	mort	f
+сон	rêve	m
+
+# ─── Travail, société ──────────────────────────────────────────────
+работа	travail	m
+дело	affaire	f
+компания	entreprise	f
+фирма	firme	f
+офис	bureau	m
+кабинет	bureau (pièce)	m
+отдел	service	m
+собрание	réunion	f
+встреча	rencontre	f
+договор	contrat	m
+проект	projet	m
+план	plan	m
+задача	tâche	f
+задание	mission	f
+отчёт	rapport	m
+документ	document	m
+подпись	signature	f
+запись	note	f
+список	liste	f
+номер	numéro	m
+программа	programme	m
+система	système	m
+уровень	niveau	m
+размер	taille	f
+количество	quantité	f
+число	nombre	m
+сумма	somme	f
+рост	croissance	f
+успех	succès	m
+победа	victoire	f
+поражение	défaite	f
+опыт	expérience	f
+образование	formation	f
+экзамен	examen	m
+урок	leçon	f	m
+курс	cours	m
+наука	science	f
+исследование	recherche	f
+анализ	analyse	f
+результат	résultat	m
+метод	méthode	f
+способ	moyen	m
+причина	raison	f
+решение	décision	f
+ответ	réponse	f
+вопрос	question	f
+проблема	problème	m
+ошибка	erreur	f
+выбор	choix	m
+возможность	possibilité	f
+случай	cas	m
+пример	exemple	m
+правило	règle	f	n
+закон	loi	f
+власть	pouvoir	m
+правительство	gouvernement	m
+общество	société	f
+народ	peuple	m
+война	guerre	f
+армия	armée	f
+полиция	police	f
+суд	tribunal	m
+тюрьма	prison	f
+преступление	crime	m
+свобода	liberté	f
+право	droit	m	n
+новость	nouvelle	f
+событие	événement	m
+статья	article	m
+информация	information	f
+сообщение	message	m
+разговор	conversation	f
+речь	discours	m
+слово	mot	m
+язык	langue	f
+имя	prénom	m
+фамилия	nom de famille	m
+название	nom (d'une chose)	m
+
+# ─── Culture, loisirs ──────────────────────────────────────────────
+музыка	musique	f
+песня	chanson	f
+концерт	concert	m
+альбом	album	m
+танец	danse	f
+звук	son	m
+шум	bruit	m
+фильм	film	m
+сериал	série	f
+роль	rôle	m
+сцена	scène	f
+искусство	art	m
+история	histoire	f
+рассказ	récit	m
+роман	roman	m
+глава	chapitre	m
+сказка	conte	m
+легенда	légende	f
+поэт	poète	m
+игра	jeu	m
+матч	match	m
+команда	équipe	f
+футбол	football	m
+мяч	ballon	m
+бассейн	piscine	f
+отдых	repos	m
+отпуск	congé	m
+праздник	fête	f
+клуб	club	m
+вечеринка	soirée	f
+шутка	blague	f
+смех	rire	m
+интерес	intérêt	m
+внимание	attention	f
+идея	idée	f
+мысль	pensée	f
+мечта	rêve (souhait)	m
+надежда	espoir	m
+любовь	amour	m
+радость	joie	f
+счастье	bonheur	m
+страх	peur	f
+гнев	colère	f
+чувство	sentiment	m
+душа	âme	f
+характер	caractère	m
+настроение	humeur	f
+сила	force	f
+правда	vérité	f
+ложь	mensonge	m
+тайна	mystère	m
+секрет	secret	m
+цель	but	m
+смысл	sens	m
+значение	signification	f
+вид	aspect	m
+образ	image	f
+цвет	couleur	f
+тень	ombre	f
+вкус	goût	m
+запах	odeur	f

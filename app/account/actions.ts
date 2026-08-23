@@ -2,12 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import type { DeleteAccountState } from "@/lib/auth/delete-account-state";
 
-export interface DeleteAccountState {
-  error: string | null;
-}
-
-export const INITIAL_DELETE_ACCOUNT_STATE: DeleteAccountState = { error: null };
+// Ce fichier ne peut exporter QUE des fonctions async (contrainte "use
+// server") : l'état initial du formulaire vit dans
+// lib/auth/delete-account-state.ts.
 
 export async function deleteAccountAction(
   _previous: DeleteAccountState,

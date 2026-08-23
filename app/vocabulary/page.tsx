@@ -6,7 +6,6 @@ import {
   createList,
   deleteList,
   fetchLists,
-  syncTopicLists,
   type VocabListSummary,
 } from "@/lib/vocabulary/custom";
 import SectionLabel from "@/components/ui/SectionLabel";
@@ -14,22 +13,14 @@ import { ListCardsSkeleton } from "@/components/ui/Skeleton";
 
 export default function VocabularyPage() {
   const [lists, setLists] = useState<VocabListSummary[] | null>(null);
-  const [syncing, setSyncing] = useState(true);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Amorce d'abord les listes des thèmes choisis à l'inscription (sans
-    // effet si elles existent déjà — voir sync-topics), puis charge tout.
-    syncTopicLists()
-      .catch(() => {})
-      .finally(() => {
-        setSyncing(false);
-        fetchLists()
-          .then((d) => setLists(d.lists))
-          .catch(() => setError("Impossible de charger tes listes."));
-      });
+    fetchLists()
+      .then((d) => setLists(d.lists))
+      .catch(() => setError("Impossible de charger tes listes."));
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -60,7 +51,7 @@ export default function VocabularyPage() {
     }
   }
 
-  const loading = syncing || lists === null;
+  const loading = lists === null;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">

@@ -133,34 +133,12 @@ export async function DELETE(
     await supabase.from("srs_cards").delete().eq("user_id", user.id).in("card_id", wordIds);
   }
 
-  const { data: list } = await supabase
-    .from("vocab_lists")
-    .select("topic_id")
-    .eq("id", listId)
-    .eq("user_id", user.id)
-    .single();
-
   const { error } = await supabase
     .from("vocab_lists")
     .delete()
     .eq("id", listId)
     .eq("user_id", user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // La liste était amorcée depuis un thème d'onboarding : on retire ce
-  // thème du profil, sinon la prochaine visite de /vocabulary le resème
-  // automatiquement (sync-topics recrée toute liste manquante pour un
-  // thème encore présent dans profile.topics — sans ça, "supprimer"
-  // n'aurait aucun effet durable pour ces listes-là).
-  if (list?.topic_id) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("topics")
-      .eq("id", user.id)
-      .single();
-    const nextTopics = (profile?.topics ?? []).filter((t: string) => t !== list.topic_id);
-    await supabase.from("profiles").update({ topics: nextTopics }).eq("id", user.id);
-  }
 
   return NextResponse.json({ ok: true });
 }

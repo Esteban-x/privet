@@ -2,21 +2,35 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
 import { exerciseSystemPrompt } from "@/lib/ai/prompts";
-import { CaseId, Gender, Noun } from "@/lib/grammar/types";
+import { CaseId, Noun } from "@/lib/grammar/types";
 import { getCase } from "@/lib/grammar/cases";
 import { getTrigger, PROPER_NOUN_TRIGGER_ID } from "@/lib/grammar/triggers";
 import { DECLINABLE_NOUNS } from "@/lib/grammar/exercise-generator";
-import { DEFAULT_FRENCH_GENDER } from "@/lib/vocabulary/custom";
+
+// La banque compte plusieurs centaines de mots : l'envoyer entière à chaque
+// exercice coûterait ~2 000 tokens de prompt et pousserait le modèle vers
+// les mêmes têtes de liste. On tire un échantillon à chaque appel — moins
+// cher, et surtout réellement varié d'un exercice à l'autre.
+const SAMPLE_SIZE = 40;
+
+function buildCandidatePool(recentLemmas: string[]): Noun[] {
+  const recent = new Set(recentLemmas);
+  const available = DECLINABLE_NOUNS.filter((n) => !recent.has(n.lemma));
+  const pool = available.length >= SAMPLE_SIZE ? available : DECLINABLE_NOUNS;
+
+  const copy = [...pool];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, SAMPLE_SIZE);
+}
 
 interface AiExercise {
   sentence_ru: string;
   sentence_fr: string;
   lemma: string;
-  gender: "masculine" | "feminine" | "neuter";
-  animate: boolean;
   hint: string;
-  french_gender: "m" | "f";
-  indeclinable?: boolean;
   trigger_id?: string;
 }
 
@@ -42,38 +56,23 @@ export async function POST(req: Request) {
 
   // Mots récemment vus par l'apprenant (n'importe quel cas) — évite que le
   // modèle reparte systématiquement sur le mot le plus "évident" du thème
-  // choisi (ex. песня dès que le thème est la musique, en boucle).
+  // choisi (ex. музыка dès que le thème est la musique, en boucle).
   const recentLemmas: string[] = Array.isArray(body.recentLemmas)
     ? body.recentLemmas.filter((w: unknown): w is string => typeof w === "string").slice(0, 12)
     : [];
 
-  const [{ data: profile }, { data: words }] = await Promise.all([
-    supabase.from("profiles").select("level, topics").eq("id", user.id).single(),
-    supabase
-      .from("vocab_words")
-      .select("ru, fr, gender, animacy, stem_type, indeclinable, french_gender")
-      .eq("user_id", user.id)
-      .not("gender", "is", null)
-      .limit(30),
-  ]);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("level")
+    .eq("id", user.id)
+    .single();
 
-  // Le lemme n'est PLUS un choix libre de l'IA (voir le commentaire dans
-  // exerciseSystemPrompt) : restreint à la banque curée + le vocabulaire
-  // perso déjà classifié de l'apprenant, EXACTEMENT le pool des modes
-  // non-IA — chaque mot y a une déclinaison déjà vérifiée (irréguliers
-  // inclus pour la banque curée).
-  const personalPoolNouns: Noun[] = (words ?? [])
-    .filter((w) => !w.indeclinable)
-    .map((w) => ({
-      id: `custom:${w.ru}`,
-      lemma: w.ru,
-      translation: w.fr,
-      frenchGender: (w.french_gender as "m" | "f" | null) ?? DEFAULT_FRENCH_GENDER,
-      gender: w.gender as Gender,
-      animacy: w.animacy === "animate" ? "animate" : "inanimate",
-      stemType: (w.stem_type as Noun["stemType"]) ?? "hard",
-    }));
-  const pool: Noun[] = [...DECLINABLE_NOUNS, ...personalPoolNouns];
+  // Le rôle de l'IA se limite à la MISE EN SITUATION : elle écrit une phrase
+  // autour d'un mot de la banque, elle ne choisit pas le mot librement et ne
+  // calcule aucune forme fléchie. On lui propose un échantillon renouvelé à
+  // chaque appel ; le lemme renvoyé est ensuite revérifié contre la banque
+  // entière.
+  const candidates = buildCandidatePool(recentLemmas);
 
   try {
     // "Меня зовут ___" ne devrait jamais atteindre cette route (le client
@@ -93,8 +92,7 @@ export async function POST(req: Request) {
       system: exerciseSystemPrompt(
         caseId,
         profile?.level ?? "A1",
-        profile?.topics ?? [],
-        pool.map((n) => ({ ru: n.lemma, fr: n.translation })),
+        candidates.map((n) => ({ ru: n.lemma, fr: n.translation })),
         trigger,
         recentLemmas
       ),
@@ -102,36 +100,26 @@ export async function POST(req: Request) {
     });
     const exercise = parseJsonResponse<AiExercise>(textFromMessage(msg));
 
-    // Revérifie que le lemme renvoyé correspond bien à une entrée du pool
-    // fourni — un modèle peut malgré la consigne dévier vers un mot hors
-    // liste. Si oui, ses genre/animacité/traduction sont écrasés par les
-    // valeurs déjà vérifiées de cette entrée plutôt que d'être pris au mot
-    // (couvre aussi le risque de mauvaise traduction française). Si non,
-    // rejeté : le client retombe sur le gabarit fixe (même repli que pour
-    // un emprunt indéclinable détecté côté client).
-    const poolMatch = pool.find((n) => n.lemma === exercise.lemma);
+    // Le lemme doit appartenir à la banque : un modèle peut dévier vers un
+    // mot hors liste malgré la consigne, et on le rejette alors (le client
+    // retombe sur le gabarit fixe). La vérification porte sur la banque
+    // ENTIÈRE et pas seulement sur l'échantillon proposé : un mot de la
+    // banque hors échantillon reste parfaitement sûr, toutes ses formes sont
+    // vérifiées. On ne renvoie ensuite que l'ID — c'est le client qui
+    // recharge l'objet complet (paradigme, genre, animacité) plutôt que de
+    // reconstruire un mot à partir de ce que l'IA en dit.
+    const poolMatch = DECLINABLE_NOUNS.find((n) => n.lemma === exercise.lemma);
     if (!poolMatch) {
       console.error("exercise route: lemme hors pool", exercise.lemma);
       return NextResponse.json({ error: "Mot hors banque vérifiée" }, { status: 502 });
     }
-    exercise.gender = poolMatch.gender;
-    exercise.animate = poolMatch.animacy === "animate";
-    exercise.hint = poolMatch.translation;
-    exercise.french_gender = poolMatch.frenchGender;
-    exercise.indeclinable = false;
-
-    // Un mot de la banque curée peut avoir des formes irrégulières
-    // mémorisées (noun.irregular, ex. друг -> друзья/друзей au pluriel) —
-    // perdues si le client reconstruit un Noun de zéro à partir des seuls
-    // champs JSON ci-dessus. On lui renvoie l'id pour qu'il aille chercher
-    // l'objet complet via getNoun() à la place (voir CaseDeclension.tsx).
-    // Sans équivalent pour le vocabulaire perso, qui n'a pas cette donnée
-    // en base — même limite déjà acceptée ailleurs dans l'app pour ces mots.
-    const isCurated = DECLINABLE_NOUNS.some((n) => n.id === poolMatch.id);
 
     return NextResponse.json({
-      exercise,
-      pool_noun_id: isCurated ? poolMatch.id : null,
+      sentence_ru: exercise.sentence_ru,
+      sentence_fr: exercise.sentence_fr,
+      noun_id: poolMatch.id,
+      lemma: poolMatch.lemma,
+      hint: poolMatch.translation,
     });
   } catch (err) {
     console.error("exercise route error", err);

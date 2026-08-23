@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import DangerZone from "@/components/account/DangerZone";
 import PasswordSettings from "@/components/account/PasswordSettings";
-import PreferencesSettings from "@/components/account/PreferencesSettings";
 import ProfileSettings from "@/components/account/ProfileSettings";
 import SecurityActions from "@/components/account/SecurityActions";
 import SectionLabel from "@/components/ui/SectionLabel";
@@ -37,10 +36,6 @@ export default async function AccountPage() {
 
       <div className="mt-8 space-y-6">
         <ProfileSettings email={user.email ?? ""} initialDisplayName={profile?.display_name ?? ""} />
-        <PreferencesSettings
-          initialTopics={profile?.topics ?? []}
-          initialGoals={profile?.goals ?? ""}
-        />
         <PasswordSettings hasPassword={hasPassword} />
         <SecurityActions />
         <DangerZone />
