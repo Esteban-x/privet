@@ -202,23 +202,52 @@ export function generateAdjectiveExercise(
   const eligible = triggersForCase(targetCase).filter((t) => t.id !== PROPER_NOUN_TRIGGER_ID);
   const chosenTrigger =
     trigger && trigger.id !== PROPER_NOUN_TRIGGER_ID ? trigger : pickRandom(eligible);
-  const noun = pickRandom(pool);
   const adjective = pickRandom(adjPool);
   const plural = chosenTrigger.plural ?? false;
 
-  const nounResult = declineNoun(noun, targetCase, plural);
+  // Certaines combinaisons donnent pour réponse la forme du dictionnaire
+  // déjà montrée en indice — nominatif masculin singulier, accusatif
+  // masculin inanimé : il suffisait de recopier « плохо́й ». C'est le
+  // GENRE et l'ANIMACITÉ du nom qui décident, jamais l'adjectif : tous
+  // sont dégénérés dans les mêmes cases.
+  //
+  // Le nom est donc tiré dans un pool filtré, et non redessiné jusqu'à
+  // tomber juste : six combinaisons genre × animacité suffisent à trancher,
+  // et un filtre est exact là où des tirages successifs laissent toujours
+  // une queue de cas dégénérés.
+  const usable = new Set(
+    (["masculine", "feminine", "neuter"] as const).flatMap((gender) =>
+      (["animate", "inanimate"] as const)
+        .filter(
+          (animacy) =>
+            declineAdjective(adjective, targetCase, gender, plural, animacy).form !==
+            adjective.lemmaM
+        )
+        .map((animacy) => `${gender}:${animacy}`)
+    )
+  );
+  const candidates = usable.size > 0 ? pool.filter((n) => usable.has(`${n.gender}:${n.animacy}`)) : [];
+  const noun = pickRandom(candidates.length > 0 ? candidates : pool);
   const adjResult = declineAdjective(adjective, targetCase, noun.gender, plural, noun.animacy);
+
+  const nounResult = declineNoun(noun, targetCase, plural);
 
   return {
     kind: "adjective-agreement",
     noun,
     targetCase,
     plural,
-    correctForm: `${adjResult.form} ${nounResult.form}`,
-    accentedForm: `${adjResult.form} ${nounResult.accented}`,
-    ruleApplied: `${adjResult.ruleApplied} ; ${nounResult.ruleApplied}`,
+    // SEUL l'adjectif est demandé. Le nom, déjà décliné, est écrit dans la
+    // phrase : l'exercice porte sur l'accord, et faire retaper le nom en
+    // même temps mélangeait deux compétences dans une seule réponse — une
+    // faute sur le nom masquait un accord réussi, et inversement.
+    correctForm: adjResult.form,
+    accentedForm: adjResult.accented,
+    ruleApplied: adjResult.ruleApplied,
     trigger: chosenTrigger,
-    sentenceTemplate: chosenTrigger.template.ru,
+    // Le nom décliné suit le blanc, avec son accent tonique : la phrase
+    // reste lisible et l'apprenant voit sur quoi il accorde.
+    sentenceTemplate: chosenTrigger.template.ru.replace("___", `___ ${nounResult.accented}`),
     // Seul le nom est inséré dans la phrase française (comme pour une phrase
     // normale) — concaténer aussi la traduction de l'adjectif produisait du
     // charabia (ex. "vif, éclatant bâtiment") : l'ordre des mots et l'accord

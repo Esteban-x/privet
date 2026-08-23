@@ -102,10 +102,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Adjectif inconnu" }, { status: 400 });
   }
 
-  const nounForm = declineNoun(noun, targetCase, plural).form;
+  // Mode « accord adjectif » : la réponse attendue est le SEUL adjectif —
+  // le nom est déjà écrit dans la phrase (voir generateAdjectiveExercise).
+  // C'est ici, et nulle part ailleurs, que la forme est recalculée : le
+  // client n'envoie que l'identifiant du nom, celui de l'adjectif et le cas.
   const expectedForm = adjective
-    ? `${declineAdjective(adjective, targetCase, noun.gender, plural, noun.animacy).form} ${nounForm}`
-    : nounForm;
+    ? declineAdjective(adjective, targetCase, noun.gender, plural, noun.animacy).form
+    : declineNoun(noun, targetCase, plural).form;
 
   // "Je ne sais pas" compte comme un échec quoi qu'il y ait dans le champ de
   // saisie : sans ce drapeau, une bonne réponse déjà tapée puis révélée

@@ -456,7 +456,7 @@ export default function CaseDeclension({
                 <p className="mt-1 font-display text-sm italic text-muted">{exercise.sentenceFr}</p>
                 {exercise.kind === "adjective-agreement" && exercise.adjective && (
                   <p className="mt-1 font-display text-xs text-muted">
-                    Accorde aussi l&apos;adjectif « {exercise.adjective.lemmaM} » ({exercise.adjective.translation}).
+                    Accorde l&apos;adjectif « {exercise.adjective.lemmaM} » ({exercise.adjective.translation}) — le nom est déjà décliné.
                   </p>
                 )}
               </div>

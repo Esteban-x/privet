@@ -21,14 +21,18 @@
  * il ne décide pas).
  */
 import { createJiti } from "jiti";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const jiti = createJiti(import.meta.url);
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
 const { declineNoun, stripAccent } = await jiti.import("../lib/grammar/decline.ts");
 const { declineAdjective } = await jiti.import("../lib/grammar/decline-adjective.ts");
 const { NOUNS } = await jiti.import("../lib/grammar/nouns-data.ts");
 const { RUSSIAN_NAMES } = await jiti.import("../lib/grammar/names-data.ts");
 const { ADJECTIVES } = await jiti.import("../lib/grammar/adjectives-data.ts");
 const { CASE_ORDER } = await jiti.import("../lib/grammar/types.ts");
+const { generateAdjectiveExercise } = await jiti.import("../lib/grammar/exercise-generator.ts");
 
 const failures = [];
 let checks = 0;
@@ -286,6 +290,52 @@ for (const adj of ADJECTIVES) {
   const animate = ADJ_ANIMATE_ACC[adj.lemmaM];
   expect(`${adj.lemmaM} masc. animé acc.`, declineAdjective(adj, "accusative", "masculine", false, "animate").form, animate.masculine);
   expect(`${adj.lemmaM} pl. animé acc.`, declineAdjective(adj, "accusative", "masculine", true, "animate").form, animate.plural);
+}
+
+// ─── 5. Mode « accord adjectif » ───────────────────────────────────
+// L'exercice demande le SEUL adjectif, le nom étant déjà décliné dans la
+// phrase. Trois façons de le casser, toutes vérifiées sur un vrai tirage :
+//
+//   - demander plusieurs mots, ce qui mêlerait accord et déclinaison dans
+//     une seule réponse ;
+//   - oublier d'écrire le nom après le blanc, l'apprenant n'ayant alors
+//     rien sur quoi accorder ;
+//   - tirer une combinaison où la réponse EST la forme du dictionnaire
+//     montrée en indice (nominatif masculin, accusatif masculin inanimé) :
+//     l'exercice est alors donné.
+{
+  let multiword = 0;
+  let missingNoun = 0;
+  let degenerate = 0;
+  let serverMismatch = 0;
+  let draws = 0;
+
+  for (const caseId of CASE_ORDER) {
+    for (let i = 0; i < 500; i += 1) {
+      const ex = generateAdjectiveExercise(caseId);
+      draws += 1;
+
+      if (ex.correctForm.trim().includes(" ")) multiword += 1;
+      if (ex.correctForm === ex.adjective.lemmaM) degenerate += 1;
+      if (!(ex.sentenceTemplate.split("___")[1] ?? "").trim()) missingNoun += 1;
+
+      // Ce que le serveur recalculera à partir des seuls identifiants
+      // envoyés par le client (app/api/cases/attempt/route.ts).
+      const server = declineAdjective(
+        ex.adjective,
+        caseId,
+        ex.noun.gender,
+        ex.plural,
+        ex.noun.animacy
+      ).form;
+      if (server !== ex.correctForm) serverMismatch += 1;
+    }
+  }
+
+  expect(`accord adjectif : réponses en plusieurs mots (${draws} tirages)`, multiword, 0);
+  expect("accord adjectif : nom manquant après le blanc", missingNoun, 0);
+  expect("accord adjectif : réponse identique à l'indice", degenerate, 0);
+  expect("accord adjectif : forme attendue différente côté serveur", serverMismatch, 0);
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────
