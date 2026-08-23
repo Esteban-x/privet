@@ -60,22 +60,13 @@ export default async function ParticiplesHub() {
       <h1 className="mb-3 font-display text-4xl font-extrabold tracking-tight">
         Participes et gérondifs
       </h1>
-      <div className="mb-10 max-w-2xl space-y-4 font-display leading-relaxed text-muted">
-        <p>
-          Le russe comprime une subordonnée entière en un seul mot : « Челове́к,{" "}
-          <span className="text-text">кото́рый чита́ет</span> кни́гу » devient « челове́к,{" "}
-          <span className="text-text">чита́ющий</span> кни́гу ». La relative disparaît, le verbe se
-          fait adjectif — et s&apos;accorde comme lui, en genre, en nombre et en cas.
-        </p>
-        <p>
-          Le français connaît ces formes (« l&apos;homme lisant un livre », « ayant terminé, il
-          partit »), mais les réserve à l&apos;écrit soutenu ; le russe en fait la langue ordinaire
-          de la presse, de l&apos;administration et du roman. Autre écart : « fermée » sert au
-          français dans « la porte fermée » comme dans « la porte est fermée », là où le russe
-          change de forme — <span className="text-text">закры́тая дверь</span> contre{" "}
-          <span className="text-text">дверь закры́та</span>.
-        </p>
-      </div>
+      <p className="mb-10 max-w-2xl font-display leading-relaxed text-muted">
+        Le russe comprime une subordonnée entière en un seul mot : « челове́к,{" "}
+        <span className="text-text">кото́рый чита́ет</span> кни́гу » devient « челове́к,{" "}
+        <span className="text-text">чита́ющий</span> кни́гу ». Le français a la même forme —
+        « l&apos;homme lisant un livre » — mais invariable, et réservée à l&apos;écrit soutenu. En
+        russe elle s&apos;accorde comme un adjectif, et elle est partout.
+      </p>
 
       <div className="mb-12 space-y-3 rounded-[20px] border border-border bg-bg2 p-7">
         {SHOWCASE.map((s) => (
