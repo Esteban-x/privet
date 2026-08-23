@@ -39,6 +39,7 @@ const { TRIGGERS } = await jiti.import("../lib/grammar/triggers.ts");
 const { categoryOf, DECLARED_CATEGORIES } = await jiti.import(
   "../lib/grammar/noun-categories.ts"
 );
+const { TRIGGER_NOUNS } = await jiti.import("../lib/grammar/trigger-nouns.generated.ts");
 
 const failures = [];
 let checks = 0;
@@ -450,6 +451,8 @@ for (const adj of ADJECTIVES) {
 // Un exercice de phrase colle un déclencheur et un nom tirés séparément.
 // Sans contrainte, « Я ем ___ » recevait « помо́щник » : « je mange cet
 // assistant ». Trois choses doivent tenir.
+let curatedTriggers = 0;
+let demandingTriggers = 0;
 {
   // a) La classification couvre la banque, une classe et une seule par nom.
   //    C'est ce qui rend le fichier relisable : une omission se voit ici,
@@ -488,31 +491,56 @@ for (const adj of ADJECTIVES) {
     );
   }
 
-  // c) Sur un vrai tirage, le nom servi appartient bien à une classe acceptée.
-  let outOfClass = 0;
+  // c) La liste curée (trigger-nouns.generated.ts) est la source normale du
+  //    tirage : elle doit être saine. C'est de la donnée écrite par un
+  //    modèle, donc exactement le genre de chose qu'on ne croit pas sur
+  //    parole.
+  const NOUN_IDS = new Set(NOUNS.map((n) => n.id));
+  for (const [triggerId, ids] of Object.entries(TRIGGER_NOUNS)) {
+    const trigger = TRIGGERS.find((t) => t.id === triggerId);
+    expect(`liste curée « ${triggerId} » : déclencheur inconnu`, trigger !== undefined, true);
+    expect(
+      `liste curée « ${triggerId} » : ${ids.length} mot(s), minimum ${MIN_NOUNS}`,
+      ids.length >= MIN_NOUNS,
+      true
+    );
+    expect(`liste curée « ${triggerId} » : doublons`, new Set(ids).size, ids.length);
+    for (const id of ids) {
+      expect(`liste curée « ${triggerId} » : « ${id} » hors banque`, NOUN_IDS.has(id), true);
+    }
+  }
+
+  // Un déclencheur sans liste curée n'est PAS une anomalie : il retombe sur
+  // ses classes sémantiques, qui produisent des phrases correctes, juste un
+  // peu moins fines. La curation est un raffinement progressif, pas un
+  // prérequis — le compte est reporté en fin de contrôle, il ne fait pas
+  // échouer la suite.
+  curatedTriggers = TRIGGERS.filter(
+    (t) => t.accepts && TRIGGER_NOUNS[t.id]?.length > 0
+  ).length;
+  demandingTriggers = TRIGGERS.filter((t) => t.accepts).length;
+
+  // d) Sur un vrai tirage, le nom servi vient bien de la liste curée — ou,
+  //    à défaut de liste, d'une classe acceptée.
+  let outOfPool = 0;
   let draws = 0;
   for (const trigger of TRIGGERS) {
     if (!trigger.accepts) continue;
-    const accepted = new Set(trigger.accepts);
-    for (let i = 0; i < 40; i += 1) {
+    const curated = TRIGGER_NOUNS[trigger.id];
+    const allowed = curated?.length
+      ? new Set(curated)
+      : new Set(NOUNS.filter((n) => trigger.accepts.includes(categoryOf(n.id))).map((n) => n.id));
+    for (let i = 0; i < 30; i += 1) {
       const ex = generateSentenceExercise(trigger.caseId, trigger);
       draws += 1;
-      if (!accepted.has(categoryOf(ex.noun.id))) outOfClass += 1;
-    }
-  }
-  expect(`nom hors classe acceptée (${draws} phrases tirées)`, outOfClass, 0);
+      if (!allowed.has(ex.noun.id)) outOfPool += 1;
 
-  // Le mode « accord adjectif » passe par le même filtre.
-  let adjOutOfClass = 0;
-  for (const trigger of TRIGGERS) {
-    if (!trigger.accepts || trigger.id === "expr-nom-zovut") continue;
-    const accepted = new Set(trigger.accepts);
-    for (let i = 0; i < 12; i += 1) {
-      const ex = generateAdjectiveExercise(trigger.caseId, trigger);
-      if (!accepted.has(categoryOf(ex.noun.id))) adjOutOfClass += 1;
+      const adj = generateAdjectiveExercise(trigger.caseId, trigger);
+      draws += 1;
+      if (!allowed.has(adj.noun.id)) outOfPool += 1;
     }
   }
-  expect("accord adjectif : nom hors classe acceptée", adjOutOfClass, 0);
+  expect(`nom servi hors du pool autorisé (${draws} tirages)`, outOfPool, 0);
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────
@@ -540,6 +568,10 @@ if (failures.length) {
 
 const total = NOUNS.length * 12;
 console.log(`✓ ${checks} contrôles passés.`);
+console.log(
+  `  déclencheurs exigeants : ${curatedTriggers}/${demandingTriggers} avec liste curée, ` +
+    `le reste sur ses classes sémantiques`
+);
 console.log(
   `  banque : ${NOUNS.length} noms (${total} formes), ${RUSSIAN_NAMES.length} prénoms, ${ADJECTIVES.length} adjectifs`
 );

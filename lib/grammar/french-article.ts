@@ -125,5 +125,8 @@ export function frenchNounPhrase(
  */
 export function fillFrenchBlank(templateFr: string, phrase: string): string {
   const filled = templateFr.replace("___", phrase);
-  return filled.replace(/\bde ([aeiouyàâäéèêëîïôöùûhAEIOUYÀÂÄÉÈÊËÎÏÔÖÙÛH])/, "d'$1");
+  const elided = filled.replace(/\bde ([aeiouyàâäéèêëîïôöùûhAEIOUYÀÂÄÉÈÊËÎÏÔÖÙÛH])/, "d'$1");
+  // Quelques gabarits commencent par le trou (« ___ a une voiture. ») :
+  // la traduction sortait alors en minuscule — « ce directeur a une voiture. »
+  return elided.charAt(0).toUpperCase() + elided.slice(1);
 }

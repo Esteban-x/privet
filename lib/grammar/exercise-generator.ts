@@ -9,6 +9,7 @@ import { CASES } from "./cases";
 import { CountForm, countFormFor, randomCountNumber } from "./numerals";
 import { fillFrenchBlank, frenchNounPhrase } from "./french-article";
 import { categoryOf, type NounCategory } from "./noun-categories";
+import { TRIGGER_NOUNS } from "./trigger-nouns.generated";
 
 // Pool unique de tous les exercices : la banque importée, dont chaque forme
 // vient du dictionnaire (voir scripts/build-nouns.mjs). Le vocabulaire perso
@@ -78,28 +79,42 @@ function shuffle<T>(arr: T[]): T[] {
 // "Меня зовут ___" n'a de sens qu'avec un prénom : ce déclencheur tire dans
 // la banque de prénoms, pas dans celle des noms communs.
 /**
- * Noms utilisables avec ce déclencheur.
+ * Noms utilisables avec ce déclencheur — ce qui empêche « Я ем ___ » de
+ * recevoir « помо́щник », « je mange cet assistant ».
  *
- * Deux restrictions se superposent :
- * - « Меня́ зову́т ___ » ne prend qu'un prénom ;
- * - un déclencheur exigeant (`accepts`, voir triggers.ts) n'accepte que
- *   certaines classes de noms. Sans cela, « Я ем ___ » recevait
- *   « помо́щник » : « je mange cet assistant ».
+ * Trois sources, de la plus précise à la plus grossière :
  *
- * Le repli va à la banque entière avant de renoncer : le pool passé peut
- * être réduit par niveau (un débutant ne voit que les mots fréquents) et ne
- * rien contenir de la classe demandée. Mieux vaut alors servir un mot plus
- * rare qu'une phrase que personne ne dirait.
+ * 1. « Меня́ зову́т ___ » ne prend qu'un prénom.
+ * 2. La LISTE CURÉE (trigger-nouns.generated.ts) : pour chaque déclencheur
+ *    exigeant, les mots qui donnent une phrase qu'un russophone dirait
+ *    vraiment. Écrite une fois par l'IA, relue, figée — l'exécution reste
+ *    déterministe et gratuite. C'est la source normale.
+ * 3. Les CLASSES sémantiques (`accepts`), en repli : elles couvrent un
+ *    déclencheur ajouté depuis la dernière curation, qui produirait sinon
+ *    n'importe quoi en silence.
+ *
+ * Le pool passé peut être réduit par niveau (un débutant ne voit que les
+ * mots fréquents) et ne rien contenir d'utilisable : on élargit alors à la
+ * banque entière avant de renoncer. Un mot plus rare vaut mieux qu'une
+ * phrase que personne ne dirait.
  */
 function poolFor(trigger: CaseTrigger, pool: Noun[]): Noun[] {
   if (trigger.id === PROPER_NOUN_TRIGGER_ID) return RUSSIAN_NAMES;
-  if (!trigger.accepts) return pool;
 
-  const accepted = new Set<NounCategory>(trigger.accepts);
-  const keep = (n: Noun) => {
-    const category = categoryOf(n.id);
-    return category !== undefined && accepted.has(category);
-  };
+  const curated = TRIGGER_NOUNS[trigger.id];
+  let keep: (n: Noun) => boolean;
+  if (curated && curated.length > 0) {
+    const allowed = new Set(curated);
+    keep = (n) => allowed.has(n.id);
+  } else if (trigger.accepts) {
+    const accepted = new Set<NounCategory>(trigger.accepts);
+    keep = (n) => {
+      const category = categoryOf(n.id);
+      return category !== undefined && accepted.has(category);
+    };
+  } else {
+    return pool;
+  }
 
   const filtered = pool.filter(keep);
   if (filtered.length > 0) return filtered;
