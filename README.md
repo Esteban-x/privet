@@ -107,9 +107,10 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAA...  # Cloudflare, clé PUBLIQUE
 
 ```bash
 npm run dev             # http://localhost:3000
-npm run check           # tous les contrôles (grammaire + test de placement)
-npm run check:grammar   # banque de noms et moteur de déclinaison
-npm run check:leveltest # vivier d'items et qualité du placement
+npm run check             # tous les contrôles
+npm run check:grammar     # banque de noms et moteur de déclinaison
+npm run check:leveltest   # vivier d'items et qualité du placement
+npm run check:progression # adaptation au niveau et estimation continue
 npm run build:nouns     # régénère la banque depuis le dictionnaire (rare)
 ```
 
@@ -252,6 +253,52 @@ placement se dégrade. Mesure actuelle : 69 % de placement exact, 95 % à un
 palier près, et un candidat qui répond au hasard finit en A0/A1 dans 95 %
 des cas.
 
+## Niveau et progression
+
+Deux mesures cohabitent, volontairement :
+
+- **le niveau testé** (`profiles.level`) vient du test de placement. Il
+  mesure la LARGEUR — aspect, verbes de mouvement, participes, que l'app
+  n'entraîne nulle part — mais en une douzaine de QCM, donc en
+  reconnaissance, et une seule fois ;
+- **le niveau de pratique** (`lib/progress/level-estimate.ts`) se recalcule
+  à chaque visite du tableau de bord depuis ce que l'apprenant produit
+  vraiment : déclencheurs maîtrisés par palier, précision par cas, mots
+  arrivés à un intervalle de révision mature.
+
+Aucun ne remplace l'autre, et l'écart entre les deux est le signal utile :
+quand la pratique dépasse le niveau testé, le tableau de bord propose de
+repasser le test.
+
+Un déclencheur est « maîtrisé » selon **une seule** définition, exportée par
+`lib/grammar/exercise-selector.ts` et réutilisée par l'estimation — sinon le
+tableau de bord annoncerait « acquis » pendant que les exercices continuent
+d'insister dessus.
+
+### Ce que le niveau change concrètement
+
+- **Ordre des cas** : `/cases` les présente dans l'ordre d'ACQUISITION
+  (nominatif → prépositionnel → accusatif → génitif → datif → instrumental),
+  pas dans l'ordre des grammaires russes. Une pastille indique ce qui est de
+  saison, ce qui vient ensuite, et ce qui est déjà solide. Rien n'est
+  verrouillé.
+- **Difficulté du vocabulaire** : chaque nom porte un rang de fréquence, et
+  `nounsForLevel` ouvre une part croissante de la banque — 113 mots courants
+  à A0, les 451 à partir de B2. Décliner correctement un mot qu'on ne
+  comprend pas n'apprend pas grand-chose.
+- **Choix des déclencheurs** : le tirage suit les 7 niveaux de l'échelle, et
+  la part visée par palier est normalisée par le nombre de déclencheurs de ce
+  palier — sans quoi le tirage subit la composition de la banque (le génitif
+  compte 24 déclencheurs intermédiaires pour 13 essentiels) au lieu du
+  niveau. Un A0 reçoit ~86 % d'essentiels, un C1 une répartition équilibrée.
+  Le palier suivant se débloque en avance dès que la maîtrise est démontrée
+  **sur ce cas précis**.
+
+`npm run check:progression` verrouille ces comportements par des seuils
+explicites : monotonie des pools et de l'estimation, part maximale de
+déclencheurs avancés servie à un débutant, et le fait qu'une pratique à 40 %
+de réussite reste estimée A0.
+
 ## Ce qui reste à faire (pistes)
 
 - Élargir la banque de noms (voir « Faire évoluer la banque » plus haut) :
@@ -259,7 +306,15 @@ des cas.
   ne manque que la traduction française.
 - Corpus de classiques du domaine public (Pouchkine, Tchekhov…) pour compléter
   la lecture générée.
-- Conjugaison verbale (aspects perfectif/imperfectif).
+- Conjugaison verbale (aspects perfectif/imperfectif) — c'est, avec les
+  verbes de mouvement et les participes, ce que l'app n'entraîne nulle part
+  alors que le test le mesure : d'où l'écart possible entre niveau testé et
+  niveau de pratique.
+- Étiqueter les 136 déclencheurs par niveau CEFR plutôt que par palier
+  (basic/intermediate/advanced) : trois paliers ne permettent pas de séparer
+  A1 de A2. Travail de contenu, pas de code.
+- Retest de niveau avec items jamais vus (`level_tests.detail` conserve déjà
+  les ids répondus), proposé quand le niveau de pratique dépasse le testé.
 - Audio / prononciation via un TTS.
 
 ## Le captcha

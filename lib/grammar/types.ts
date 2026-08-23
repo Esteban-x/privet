@@ -54,6 +54,12 @@ export interface Noun {
   frenchGender: FrenchGender;
   gender: Gender;
   animacy: Animacy;
+  /**
+   * Rang d'usage (1 = le plus fréquent, 50000 = hors liste de fréquence).
+   * Sert à servir du vocabulaire courant à un débutant et des mots plus
+   * rares à un avancé — voir `nounsForLevel` dans nouns-data.ts.
+   */
+  rank: number;
   forms: NounForms;
 }
 

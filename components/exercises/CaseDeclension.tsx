@@ -15,7 +15,8 @@ import {
   generateSentenceExercise,
 } from "@/lib/grammar/exercise-generator";
 import { PROPER_NOUN_TRIGGER_ID, triggersForCase } from "@/lib/grammar/triggers";
-import { getNoun } from "@/lib/grammar/nouns-data";
+import { getNoun, nounsForLevel } from "@/lib/grammar/nouns-data";
+import type { Noun } from "@/lib/grammar/types";
 import { pickWeightedTrigger } from "@/lib/grammar/exercise-selector";
 
 type Tab = "isolated" | "sentence" | "mcq" | "numeral" | "adjective";
@@ -59,10 +60,11 @@ async function buildExercise(
   caseInfo: CaseInfo,
   triggerStats: TriggerStats,
   userLevel: CefrLevel | undefined,
-  recentLemmas: string[]
+  recentLemmas: string[],
+  pool: Noun[]
 ): Promise<CaseExercise> {
-  if (tab === "isolated") return generateIsolatedExercise(caseInfo.id);
-  if (tab === "numeral") return generateNumeralExercise();
+  if (tab === "isolated") return generateIsolatedExercise(caseInfo.id, false, pool);
+  if (tab === "numeral") return generateNumeralExercise(pool);
 
   // L'onglet "Accord adjectif" exclut "Меня зовут ___" du tirage : ce
   // gabarit demande un prénom, sur lequel accorder un adjectif n'a pas de
@@ -74,8 +76,8 @@ async function buildExercise(
       : triggersForCase(caseInfo.id);
   const trigger = pickWeightedTrigger(eligible, triggerStats, userLevel);
 
-  if (tab === "mcq") return generateMcqExercise(caseInfo.id, trigger);
-  if (tab === "adjective") return generateAdjectiveExercise(caseInfo.id, trigger);
+  if (tab === "mcq") return generateMcqExercise(caseInfo.id, trigger, pool);
+  if (tab === "adjective") return generateAdjectiveExercise(caseInfo.id, trigger, pool);
 
   // "Phrase" : IA en premier (phrase personnalisée, ciblée sur le
   // déclencheur choisi), repli SILENCIEUX sur le gabarit fixe si
@@ -86,7 +88,7 @@ async function buildExercise(
   // fixe + la banque de prénoms couvrent déjà l'exercice parfaitement,
   // aucune valeur à risquer une phrase IA imprévisible ici.
   if (trigger.id === PROPER_NOUN_TRIGGER_ID) {
-    return generateSentenceExercise(caseInfo.id, trigger);
+    return generateSentenceExercise(caseInfo.id, trigger, pool);
   }
 
   try {
@@ -132,7 +134,7 @@ async function buildExercise(
       hint: noun.translation,
     };
   } catch {
-    return generateSentenceExercise(caseInfo.id, trigger);
+    return generateSentenceExercise(caseInfo.id, trigger, pool);
   }
 }
 
@@ -159,6 +161,10 @@ export default function CaseDeclension({
   const [streak, setStreak] = useState(0);
   const [verifying, setVerifying] = useState(false);
   const [triggerStats, setTriggerStats] = useState<TriggerStats>({});
+  // Vocabulaire adapté au niveau : décliner juste un mot qu'on ne comprend
+  // pas n'apprend pas grand-chose. Le nom reste identifié par son id côté
+  // serveur, donc la vérification de la réponse est inchangée.
+  const pool = useMemo(() => nounsForLevel(userLevel), [userLevel]);
   const [caseAccuracy, setCaseAccuracy] = useState<CaseAccuracy>({});
 
   // Derniers lemmes vus en mode "Phrase" IA (tous cas confondus, cette
@@ -209,7 +215,7 @@ export default function CaseDeclension({
   // qui relance cet effet et affiche le squelette entre-temps.
   useEffect(() => {
     let cancelled = false;
-    buildExercise(tab, caseInfo, triggerStats, userLevel, recentAiLemmas.current)
+    buildExercise(tab, caseInfo, triggerStats, userLevel, recentAiLemmas.current, pool)
       .then((ex) => {
         if (cancelled) return;
         if (ex.kind === "sentence-ai") {
@@ -227,7 +233,7 @@ export default function CaseDeclension({
     // ils biaisent le tirage suivant, ils ne doivent pas remplacer
     // l'exercice affiché quand la progression arrive du serveur.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, caseInfo.id, round]);
+  }, [tab, caseInfo.id, round, pool]);
 
   function nextExercise() {
     setFeedback(null);

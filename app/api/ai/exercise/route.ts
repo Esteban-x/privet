@@ -3,9 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
 import { exerciseSystemPrompt } from "@/lib/ai/prompts";
 import { CaseId, Noun } from "@/lib/grammar/types";
+import type { CefrLevel } from "@/lib/supabase/types";
 import { getCase } from "@/lib/grammar/cases";
 import { getTrigger, PROPER_NOUN_TRIGGER_ID } from "@/lib/grammar/triggers";
 import { DECLINABLE_NOUNS } from "@/lib/grammar/exercise-generator";
+import { nounsForLevel } from "@/lib/grammar/nouns-data";
 
 // La banque compte plusieurs centaines de mots : l'envoyer entière à chaque
 // exercice coûterait ~2 000 tokens de prompt et pousserait le modèle vers
@@ -13,10 +15,11 @@ import { DECLINABLE_NOUNS } from "@/lib/grammar/exercise-generator";
 // cher, et surtout réellement varié d'un exercice à l'autre.
 const SAMPLE_SIZE = 40;
 
-function buildCandidatePool(recentLemmas: string[]): Noun[] {
+function buildCandidatePool(recentLemmas: string[], level: CefrLevel | undefined): Noun[] {
+  const levelPool = nounsForLevel(level);
   const recent = new Set(recentLemmas);
-  const available = DECLINABLE_NOUNS.filter((n) => !recent.has(n.lemma));
-  const pool = available.length >= SAMPLE_SIZE ? available : DECLINABLE_NOUNS;
+  const available = levelPool.filter((n) => !recent.has(n.lemma));
+  const pool = available.length >= SAMPLE_SIZE ? available : levelPool;
 
   const copy = [...pool];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -72,7 +75,7 @@ export async function POST(req: Request) {
   // calcule aucune forme fléchie. On lui propose un échantillon renouvelé à
   // chaque appel ; le lemme renvoyé est ensuite revérifié contre la banque
   // entière.
-  const candidates = buildCandidatePool(recentLemmas);
+  const candidates = buildCandidatePool(recentLemmas, profile?.level);
 
   try {
     // "Меня зовут ___" ne devrait jamais atteindre cette route (le client

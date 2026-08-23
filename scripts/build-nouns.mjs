@@ -26,8 +26,14 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE = path.join(ROOT, "scripts", ".cache");
 const CSV = path.join(CACHE, "nouns.csv");
+const FREQ = path.join(CACHE, "ru_50k.txt");
 const SOURCE_URL =
   "https://raw.githubusercontent.com/Badestrand/russian-dictionary/master/nouns.csv";
+// Liste de fréquence (sous-titres) : donne à chaque mot un rang d'usage, pour
+// servir du vocabulaire courant à un débutant et des mots plus rares à un
+// avancé. Ce n'est pas de la morphologie — une approximation d'usage suffit.
+const FREQ_URL =
+  "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/ru/ru_50k.txt";
 const TSV = path.join(ROOT, "scripts", "data", "nouns-fr.tsv");
 const OUT = path.join(ROOT, "lib", "grammar", "nouns-data.generated.ts");
 
@@ -36,6 +42,8 @@ const FORMS = [
   "pl_nom", "pl_gen", "pl_dat", "pl_acc", "pl_inst", "pl_prep",
 ];
 const CYRILLIC = /^[а-яё']+$/;
+/** Rang attribué à un mot absent de la liste de fréquence. */
+const RARE_RANK = 50000;
 const GENDER = { m: "masculine", f: "feminine", n: "neuter" };
 
 // Translittération pour les identifiants : стол -> stol, учитель -> uchitel.
@@ -59,13 +67,29 @@ function accentuate(form) {
 }
 const strip = (s) => s.replace(/'/g, "");
 
-async function ensureCsv() {
-  if (fs.existsSync(CSV)) return;
+async function download(url, target, label) {
+  if (fs.existsSync(target)) return;
   fs.mkdirSync(CACHE, { recursive: true });
-  process.stdout.write(`Téléchargement du dictionnaire OpenRussian…\n`);
-  const res = await fetch(SOURCE_URL);
-  if (!res.ok) throw new Error(`téléchargement impossible (HTTP ${res.status})`);
-  fs.writeFileSync(CSV, Buffer.from(await res.arrayBuffer()));
+  process.stdout.write(`Téléchargement ${label}…\n`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`téléchargement impossible (HTTP ${res.status}) : ${url}`);
+  fs.writeFileSync(target, Buffer.from(await res.arrayBuffer()));
+}
+
+async function ensureSources() {
+  await download(SOURCE_URL, CSV, "du dictionnaire OpenRussian");
+  await download(FREQ_URL, FREQ, "de la liste de fréquence");
+}
+
+/** lemme -> rang d'usage (1 = le plus fréquent). Absent = mot rare. */
+function loadFrequency() {
+  const ranks = new Map();
+  const lines = fs.readFileSync(FREQ, "utf8").split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const word = lines[i].split(" ")[0];
+    if (word && !ranks.has(word)) ranks.set(word, i + 1);
+  }
+  return ranks;
 }
 
 function loadDictionary() {
@@ -123,8 +147,9 @@ function loadWanted() {
 }
 
 async function main() {
-  await ensureCsv();
+  await ensureSources();
   const dict = loadDictionary();
+  const ranks = loadFrequency();
   const wanted = loadWanted();
 
   const problems = [];
@@ -204,6 +229,9 @@ async function main() {
       frenchGender: w.frenchGender,
       gender,
       animacy: r.animate === "1" ? "animate" : "inanimate",
+      // Hors liste de fréquence : considéré comme rare plutôt qu'exclu — le
+      // mot reste jouable, simplement réservé aux niveaux avancés.
+      rank: ranks.get(w.lemma) ?? RARE_RANK,
       singular: forms.slice(0, 6).map(accentuate),
       plural: forms.slice(6).map(accentuate),
     });
@@ -218,7 +246,7 @@ async function main() {
   const body = nouns
     .map((n) => {
       const q = (s) => JSON.stringify(s);
-      return `  { id: ${q(n.id)}, lemma: ${q(n.lemma)}, translation: ${q(n.translation)}, frenchGender: ${q(n.frenchGender)}, gender: ${q(n.gender)}, animacy: ${q(n.animacy)},\n    forms: { singular: [${n.singular.map(q).join(", ")}], plural: [${n.plural.map(q).join(", ")}] } },`;
+      return `  { id: ${q(n.id)}, lemma: ${q(n.lemma)}, translation: ${q(n.translation)}, frenchGender: ${q(n.frenchGender)}, gender: ${q(n.gender)}, animacy: ${q(n.animacy)}, rank: ${n.rank},\n    forms: { singular: [${n.singular.map(q).join(", ")}], plural: [${n.plural.map(q).join(", ")}] } },`;
     })
     .join("\n");
 
@@ -233,6 +261,10 @@ async function main() {
 // Sélection, traductions françaises et genre français :
 // scripts/data/nouns-fr.tsv (écrit à la main).
 //
+// Le champ "rank" est un rang d'usage dans une liste de fréquence (1 = le
+// plus fréquent, 50000 = hors liste) : il sert à adapter la difficulté du
+// vocabulaire au niveau de l'apprenant.
+//
 // Ordre des formes : nominatif, génitif, datif, accusatif, instrumental,
 // prépositionnel. L'accent tonique est un accent aigu combinant (U+0301),
 // omis sur les monosyllabes ; lib/grammar/decline.ts le retire pour
@@ -245,7 +277,13 @@ ${body}
 `;
 
   fs.writeFileSync(OUT, out, "utf8");
+  const sorted = [...nouns].sort((a, b) => a.rank - b.rank);
   console.log(`${nouns.length} noms écrits dans ${path.relative(ROOT, OUT)}`);
+  console.log(
+    `  fréquence : médiane ${sorted[Math.floor(sorted.length / 2)].rank}, ` +
+      `${nouns.filter((n) => n.rank <= 1000).length} dans le top 1000, ` +
+      `${nouns.filter((n) => n.rank >= RARE_RANK).length} hors liste`
+  );
   if (problems.length) process.exitCode = 1;
 }
 

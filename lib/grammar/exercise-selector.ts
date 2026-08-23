@@ -20,25 +20,38 @@ function accuracyWeight(trigger: CaseTrigger, progress: TriggerProgressMap): num
   return Math.max(0.15, 1 - accuracy * 0.85);
 }
 
-// 3 paliers de déclencheurs (voir triggers.ts) mappés sur 3 étapes de
-// progression CEFR plutôt que 6 crans fins — assez pour biaiser le tirage
-// sans sur-ingénierie. Un cran au-dessus reste possible mais rare
-// (exposition progressive), jamais totalement exclu.
-const TIER_RANK: Record<TriggerTier, number> = { basic: 0, intermediate: 1, advanced: 2 };
-const LEVEL_STAGE: Record<CefrLevel, number> = { A0: 0, A1: 0, A2: 1, B1: 1, B2: 2, C1: 2, C2: 2 };
-const MAX_STAGE = 2;
+// Les déclencheurs n'ont que 3 paliers (voir triggers.ts), mais l'échelle
+// CEFR en compte 7 : on travaille donc sur l'INDEX du niveau plutôt que sur
+// une étape à trois valeurs. Auparavant A0 et A1 recevaient exactement le
+// même tirage, A2 et B1 aussi — un grand débutant voyait « вопреки » aussi
+// souvent qu'un A1 confirmé.
+const LEVEL_INDEX: Record<CefrLevel, number> = { A0: 0, A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+// Niveau à partir duquel un palier de déclencheurs est pleinement de saison.
+const TIER_UNLOCK: Record<TriggerTier, number> = { basic: 0, intermediate: 2, advanced: 4 };
+const MAX_LEVEL_INDEX = 6;
+// Un palier se débloque « en avance » quand la maîtrise est démontrée : on
+// avance alors l'index de deux crans, l'écart entre deux paliers.
+const UNLOCK_STEP = 2;
 
 // Seuils de "maîtrise" pour débloquer le palier suivant plus tôt que le
 // niveau du profil ne le suggère — au moins quelques déclencheurs
 // DIFFÉRENTS du palier, chacun essayé plusieurs fois, avec une bonne
 // précision globale. Un seul mot réussi par chance ne suffit pas.
 const MASTERY_MIN_TRIGGERS = 3;
-const MASTERY_MIN_ATTEMPTS_EACH = 3;
-const MASTERY_ACCURACY = 0.85;
+// Exportés : l'estimation continue du niveau (lib/progress/level-estimate.ts)
+// doit dire "maîtrisé" exactement quand le tirage cesse de le proposer en
+// priorité. Deux définitions concurrentes de la maîtrise donneraient un
+// tableau de bord en désaccord avec les exercices.
+export const MASTERY_MIN_ATTEMPTS_EACH = 3;
+export const MASTERY_ACCURACY = 0.85;
 
-function stageMastered(stage: number, triggers: CaseTrigger[], progress: TriggerProgressMap): boolean {
+export function tierMastered(
+  tier: TriggerTier,
+  triggers: CaseTrigger[],
+  progress: TriggerProgressMap
+): boolean {
   const attempted = triggers.filter(
-    (t) => TIER_RANK[t.tier] === stage && (progress[t.id]?.attempts ?? 0) >= MASTERY_MIN_ATTEMPTS_EACH
+    (t) => t.tier === tier && (progress[t.id]?.attempts ?? 0) >= MASTERY_MIN_ATTEMPTS_EACH
   );
   if (attempted.length < MASTERY_MIN_TRIGGERS) return false;
 
@@ -52,25 +65,59 @@ function stageMastered(stage: number, triggers: CaseTrigger[], progress: Trigger
   return totalCorrect / totalAttempts >= MASTERY_ACCURACY;
 }
 
-// Le palier "effectif" part du niveau CEFR du profil mais monte tant que
-// l'utilisateur démontre une vraie maîtrise du palier courant SUR CE CAS
-// précis — plus réactif qu'un niveau de profil figé, qui ne reflète pas
-// forcément la pratique réelle sur un cas donné (ex. un A1 qui a beaucoup
-// pratiqué le génitif spécifiquement peut être prêt pour "вопреки" avant
-// que son niveau global ne change).
-function effectiveStage(baseStage: number, triggers: CaseTrigger[], progress: TriggerProgressMap): number {
-  let stage = baseStage;
-  while (stage < MAX_STAGE && stageMastered(stage, triggers, progress)) {
-    stage += 1;
+/**
+ * Index « effectif » : celui du profil, avancé tant que l'apprenant démontre
+ * une vraie maîtrise du palier courant SUR CE CAS précis — plus réactif
+ * qu'un niveau de profil figé, qui ne reflète pas forcément la pratique
+ * réelle sur un cas donné (un A1 qui a beaucoup travaillé le génitif peut
+ * être prêt pour « вопреки » avant que son niveau global ne bouge).
+ */
+function effectiveIndex(
+  baseIndex: number,
+  triggers: CaseTrigger[],
+  progress: TriggerProgressMap
+): number {
+  let index = baseIndex;
+  const order: TriggerTier[] = ["basic", "intermediate", "advanced"];
+  for (const tier of order) {
+    if (index >= TIER_UNLOCK[tier] + UNLOCK_STEP) continue; // déjà largement acquis
+    if (!tierMastered(tier, triggers, progress)) break;
+    index = Math.min(MAX_LEVEL_INDEX, Math.max(index, TIER_UNLOCK[tier] + UNLOCK_STEP));
   }
-  return stage;
+  return index;
 }
 
-function tierWeight(tier: TriggerTier, stage: number | undefined): number {
-  if (stage === undefined) return 1; // pas de niveau connu (déconnecté, etc.) : aucun biais
-  const gap = TIER_RANK[tier] - stage;
+/**
+ * Part visée pour un palier selon sa distance au niveau de l'apprenant.
+ * Rien n'est jamais exclu : un cran au-dessus reste possible (exposition
+ * progressive), au-delà ça devient rare.
+ */
+function tierShare(tier: TriggerTier, index: number | undefined): number {
+  if (index === undefined) return 1; // pas de niveau connu (déconnecté) : aucun biais
+  const gap = TIER_UNLOCK[tier] - index;
   if (gap <= 0) return 1;
-  return gap === 1 ? 0.35 : 0.1;
+  if (gap === 1) return 0.35;
+  if (gap === 2) return 0.12;
+  return 0.04;
+}
+
+/**
+ * Poids de base d'un déclencheur : la part visée pour son palier, DIVISÉE
+ * par le nombre de déclencheurs de ce palier dans le cas courant.
+ *
+ * Sans cette normalisation, le tirage subit la composition de la banque au
+ * lieu du niveau : le génitif compte 24 déclencheurs intermédiaires pour 13
+ * basiques, si bien qu'un grand débutant recevait un quart d'exercices en
+ * « вокруг » / « в течение » simplement parce qu'ils sont plus nombreux.
+ */
+function tierWeights(triggers: CaseTrigger[], index: number | undefined): Map<TriggerTier, number> {
+  const counts = new Map<TriggerTier, number>();
+  for (const t of triggers) counts.set(t.tier, (counts.get(t.tier) ?? 0) + 1);
+  const weights = new Map<TriggerTier, number>();
+  for (const [tier, count] of counts) {
+    weights.set(tier, tierShare(tier, index) / count);
+  }
+  return weights;
 }
 
 export function pickWeightedTrigger(
@@ -79,8 +126,9 @@ export function pickWeightedTrigger(
   level?: CefrLevel
 ): CaseTrigger {
   if (triggers.length === 0) throw new Error("Aucun déclencheur disponible");
-  const stage = level ? effectiveStage(LEVEL_STAGE[level], triggers, progress) : undefined;
-  const weights = triggers.map((t) => accuracyWeight(t, progress) * tierWeight(t.tier, stage));
+  const index = level ? effectiveIndex(LEVEL_INDEX[level], triggers, progress) : undefined;
+  const byTier = tierWeights(triggers, index);
+  const weights = triggers.map((t) => accuracyWeight(t, progress) * (byTier.get(t.tier) ?? 1));
   const total = weights.reduce((a, b) => a + b, 0);
   let roll = Math.random() * total;
   for (let i = 0; i < triggers.length; i += 1) {

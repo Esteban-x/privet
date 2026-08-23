@@ -76,17 +76,21 @@ function shuffle<T>(arr: T[]): T[] {
 
 // "Меня зовут ___" n'a de sens qu'avec un prénom : ce déclencheur tire dans
 // la banque de prénoms, pas dans celle des noms communs.
-function poolFor(trigger: CaseTrigger): Noun[] {
-  return trigger.id === PROPER_NOUN_TRIGGER_ID ? RUSSIAN_NAMES : DECLINABLE_NOUNS;
+function poolFor(trigger: CaseTrigger, pool: Noun[]): Noun[] {
+  return trigger.id === PROPER_NOUN_TRIGGER_ID ? RUSSIAN_NAMES : pool;
 }
 
 // ─── Déclinaison isolée ────────────────────────────────────────────
-export function generateIsolatedExercise(targetCase: CaseId, plural = false): CaseExercise {
+export function generateIsolatedExercise(
+  targetCase: CaseId,
+  plural = false,
+  pool: Noun[] = DECLINABLE_NOUNS
+): CaseExercise {
   // Le nominatif singulier EST la forme du dictionnaire : rien à décliner.
   // On force donc le pluriel pour tester une vraie transformation
   // (книга -> книги) plutôt que de faire retaper le mot affiché.
   const effectivePlural = targetCase === "nominative" ? true : plural;
-  const noun = pickRandom(DECLINABLE_NOUNS);
+  const noun = pickRandom(pool);
   const result = declineNoun(noun, targetCase, effectivePlural);
   return {
     kind: "isolated",
@@ -100,9 +104,13 @@ export function generateIsolatedExercise(targetCase: CaseId, plural = false): Ca
 }
 
 // ─── Phrase à trou (gabarit fixe, par déclencheur) ─────────────────
-export function generateSentenceExercise(targetCase: CaseId, trigger?: CaseTrigger): CaseExercise {
+export function generateSentenceExercise(
+  targetCase: CaseId,
+  trigger?: CaseTrigger,
+  pool: Noun[] = DECLINABLE_NOUNS
+): CaseExercise {
   const chosenTrigger = trigger ?? pickRandom(triggersForCase(targetCase));
-  const noun = pickRandom(poolFor(chosenTrigger));
+  const noun = pickRandom(poolFor(chosenTrigger, pool));
   const plural = chosenTrigger.plural ?? false;
   const result = declineNoun(noun, targetCase, plural);
 
@@ -124,8 +132,12 @@ export function generateSentenceExercise(targetCase: CaseId, trigger?: CaseTrigg
 }
 
 // ─── QCM de reconnaissance de déclencheur ──────────────────────────
-export function generateMcqExercise(targetCase: CaseId, trigger?: CaseTrigger): CaseExercise {
-  const base = generateSentenceExercise(targetCase, trigger);
+export function generateMcqExercise(
+  targetCase: CaseId,
+  trigger?: CaseTrigger,
+  pool: Noun[] = DECLINABLE_NOUNS
+): CaseExercise {
+  const base = generateSentenceExercise(targetCase, trigger, pool);
   const otherCases = CASES.map((c) => c.id).filter((id) => id !== targetCase);
 
   const distractors = new Set<string>();
@@ -139,7 +151,7 @@ export function generateMcqExercise(targetCase: CaseId, trigger?: CaseTrigger): 
   let guard = 0;
   while (distractors.size < 3 && guard < 10) {
     guard += 1;
-    const otherNoun = pickRandom(DECLINABLE_NOUNS);
+    const otherNoun = pickRandom(pool);
     if (otherNoun.id === base.noun.id) continue;
     const form = declineNoun(otherNoun, targetCase, base.plural).form;
     if (form !== base.correctForm) distractors.add(form);
@@ -150,10 +162,10 @@ export function generateMcqExercise(targetCase: CaseId, trigger?: CaseTrigger): 
 }
 
 // ─── Accord nom + chiffre cardinal ─────────────────────────────────
-export function generateNumeralExercise(): CaseExercise {
+export function generateNumeralExercise(pool: Noun[] = DECLINABLE_NOUNS): CaseExercise {
   const numeral = randomCountNumber();
   const countForm = countFormFor(numeral);
-  const noun = pickRandom(DECLINABLE_NOUNS);
+  const noun = pickRandom(pool);
 
   // Un nombre en 1 (1, 21, 31…) laisse le nom au NOMINATIF singulier, même
   // si l'onglet vit sur la page du génitif — d'où `targetCase` porté par
@@ -179,6 +191,7 @@ export function generateNumeralExercise(): CaseExercise {
 export function generateAdjectiveExercise(
   targetCase: CaseId,
   trigger?: CaseTrigger,
+  pool: Noun[] = DECLINABLE_NOUNS,
   adjPool: Adjective[] = ADJECTIVES
 ): CaseExercise {
   // "Меня зовут ___" est incompatible avec cet exercice : il tire un prénom,
@@ -189,7 +202,7 @@ export function generateAdjectiveExercise(
   const eligible = triggersForCase(targetCase).filter((t) => t.id !== PROPER_NOUN_TRIGGER_ID);
   const chosenTrigger =
     trigger && trigger.id !== PROPER_NOUN_TRIGGER_ID ? trigger : pickRandom(eligible);
-  const noun = pickRandom(DECLINABLE_NOUNS);
+  const noun = pickRandom(pool);
   const adjective = pickRandom(adjPool);
   const plural = chosenTrigger.plural ?? false;
 
