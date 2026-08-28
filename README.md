@@ -1,12 +1,12 @@
-# Privet — apprendre le russe
+# Privetik — apprendre le russe
 
 App Next.js (App Router, TypeScript, Tailwind v4) : déclinaison des 6 cas,
 vocabulaire (SRS + frappe), lecture graduée, **inscription email/mot de passe
 (confirmation par email + captcha)**, **auth Google via Supabase**,
-**test de niveau**, **tuteur IA** et **dashboard**.
+**test de niveau** et **dashboard**.
 
-L'IA (Anthropic) sert à générer exercices contextuels, textes de lecture
-originaux et dialogue. Elle ne calcule **jamais** une déclinaison : ça reste
+L'IA (Anthropic) sert à générer exercices contextuels et textes de lecture
+originaux. Elle ne calcule **jamais** une déclinaison : ça reste
 le rôle du moteur de règles déterministe (`lib/grammar/`).
 
 ---
@@ -28,7 +28,7 @@ cp .env.local.example .env.local   # puis remplis les valeurs (voir §4)
 
 1. Crée un projet sur supabase.com.
 2. **SQL Editor → New query** : colle tout le contenu de `supabase/schema.sql`
-   et exécute. Ça crée les tables (profiles, progression, SRS, chat…), les
+   et exécute. Ça crée les tables (profiles, progression, SRS, lecture…), les
    politiques Row Level Security, le trigger de création de profil, et la
    fonction `delete_own_account` qu'utilise `/account` pour la suppression de
    compte. Le fichier est idempotent — le relancer sur un projet existant (par
@@ -85,7 +85,6 @@ cp .env.local.example .env.local   # puis remplis les valeurs (voir §4)
 ```
 ANTHROPIC_API_KEY=sk-ant-...          # TA clé, jamais partagée ni commitée
 ANTHROPIC_MODEL_FAST=claude-haiku-4-5
-ANTHROPIC_MODEL_CHAT=claude-sonnet-5
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -114,6 +113,7 @@ npm run check:progression # adaptation au niveau et estimation continue
 npm run check:motion      # verbes de mouvement : formes et cohérence des exercices
 npm run check:aspect      # aspect verbal : paires et cohérence des exercices
 npm run check:participles # participes : formes, trous réels et accords
+npm run check:adjectives  # accord de l'adjectif : contextes écrits et témoins
 npm run build:nouns     # régénère la banque depuis le dictionnaire (rare)
 ```
 
@@ -148,7 +148,6 @@ app/
   api/
     ai/exercise      génère un exercice contextuel pour un cas (Haiku)
     ai/reading       génère un texte de lecture original gradué (Haiku)
-    ai/chat          tuteur IA en streaming (Sonnet)
     level-test/evaluate  rejoue le calcul du niveau côté serveur
     profile          met à jour le profil (nom affiché, onboarded, objectif
                      quotidien de révision)
@@ -157,8 +156,9 @@ app/
   auth/confirmed     écran de confirmation avant de continuer
   signup/            page d'inscription + action serveur (actions.ts)
   account/           réglages du compte + action serveur (suppression)
-  login, onboarding, dashboard, tutor
-  cases, motion, aspect, participles, vocabulary, reading  (modules)
+  login, onboarding, dashboard
+  cases, motion, aspect, participles, adjectives, vocabulary, reading
+                     (modules)
 components/
   auth/              SignupForm, TurnstileWidget
   account/           ProfileSettings, PreferencesSettings, PasswordSettings,
@@ -463,11 +463,11 @@ de réussite reste estimée A0.
   ne manque que la traduction française.
 - Corpus de classiques du domaine public (Pouchkine, Tchekhov…) pour compléter
   la lecture générée.
-- Continuer d'élargir les banques des quatre modules de grammaire : chaque
+- Continuer d'élargir les banques des cinq modules de grammaire : chaque
   compétence tient entre 7 et 31 contextes distincts. C'est du travail de
   contenu, et les suites de contrôle valident chaque ajout.
-- Les trois erreurs de lint pré-existantes hors modules (`tutor`,
-  `speech.ts`).
+- L'erreur de lint pré-existante hors modules (`speech.ts`, setState dans un
+  effet).
 - Faire entrer `motion_progress` dans l'estimation continue du niveau : les
   seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
   demande de les recalibrer.

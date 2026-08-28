@@ -2,9 +2,15 @@ import type { ReadingText } from "./texts";
 import type { ReadingLength, ReadingStyle } from "@/lib/ai/prompts";
 import type { CaseId } from "@/lib/grammar/types";
 import type { CefrLevel } from "@/lib/supabase/types";
+import { quotaErrorFrom } from "@/lib/billing/quota-client";
 
 async function json<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
+  // Le refus de quota AVANT l'erreur générique : un 429 est une réponse
+  // normale (plafond atteint), pas un incident réseau, et il appelle un
+  // écran d'abonnement plutôt qu'un message rouge « réessayer ».
+  const quota = quotaErrorFrom(res, data);
+  if (quota) throw quota;
   if (!res.ok) throw new Error(data.error || "Erreur réseau");
   return data as T;
 }

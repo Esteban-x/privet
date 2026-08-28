@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/api/validate";
+import { focusOf } from "@/lib/vocabulary/focus";
 
 // Détail d'une liste (mots + état SRS pour la reprise en carte). RLS filtre
 // déjà par propriétaire ; les .eq("id", listId) / .eq("list_id", listId)
@@ -34,14 +35,14 @@ export async function GET(
   const { data: words, error: wordsError } = await supabase
     .from("vocab_words")
     .select(
-      "id, ru, transliteration, fr, example_ru, example_fr, gender, animacy, stem_type, indeclinable, french_gender, created_at"
+      "id, ru, transliteration, fr, example_ru, example_fr, gender, animacy, stem_type, indeclinable, french_gender, focus, created_at"
     )
     .eq("list_id", listId)
     .order("created_at", { ascending: true });
   if (wordsError) {
-    // Erreur DB inattendue (ex. colonne manquante si supabase/schema.sql n'a
-    // pas été rejoué après une migration) — tracée ici, sinon invisible côté
-    // serveur alors que le client ne voit qu'un message générique.
+    // Erreur DB inattendue (ex. colonne manquante si les migrations n'ont
+    // pas été appliquées, `npm run db:push`) — tracée ici, sinon invisible
+    // côté serveur alors que le client ne voit qu'un message générique.
     console.error("GET /api/vocab/lists/[listId] échec vocab_words", wordsError);
     return NextResponse.json({ error: wordsError.message }, { status: 500 });
   }
@@ -72,6 +73,7 @@ export async function GET(
         stemType: w.stem_type,
         indeclinable: w.indeclinable,
         frenchGender: w.french_gender,
+        focus: focusOf(w),
         srs: srs
           ? {
               easeFactor: srs.ease_factor,

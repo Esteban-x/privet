@@ -7,12 +7,10 @@ import { INITIAL_SIGNUP_STATE } from "@/lib/auth/signup-state";
 import { PASSWORD_MIN } from "@/lib/auth/validation";
 import ResendConfirmationForm from "./ResendConfirmationForm";
 import TurnstileWidget from "./TurnstileWidget";
+import { MailIcon } from "@/components/ui/icons";
 
 export default function SignupForm() {
-  const [state, formAction, pending] = useActionState(
-    signUpAction,
-    INITIAL_SIGNUP_STATE
-  );
+  const [state, formAction, pending] = useActionState(signUpAction, INITIAL_SIGNUP_STATE);
   const [showPassword, setShowPassword] = useState(false);
 
   // Un jeton Turnstile est à usage unique : après chaque échec, le widget doit
@@ -116,13 +114,13 @@ export default function SignupForm() {
       <button
         type="submit"
         disabled={pending}
-        className="mt-6 w-full rounded-[10px] bg-accent px-4 py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-60"
+        className="btn surface-interactive surface-static mt-6 h-12 w-full rounded-xl px-4 font-display text-sm font-semibold disabled:opacity-60"
       >
-        {pending ? "Création du compte…" : "Créer mon compte"}
+        <span>{pending ? "Création du compte…" : "Créer mon compte"}</span>
       </button>
 
       <p className="mt-5 text-center font-display text-sm text-muted">
-        Déjà inscrit ?{" "}
+        Déjà inscrit ?{""}
         <Link href="/login" className="font-semibold text-text hover:text-accent">
           Se connecter
         </Link>
@@ -136,14 +134,14 @@ export default function SignupForm() {
 function ConfirmationSent({ email }: { email: string }) {
   return (
     <div className="text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-success/15 text-2xl">
-        ✉️
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-success/15 text-success">
+        <MailIcon className="h-6 w-6" />
       </div>
       <h2 className="mt-5 font-display text-xl font-bold">Vérifie ta boîte mail</h2>
       <p className="mt-2 font-display text-sm text-muted">
-        Un lien de confirmation a été envoyé à{" "}
-        <span className="font-semibold text-text">{email}</span>. Clique dessus pour
-        activer ton compte — tu ne pourras pas te connecter avant.
+        Un lien de confirmation a été envoyé à{""}
+        <span className="font-semibold text-text">{email}</span>. Clique dessus pour activer ton
+        compte — tu ne pourras pas te connecter avant.
       </p>
       <p className="mt-3 font-display text-xs text-muted">
         Rien reçu au bout de deux minutes ? Regarde dans les spams.
@@ -191,10 +189,7 @@ function Field({
 
   return (
     <div>
-      <label
-        htmlFor={name}
-        className="mb-1.5 block font-display text-sm font-medium text-muted"
-      >
+      <label htmlFor={name} className="mb-1.5 block font-display text-sm font-medium text-muted">
         {label}
       </label>
       <input
@@ -207,8 +202,8 @@ function Field({
         defaultValue={defaultValue}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
-        className={`w-full rounded-[10px] border bg-bg px-3.5 py-2.5 font-display text-sm text-text placeholder:text-muted/60 focus:outline-none ${
-          error ? "border-danger focus:border-danger" : "border-border focus:border-accent"
+        className={`w-full rounded-[10px] border bg-bg px-3.5 py-2.5 font-display text-sm text-text placeholder:text-muted/60 field-focus focus:outline-none ${
+          error ? "border-danger focus:border-danger" : "border-border"
         }`}
       />
       {error ? (

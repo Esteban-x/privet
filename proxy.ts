@@ -1,10 +1,75 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isKnownRoute } from "@/lib/routes";
 
 // Rafraîchit la session à chaque requête et garde les routes privées.
 // Routes publiques : accueil, login, inscription, callback OAuth + confirmation
 // d'email.
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/auth"];
+//
+// /api/billing/webhook DOIT y figurer : c'est Stripe qui l'appelle, sans
+// cookie de session. Sans cette ligne, le garde-fou ci-dessous répondrait
+// une redirection 307 vers /login à chaque événement — Stripe la compterait
+// comme un échec, rejouerait, puis désactiverait le webhook au bout de
+// quelques jours. Les abonnements cesseraient alors d'être enregistrés,
+// silencieusement. La route vérifie elle-même la signature Stripe, qui est
+// une authentification bien plus forte qu'un cookie.
+// /premium doit être publique : c'est la page qui donne envie de payer, et
+// renvoyer un visiteur vers /login au moment précis où il compare les
+// formules est la façon la plus sûre de le perdre.
+//
+// ─── LE COURS ET LES TABLES SONT PUBLICS ─────────────────────────────
+//
+// POURQUOI. Tant que tout était fermé, un moteur de recherche ne voyait que
+// deux pages : l'accueil et les tarifs. Les 130 leçons, les six cas,
+// l'alphabet et les tables de conjugaison — c'est-à-dire l'intégralité de ce
+// qui répond à « déclinaison russe » ou « alphabet cyrillique » — étaient
+// invisibles. On ne se classe pas sur une requête d'apprentissage avec deux
+// pages, quelles que soient les balises.
+//
+// CE N'EST PAS UN CADEAU : la page de prix promet déjà « les 130 leçons, en
+// entier » dans la formule gratuite. Elles étaient derrière une INSCRIPTION,
+// pas derrière un paiement. On déplace la barrière d'un cran, à l'endroit où
+// elle a un sens — le moment où l'on s'entraîne, pas celui où l'on lit.
+//
+// CE QUI RESTE FERMÉ, ET POURQUOI. Tout ce qui écrit quelque chose sur un
+// compte : exercices, vocabulaire, lecture générée, progression. C'est là
+// que vivent les plafonds du plan gratuit, et les ouvrir aux visiteurs
+// reviendrait à offrir un contournement — se déconnecter pour s'entraîner
+// sans compteur.
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/signup",
+  "/auth",
+  "/premium",
+  "/api/billing/webhook",
+  // Le cours rédigé, unités et leçons.
+  "/cours",
+  // Les six cas : usage, déclencheurs et tables de terminaisons. La carte
+  // d'entraînement qui vit sur ces pages demande, elle, un compte — voir
+  // app/cases/[caseSlug]/page.tsx.
+  "/cases",
+  // Les tables de référence. Leurs sous-pages `/[skill]` sont des exercices
+  // et restent fermées : elles ne sont pas listées ici, et le préfixe ne les
+  // couvre pas puisqu'on compare sur `p + "/"` — voir plus bas.
+  "/alphabet",
+  "/conjugation",
+  "/numbers",
+  // Les guides de référencement. Hors navigation par choix — ils ne
+  // font pas partie du produit, ils y mènent — mais publics par nécessité :
+  // une page destinée à être trouvée par un moteur ne peut pas exiger une
+  // session.
+  "/guides",
+];
+
+/**
+ * Les sections dont l'INDEX est public mais dont les sous-pages sont des
+ * exercices. `/alphabet` se lit sans compte, `/alphabet/lecture` non.
+ *
+ * Sans cette liste, le test `path.startsWith(p + "/")` ouvrirait toute la
+ * descendance — et les modules d'entraînement avec elle, plafonds compris.
+ */
+const INDEX_ONLY = ["/alphabet", "/conjugation", "/numbers"];
 
 // Routes accessibles à un utilisateur connecté même s'il n'a pas terminé
 // l'onboarding : l'onboarding lui-même, et les API qu'il appelle pour
@@ -47,7 +112,19 @@ export default async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+
+  // UNE ADRESSE QUI N'EXISTE PAS N'EST PAS UNE ADRESSE PROTÉGÉE. Sans ce
+  // passage, le refus par défaut ci-dessous renvoyait vers /login toute URL
+  // inconnue : un visiteur déconnecté ne voyait jamais la page introuvable,
+  // et un robot d'indexation recevait une redirection là où il attendait un
+  // 404 — de quoi laisser des adresses mortes dans l'index pendant des
+  // mois. On laisse passer, Next rend app/not-found.tsx (avec son
+  // `robots: noindex`).
+  if (!isKnownRoute(path)) return response;
+
+  const isPublic = PUBLIC_PATHS.some(
+    (p) => path === p || (path.startsWith(p + "/") && !INDEX_ONLY.includes(p))
+  );
 
   if (!user && !isPublic) {
     const loginUrl = request.nextUrl.clone();
@@ -58,7 +135,7 @@ export default async function proxy(request: NextRequest) {
 
   // Connecté mais onboarding pas terminé (test de niveau + thèmes) : on force
   // /onboarding sur TOUTE route protégée, pas seulement /dashboard — sinon
-  // quelqu'un qui se connecte puis navigue directement vers /tutor ou /cases
+  // quelqu'un qui se connecte puis navigue directement vers /cases ou /reading
   // contourne l'étape.
   if (user && !isPublic) {
     const isExempt = ONBOARDING_EXEMPT_PATHS.some((p) => path === p || path.startsWith(p + "/"));

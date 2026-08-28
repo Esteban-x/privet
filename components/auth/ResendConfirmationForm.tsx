@@ -35,7 +35,7 @@ export default function ResendConfirmationForm({ email }: { email: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-4 w-full rounded-[10px] border border-border px-4 py-2.5 font-display text-sm font-medium text-text transition-colors hover:border-accent disabled:opacity-60"
+        className="mt-4 w-full rounded-[10px] border border-border px-4 py-2.5 font-display text-sm font-medium text-text transition-colors hover:bg-accent/10 hover:border-accent/35 disabled:opacity-60"
       >
         {pending ? "Envoi…" : "Renvoyer l'email de confirmation"}
       </button>

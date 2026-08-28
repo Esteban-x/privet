@@ -5,7 +5,7 @@ import { PARTICIPLE_VERBS } from "@/lib/participles/verbs";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Participes et gérondifs — Privet",
+  title: "Participes et gérondifs",
 };
 
 const SKILL_COLOR: Record<string, string> = {
@@ -55,12 +55,12 @@ export default async function ParticiplesHub() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-8 sm:py-16">
       <SectionLabel color="accent2">Причастия и деепричастия</SectionLabel>
-      <h1 className="mb-3 font-display text-4xl font-extrabold tracking-tight">
+      <h1 className="mb-3 font-display text-3xl font-extrabold sm:text-4xl tracking-tight">
         Participes et gérondifs
       </h1>
-      <p className="mb-10 max-w-2xl font-display leading-relaxed text-muted">
+      <p className="mb-7 sm:mb-10 max-w-2xl font-display leading-relaxed text-muted">
         Le russe comprime une subordonnée entière en un seul mot : « челове́к,{" "}
         <span className="text-text">кото́рый чита́ет</span> кни́гу » devient « челове́к,{" "}
         <span className="text-text">чита́ющий</span> кни́гу ». Le français a la même forme —
@@ -68,7 +68,7 @@ export default async function ParticiplesHub() {
         russe elle s&apos;accorde comme un adjectif, et elle est partout.
       </p>
 
-      <div className="mb-12 space-y-3 rounded-[20px] border border-border bg-bg2 p-7">
+      <div className="mb-12 space-y-3 rounded-[20px] surface p-7">
         {SHOWCASE.map((s) => (
           <div key={s.label} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-display text-lg text-muted">{s.expanded}</span>
@@ -90,7 +90,7 @@ export default async function ParticiplesHub() {
             <Link
               key={skill.id}
               href={`/participles/${skill.id}`}
-              className="group flex items-start gap-4 rounded-2xl border border-border bg-bg2 p-6 transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.5)]"
+              className="group flex items-start gap-4 rounded-2xl surface-interactive p-6 hover:-translate-y-1 hover:"
             >
               <div
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-display text-xs font-bold text-white"
@@ -123,7 +123,7 @@ export default async function ParticiplesHub() {
         })}
       </div>
 
-      <div className="mt-14">
+      <div className="mt-10 sm:mt-14">
         <SectionLabel color="accent">Tableau des formes</SectionLabel>
         <p className="mb-4 max-w-2xl font-display text-sm leading-relaxed text-muted">
           Un tiret signale un trou réel de la langue, pas un oubli : « писа́ть » n&apos;a pas de

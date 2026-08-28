@@ -8,6 +8,9 @@ import SessionSummary from "@/components/exercises/SessionSummary";
 import { loadDirection, saveDirection, type VocabDirection } from "@/lib/storage";
 import { fetchDailyProgress } from "@/lib/vocabulary/custom";
 import { useReviewQueue } from "@/lib/vocabulary/useReviewQueue";
+import PaywallNotice from "@/components/ui/PaywallNotice";
+import AllKnownState from "@/components/vocabulary/AllKnownState";
+import FocusControl from "@/components/vocabulary/FocusControl";
 import { ReviewCardSkeleton } from "@/components/ui/Skeleton";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -40,6 +43,7 @@ function QcmInner() {
   const [picked, setPicked] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState(false);
   const {
+    blocked,
     current,
     submitAnswer,
     advance,
@@ -51,6 +55,9 @@ function QcmInner() {
     sessionIndex,
     sessionCorrect,
     noWordsAtAll,
+    allKnown,
+    currentFocus,
+    setFocus,
   } = useReviewQueue(listId);
 
   const [daily, setDaily] = useState<{ reviewedToday: number; goal: number } | null>(null);
@@ -90,9 +97,23 @@ function QcmInner() {
   const backHref = listId ? `/vocabulary/lists/${listId}` : "/vocabulary/review";
   const backLabel = listId ? `← ${listName || "Liste"}` : "← Révision";
 
+  // Le plafond de révisions du plan gratuit passe AVANT tout le reste :
+  // une fois atteint, il n'y a plus ni carte à charger ni file à résumer.
+  if (blocked) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-8 sm:py-16">
+        <PaywallNotice
+          quota={blocked.quota}
+          message={blocked.message}
+          what="la révision du vocabulaire"
+        />
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-24 text-center">
+      <div className="mx-auto max-w-2xl px-6 py-14 sm:py-24 text-center">
         <p className="font-display text-lg text-danger">{loadError}</p>
       </div>
     );
@@ -100,7 +121,7 @@ function QcmInner() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-16">
+      <div className="mx-auto max-w-2xl px-6 py-8 sm:py-16">
         <ReviewCardSkeleton />
       </div>
     );
@@ -110,9 +131,13 @@ function QcmInner() {
     return <EmptyState />;
   }
 
+  if (allKnown) {
+    return <AllKnownState backHref={backHref} backLabel={backLabel} />;
+  }
+
   if (!current) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-24">
+      <div className="mx-auto max-w-2xl px-6 py-14 sm:py-24">
         <SessionSummary
           reviewed={sessionIndex}
           correct={sessionCorrect}
@@ -128,14 +153,14 @@ function QcmInner() {
 
   if (options.length < 2) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-24 text-center">
+      <div className="mx-auto max-w-2xl px-6 py-14 sm:py-24 text-center">
         <p className="font-display text-lg font-semibold">Pas assez de mots pour un QCM ici</p>
         <p className="mt-2 font-display text-sm text-muted">
           Ajoute d&apos;autres mots à cette liste, ou essaie la révision globale.
         </p>
         <Link
           href={backHref}
-          className="mt-5 inline-block rounded-[10px] bg-accent px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+          className="btn btn-primary btn-sheen mt-5 inline-block rounded-[10px] px-5 py-2.5 font-display text-sm"
         >
           {backLabel}
         </Link>
@@ -170,7 +195,7 @@ function QcmInner() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16">
+    <div className="mx-auto max-w-2xl px-6 py-8 sm:py-16">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <Link
           href={backHref}
@@ -190,7 +215,14 @@ function QcmInner() {
         </p>
       </div>
 
-      <div className="rounded-[20px] border border-border bg-bg2 p-8 text-center shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+      {/* Le même sélecteur que sur la carte d'une liste, à la même place
+          dans le geste : ce que l'apprenant décide ici vaut pour toutes les
+          révisions à venir. */}
+      <div className="mb-4 flex justify-center">
+        <FocusControl value={currentFocus} word={current.ru} onChange={setFocus} />
+      </div>
+
+      <div className="rounded-[20px] surface p-8 text-center shadow-float">
         <p className="font-display text-sm text-muted">{instruction}</p>
         <p className="mt-2 font-display text-3xl font-bold text-accent2">{clue}</p>
 
@@ -208,7 +240,7 @@ function QcmInner() {
                     ? "border-success bg-success/10 text-success"
                     : isPickedWrong
                       ? "border-danger bg-danger/10 text-danger"
-                      : "border-border bg-bg text-text hover:border-accent"
+                      : "border-border bg-bg text-text hover:bg-accent/10 hover:border-accent/35"
                 } disabled:cursor-default`}
               >
                 {opt}
@@ -226,7 +258,7 @@ function QcmInner() {
         {picked && (
           <button
             onClick={next}
-            className="mt-6 w-full rounded-[10px] bg-accent py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+            className="btn btn-primary btn-sheen mt-6 w-full rounded-[10px] py-3 font-display text-sm"
           >
             Suivant →
           </button>
@@ -238,7 +270,7 @@ function QcmInner() {
 
 function EmptyState() {
   return (
-    <div className="mx-auto max-w-md px-6 py-24 text-center">
+    <div className="mx-auto max-w-md px-6 py-14 sm:py-24 text-center">
       <p className="font-display text-lg font-semibold">Aucun mot à réviser pour l&apos;instant</p>
       <p className="mt-2 font-display text-sm text-muted">
         Choisis des thèmes dans ton{" "}
@@ -249,7 +281,7 @@ function EmptyState() {
       </p>
       <Link
         href="/vocabulary"
-        className="mt-5 inline-block rounded-[10px] bg-accent px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+        className="btn btn-primary btn-sheen mt-5 inline-block rounded-[10px] px-5 py-2.5 font-display text-sm"
       >
         Aller à mes listes
       </Link>

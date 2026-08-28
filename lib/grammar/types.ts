@@ -83,38 +83,19 @@ export interface Adjective {
   translation: string;
   stemType: StemType; // "mixed" = radical en г,к,х,ж,ч,ш,щ (règle -ий/-ие)
   stressedEnding?: boolean; // accent sur la désinence -> -ой au masc./neutre au lieu de -ый/-ий
-  /**
-   * Ce que l'adjectif peut qualifier sans produire d'absurdité.
-   *
-   * Le nom d'un exercice d'accord est tiré au hasard : sans contrainte, on
-   * obtenait « вку́сная сосе́дка » (une voisine savoureuse) ou « у́мное
-   * коли́чество » (une quantité intelligente). L'apprenant travaille alors
-   * la désinence sur une phrase qu'il n'oserait jamais dire.
-   *
-   * Absent = convient à peu près à tout (большо́й, но́вый, плохо́й).
-   */
-  appliesTo?: "animate" | "inanimate";
-  /**
-   * Formes françaises, pour écrire la traduction de la phrase d'exercice.
-   *
-   * Le russe antépose toujours l'adjectif et n'a qu'une forme par cas ; le
-   * français le place tantôt avant, tantôt après, et l'accorde autrement.
-   * Concaténer la traduction brute donnait « vif, éclatant bâtiment » : les
-   * formes sont donc écrites, pas devinées.
-   */
-  fr: {
-    m: string;
-    f: string;
-    /** Masculin devant voyelle : bel, nouvel, vieil. Absent si identique. */
-    mVowel?: string;
-    /** Place habituelle en français. */
-    position: "before" | "after";
-  };
-  /**
-   * Adjectif trop étroit pour se laisser décrire par l'animacité : la liste
-   * des noms qu'il peut qualifier, par identifiant. « вку́сный » ne va
-   * qu'avec de la nourriture, et aucun champ de la banque ne dit qu'un mot
-   * est comestible.
-   */
-  onlyNouns?: string[];
 }
+
+/**
+ * `appliesTo`, `onlyNouns` et `fr` ont été retirés d'ici.
+ *
+ * Les deux premiers disaient ce qu'un adjectif peut qualifier, pour
+ * empêcher une voisine « savoureuse » quand l'exercice d'accord tirait le
+ * nom au hasard. L'approximation ne tenait pas : elle passait par
+ * l'animacité GRAMMATICALE, qui n'est pas une propriété sémantique, et
+ * laissait passer une phrase sur trois. Le troisième écrivait la
+ * traduction française de ces phrases assemblées.
+ *
+ * Les trois disparaissent avec leur cause : le couple adjectif + nom n'est
+ * plus tiré, il est écrit contexte par contexte dans
+ * lib/adjectives/exercises.ts, traduction française comprise.
+ */

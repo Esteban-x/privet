@@ -6,7 +6,7 @@ import { MOTION_PAIRS, MOTION_PREFIXES } from "@/lib/motion/verbs";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Verbes de mouvement — Privet",
+  title: "Verbes de mouvement",
 };
 
 const SKILL_COLOR: Record<string, string> = {
@@ -44,19 +44,19 @@ export default async function MotionHub() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-8 sm:py-16">
       <SectionLabel color="accent2">Глаголы движения</SectionLabel>
-      <h1 className="mb-3 font-display text-4xl font-extrabold tracking-tight">
+      <h1 className="mb-3 font-display text-3xl font-extrabold sm:text-4xl tracking-tight">
         Verbes de mouvement
       </h1>
-      <p className="mb-10 max-w-2xl font-display leading-relaxed text-muted">
+      <p className="mb-7 sm:mb-10 max-w-2xl font-display leading-relaxed text-muted">
         Le français dit « aller » ; le russe demande trois décisions à la fois — à pied ou en
         véhicule, un trajet ou une habitude, et quel préfixe. C&apos;est de la géométrie avant
         d&apos;être du vocabulaire, alors on l&apos;apprend en lisant des schémas.
       </p>
 
       {/* La distinction fondatrice, montrée avant d'être expliquée. */}
-      <div className="mb-12 grid grid-cols-1 gap-4 rounded-[20px] border border-border bg-bg2 p-7 sm:grid-cols-2">
+      <div className="mb-12 grid grid-cols-1 gap-4 rounded-[20px] surface p-7 sm:grid-cols-2">
         <figure className="flex flex-col items-center">
           <TrajectoryDiagram schema="oneway" mode="foot" />
           <figcaption className="mt-2 text-center font-display text-sm">
@@ -86,7 +86,7 @@ export default async function MotionHub() {
             <Link
               key={skill.id}
               href={`/motion/${skill.id}`}
-              className="group rounded-2xl border border-border bg-bg2 p-6 transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.5)]"
+              className="group rounded-2xl surface-interactive p-6 hover:-translate-y-1 hover:"
             >
               <div className="flex items-start gap-4">
                 <div
@@ -127,7 +127,7 @@ export default async function MotionHub() {
       </div>
 
       {/* Tableau de référence : les paires, puis les préfixes. */}
-      <div className="mt-14">
+      <div className="mt-10 sm:mt-14">
         <SectionLabel color="accent">Les paires de base</SectionLabel>
         <div className="overflow-hidden overflow-x-auto rounded-2xl border border-border">
           <table className="w-full border-collapse font-display text-sm">
@@ -172,7 +172,7 @@ export default async function MotionHub() {
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {MOTION_PREFIXES.map((p) => (
-            <div key={p.id} className="rounded-2xl border border-border bg-bg2 p-5">
+            <div key={p.id} className="rounded-2xl surface p-5">
               <div className="flex items-baseline gap-2">
                 <span className="font-display text-lg font-bold text-accent">{p.perfective}</span>
                 <span className="font-display text-sm text-muted">/ {p.imperfective}</span>

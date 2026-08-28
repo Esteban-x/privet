@@ -30,23 +30,23 @@ export default function SessionSummary({
   return (
     <div className="mx-auto max-w-md text-center">
       <p className="font-display text-3xl font-bold">
-        {reviewed === 0 ? "Rien à réviser ici 🎉" : "Session terminée 🎉"}
+        {reviewed === 0 ? "Rien à réviser ici" : "Session terminée"}
       </p>
 
       {reviewed > 0 && (
         <div className="mt-6 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-border bg-bg2 p-4">
+          <div className="rounded-2xl surface p-4">
             <p className="font-display text-2xl font-extrabold text-accent">{reviewed}</p>
             <p className="font-display text-xs text-muted">mot{reviewed > 1 ? "s" : ""} revu{reviewed > 1 ? "s" : ""}</p>
           </div>
-          <div className="rounded-2xl border border-border bg-bg2 p-4">
+          <div className="rounded-2xl surface p-4">
             <p className="font-display text-2xl font-extrabold text-accent">{accuracy}%</p>
             <p className="font-display text-xs text-muted">de réussite</p>
           </div>
         </div>
       )}
 
-      <div className="mt-6 rounded-2xl border border-border bg-bg2 p-5 text-left">
+      <div className="mt-6 rounded-2xl surface p-5 text-left">
         <div className="mb-2 flex items-center justify-between">
           <p className="font-display text-sm font-semibold text-muted">Objectif du jour</p>
           <p className="font-display text-sm font-bold">
@@ -70,14 +70,14 @@ export default function SessionSummary({
         {onRestart && (
           <button
             onClick={onRestart}
-            className="rounded-[10px] bg-accent px-6 py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+            className="btn btn-primary btn-sheen rounded-[10px] px-6 py-3 font-display text-sm"
           >
             Encore →
           </button>
         )}
         <Link
           href={backHref}
-          className="rounded-[10px] border border-border px-6 py-3 font-display text-sm font-semibold text-text transition-colors hover:border-accent"
+          className="rounded-[10px] border border-border px-6 py-3 font-display text-sm font-semibold text-text transition-colors hover:bg-accent/10 hover:border-accent/35"
         >
           {backLabel}
         </Link>

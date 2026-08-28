@@ -19,26 +19,275 @@
  * `unicode-range` la cantonne au cyrillique : tout le reste vient d'Inter.
  */
 @font-face {
-  font-family: "Privet Cyrillic";
+  font-family: "Privetik Cyrillic";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/privet-cyrillic.woff2") format("woff2");
+  src: url("/fonts/privetik-cyrillic.woff2") format("woff2");
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
+/* ════════════════════════════════════════════════════════════════
+ * JETONS DE COULEUR — deux thèmes, une seule liste de noms.
+ *
+ * Aucun composant ne connaît « #0d0f14 » : il demande `bg-bg2`, et c'est
+ * ici que la valeur change selon le thème. C'est ce qui permet d'avoir
+ * ajouté le mode clair sans toucher à un seul composant.
+ *
+ * L'ORDRE COMPTE. `:root` porte le SOMBRE, qui est l'identité de l'app et
+ * ce que voit quelqu'un sans préférence exprimée. Le clair arrive ensuite,
+ * d'abord si le système le demande, puis si l'utilisateur l'a choisi
+ * explicitement — le choix explicite gagne toujours, dans les deux sens.
+ * ════════════════════════════════════════════════════════════════ */
 :root {
-  --color-bg: #0d0f14;
-  --color-bg2: #151822;
-  --color-bg3: #1c202c;
-  --color-border: #262b38;
-  --color-text: #f3f4f7;
-  --color-muted: #9aa1b4;
-  --color-accent: #4a63d6;
-  --color-accent2: #6082B6;
-  --color-accent2-deep: #c17d1e;
-  --color-danger:#ED2939;
+  color-scheme: dark;
+
+  --color-bg: #0a0a0a;
+  --color-bg2: #131313;
+  --color-bg3: #1b1b1c;
+  --color-border: #292929;
+  --color-text: #f2f2f2;
+  --color-muted: #9a9a9c;
+  /* Bleu de drapeau, pas bleu d'interface. L'ancien #5b74e8 tirait sur le
+     violet — c'est le bleu par défaut de la moitié des sites. Celui-ci est
+     ramené vers le #0039a6 officiel, juste assez éclairci pour rester
+     lisible sur fond sombre. */
+  --color-accent: #2f6fe0;
+  --color-accent2: #6b8fbe;
+  --color-accent2-deep: #d99429;
+  --color-danger: #ed2939;
   --color-success: #34c28e;
+
+  /* Surfaces d'interaction. Un survol se lit par un CHANGEMENT DE FOND,
+     jamais par une bordure qui s'allume : la bordure colorée attire l'œil
+     sur le contour au lieu de l'objet, et donne ce rendu « composant
+     Tailwind par défaut » qu'on cherche à éviter. */
+  --surface-hover: rgba(255, 255, 255, 0.045);
+  /* Fond des cartes au survol — voir la note dans .surface-interactive. */
+  --card-hover-bg: var(--color-bg3);
+  --surface-active: rgba(255, 255, 255, 0.075);
+  --border-hover: rgba(255, 255, 255, 0.14);
+
+  /* Liseré clair en haut des surfaces : c'est lui qui donne l'impression
+     qu'une carte est un objet posé, éclairé d'en haut, plutôt qu'un
+     rectangle plus clair. Deux pixels de CSS pour tout le relief. */
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* Ombres — larges et très diffuses, jamais dures. Une ombre nette lit
+     comme une bordure noire ; c'est la diffusion qui fait le premium. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px -2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.45), 0 12px 28px -8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 24px 56px -16px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 0 1px rgba(47, 111, 224, 0.28), 0 8px 32px -8px rgba(47, 111, 224, 0.5);
+
+  /* Voiles colorés posés derrière les héros et les cartes mises en avant. */
+  --wash-accent: rgba(47, 111, 224, 0.11);
+  --wash-accent2: rgba(107, 143, 190, 0.08);
+
+  /* Voile de fond, distinct des halos d'accent : ceux-ci restent colorés
+     là où on les pose explicitement (héros, cartes), celui-là couvre tout
+     et doit donc rester incolore en sombre. */
+  --ambient-1: rgba(255, 255, 255, 0.035);
+  --ambient-2: rgba(255, 255, 255, 0.022);
+  --ambient-3: rgba(255, 255, 255, 0.028);
+
+  /* Une seule courbe pour toute l'app : sortie franche, arrivée douce.
+     Des durées différentes partout donnent une interface qui « bricole » ;
+     une courbe unique donne une interface qui a été dessinée. */
+
+  /* ── Le drapeau ────────────────────────────────────────────────
+     Blanc, bleu, rouge. Ces trois-là sont DÉCORATIVES et ne portent
+     jamais de sens : le rouge du drapeau (#d52b1e) est trop proche du
+     rouge d'erreur pour qu'on puisse les confondre impunément, donc
+     `--color-danger` reste seul à signifier « attention ». Le drapeau ne
+     sert qu'aux dégradés d'identité — la marque, les traits d'accent,
+     les halos de section. C'est ce qui doit faire comprendre en une
+     seconde qu'on est sur une app de russe. */
+  --flag-blue: #1c4fc4;
+
+  /* LE BLEU N'EST JAMAIS UN APLAT. Un aplat de couleur, si juste soit-il,
+     reste inerte ; un dégradé attrape la lumière et donne à la surface une
+     orientation. Deux nuances suffisent — un cran plus clair en haut, la
+     teinte de référence en bas — l'écart devant rester assez faible pour
+     qu'on ne voie pas le dégradé, seulement son effet. */
+  --accent-hi: #4f86ea;
+  --accent-lo: #1f52c0;
+  --grad-accent: linear-gradient(
+    135deg,
+    var(--accent-hi) 0%,
+    var(--color-accent) 46%,
+    var(--accent-lo) 74%,
+    color-mix(in oklab, var(--accent-lo) 74%, var(--flag-red)) 100%
+  );
+  /* Version tricolore, pour ce qui doit crier « russe » : l'abonnement,
+     la marque, les mises en avant. */
+  --pro-blue: #4b86ff;
+  --pro-red: #ff4d3d;
+  --grad-pro: linear-gradient(
+    135deg,
+    #7ea9ff 0%,
+    var(--pro-blue) 38%,
+    #b8438f 68%,
+    var(--pro-red) 100%
+  );
+  --flag-red: #d52b1e;
+  --flag-white: #f6f7fb;
+  --grad-flag: linear-gradient(135deg, var(--flag-white) 0%, var(--flag-blue) 46%, var(--flag-red) 100%);
+  --grad-flag-bar: linear-gradient(90deg, var(--flag-white), var(--flag-blue) 50%, var(--flag-red));
+
+  /* Force des effets lumineux. Le sombre absorbe la lumière, le clair la
+     renvoie : à valeur égale, un halo invisible sur blanc devient criard
+     sur noir. Une variable par thème plutôt qu'un compromis qui rate les
+     deux. */
+  --spot-inner: 14%;
+  --spot-ring: 55%;
+  --glow-card: 42%;
+  /* Boutons : environ 40 % du halo des cartes. Une carte occupe assez de
+     surface pour porter un dégradé ; sur la hauteur d'un bouton, la même
+     valeur devient une bande bleue franche au lieu d'un effleurement. */
+  --glow-btn: 17%;
+
+  --ease: cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+/* Clair par préférence système, tant que rien n'a été choisi à la main. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --color-bg: #fafafc;
+    --color-bg2: #ffffff;
+    --color-bg3: #f1f2f7;
+    --color-border: #e4e6ee;
+    --color-text: #14161f;
+    --color-muted: #5f6579;
+    --color-accent: #1e50c8;
+    --color-accent2: #4a6a99;
+    --color-accent2-deep: #a3660d;
+    --color-danger: #d21f2e;
+    --color-success: #16906a;
+
+    --surface-hover: rgba(20, 22, 31, 0.04);
+    --card-hover-bg: #fcfcfe;
+    --surface-active: rgba(20, 22, 31, 0.07);
+    --border-hover: rgba(20, 22, 31, 0.16);
+    --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+    /* BEAUCOUP plus légères qu'en sombre. Une ombre calibrée pour du noir
+       devient une tache grise sur du blanc — l'erreur la plus courante
+       d'un thème clair ajouté après coup. */
+    --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.05), 0 2px 8px -2px rgba(20, 22, 31, 0.06);
+    --shadow-md: 0 2px 6px -2px rgba(20, 22, 31, 0.05), 0 8px 20px -10px rgba(20, 22, 31, 0.07);
+    --shadow-lg: 0 6px 20px -4px rgba(20, 22, 31, 0.09), 0 20px 48px -16px rgba(20, 22, 31, 0.13);
+    --shadow-glow: 0 0 0 1px rgba(30, 80, 200, 0.3), 0 8px 32px -8px rgba(30, 80, 200, 0.5);
+
+    --wash-accent: rgba(30, 80, 200, 0.16);
+    --wash-accent2: rgba(74, 106, 153, 0.14);
+
+    --ambient-1: rgba(61, 81, 196, 0.09);
+  --ambient-2: rgba(71, 103, 156, 0.07);
+  --ambient-3: rgba(61, 81, 196, 0.06);
+  --flag-blue: #0d3fa8;
+  --accent-hi: #3b6ede;
+  --accent-lo: #163fa8;
+  --grad-accent: linear-gradient(
+    135deg,
+    var(--accent-hi) 0%,
+    var(--color-accent) 46%,
+    var(--accent-lo) 74%,
+    color-mix(in oklab, var(--accent-lo) 74%, var(--flag-red)) 100%
+  );
+  --pro-blue: #2f66e8;
+  --pro-red: #e0362a;
+  --grad-pro: linear-gradient(
+    135deg,
+    #5b8cf5 0%,
+    var(--pro-blue) 38%,
+    #9c3577 68%,
+    var(--pro-red) 100%
+  );
+    --flag-red: #c8241a;
+    --flag-white: #ffffff;
+    --grad-flag: linear-gradient(135deg, #ffffff 0%, var(--flag-blue) 46%, var(--flag-red) 100%);
+    --grad-flag-bar: linear-gradient(90deg, #e8ebf5, var(--flag-blue) 50%, var(--flag-red));
+
+    /* Nettement plus appuyés qu'en sombre : sur du blanc, un mélange à 14 %
+       ne se voit tout simplement pas. C'est la raison pour laquelle les
+       effets de lumière semblent « ne pas marcher » en thème clair — ils
+       marchent, ils sont juste calibrés pour du noir. */
+    --spot-inner: 26%;
+    --spot-ring: 78%;
+    --glow-card: 16%;
+    --glow-btn: 24%;
+  --glow-btn: 24%;
+  }
+}
+
+/* Choix explicite : gagne sur la préférence système. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg: #fafafc;
+  --color-bg2: #ffffff;
+  --color-bg3: #f1f2f7;
+  --color-border: #e4e6ee;
+  --color-text: #14161f;
+  --color-muted: #5f6579;
+  --color-accent: #1e50c8;
+  --color-accent2: #4a6a99;
+  --color-accent2-deep: #a3660d;
+  --color-danger: #d21f2e;
+  --color-success: #16906a;
+
+  --surface-hover: rgba(20, 22, 31, 0.04);
+  --card-hover-bg: #fcfcfe;
+  --surface-active: rgba(20, 22, 31, 0.07);
+  --border-hover: rgba(20, 22, 31, 0.16);
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.05), 0 2px 8px -2px rgba(20, 22, 31, 0.06);
+  --shadow-md: 0 2px 6px -2px rgba(20, 22, 31, 0.05), 0 8px 20px -10px rgba(20, 22, 31, 0.07);
+  --shadow-lg: 0 6px 20px -4px rgba(20, 22, 31, 0.09), 0 20px 48px -16px rgba(20, 22, 31, 0.13);
+  --shadow-glow: 0 0 0 1px rgba(30, 80, 200, 0.3), 0 8px 32px -8px rgba(30, 80, 200, 0.5);
+
+  --wash-accent: rgba(30, 80, 200, 0.16);
+  --wash-accent2: rgba(74, 106, 153, 0.14);
+
+  --ambient-1: rgba(61, 81, 196, 0.09);
+  --ambient-2: rgba(71, 103, 156, 0.07);
+  --ambient-3: rgba(61, 81, 196, 0.06);
+  --flag-blue: #0d3fa8;
+  --accent-hi: #3b6ede;
+  --accent-lo: #163fa8;
+  --grad-accent: linear-gradient(
+    135deg,
+    var(--accent-hi) 0%,
+    var(--color-accent) 46%,
+    var(--accent-lo) 74%,
+    color-mix(in oklab, var(--accent-lo) 74%, var(--flag-red)) 100%
+  );
+  --pro-blue: #2f66e8;
+  --pro-red: #e0362a;
+  --grad-pro: linear-gradient(
+    135deg,
+    #5b8cf5 0%,
+    var(--pro-blue) 38%,
+    #9c3577 68%,
+    var(--pro-red) 100%
+  );
+  --flag-red: #c8241a;
+  --flag-white: #ffffff;
+  --grad-flag: linear-gradient(135deg, #ffffff 0%, var(--flag-blue) 46%, var(--flag-red) 100%);
+  --grad-flag-bar: linear-gradient(90deg, #e8ebf5, var(--flag-blue) 50%, var(--flag-red));
+
+  /* Nettement plus appuyés qu'en sombre : sur du blanc, un mélange à 14 %
+     ne se voit tout simplement pas. C'est la raison pour laquelle les
+     effets de lumière semblent « ne pas marcher » en thème clair — ils
+     marchent, ils sont juste calibrés pour du noir. */
+  --spot-inner: 26%;
+  --spot-ring: 78%;
+  --glow-card: 16%;
+  --glow-btn: 24%;
 }
 
 @theme inline {
@@ -53,7 +302,14 @@
   --color-accent2-deep: var(--color-accent2-deep);
   --color-success: var(--color-success);
   --color-danger: var(--color-danger);
-  --font-display: "Privet Cyrillic", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Privetik Cyrillic", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Exposées en utilitaires Tailwind : `shadow-soft`, `shadow-card`,
+     `shadow-float`, `shadow-glow`. */
+  --shadow-soft: var(--shadow-sm);
+  --shadow-card: var(--shadow-md);
+  --shadow-float: var(--shadow-lg);
+  --shadow-glow: var(--shadow-glow);
 }
 
 html {
@@ -63,8 +319,94 @@ html {
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: "Privet Cyrillic", "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Privetik Cyrillic", "Inter", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/* ════════════════════════════════════════════════════════════════
+ * L'ATMOSPHÈRE DE FOND
+ *
+ * Un aplat de couleur unie, c'est ce qui fait qu'une interface a l'air
+ * plate quoi qu'on pose dessus. Deux couches fixes règlent ça pour toute
+ * l'app, sans qu'aucune page n'ait à s'en occuper :
+ *
+ *   1. un dégradé de MAILLES — trois taches de couleur très diluées,
+ *      placées en haut à gauche, en haut à droite et au centre-bas. C'est
+ *      ce qui donne l'impression d'une lumière ambiante plutôt que d'un
+ *      fond ;
+ *   2. un GRAIN, en SVG embarqué. Trois lignes qui changent tout : le grain
+ *      casse les bandes visibles des grands dégradés (l'effet d'escalier
+ *      dans les zones sombres) et donne cette texture de papier qu'ont les
+ *      sites soignés. Il est en data-URI, donc aucune requête réseau.
+ *
+ * `position: fixed` et `pointer-events: none` : les deux couches ne
+ * défilent pas, ne se recalculent jamais et n'interceptent aucun clic. Le
+ * coût est celui de deux peintures au chargement, puis rien.
+ * ════════════════════════════════════════════════════════════════ */
+/* LE VOILE EST UNE VARIABLE, PAS UN BLOC. Il a un second usage : une barre
+   opaque posée par-dessus (voir .ambient-veil) doit reproduire EXACTEMENT le
+   même dégradé, sinon elle affiche le token de fond nu — un noir ou un blanc
+   franc là où la page, elle, est teintée. Recopier la pile de dégradés à deux
+   endroits aurait garanti qu'ils divergent au premier réglage.
+
+   `var(--ambient-N)` est résolu au point d'usage, pas ici : les deux
+   consommateurs héritent de :root, donc chacun prend les valeurs du thème
+   actif sans qu'on ait à redéclarer la pile par thème. */
+:root {
+  --ambient-veil:
+    radial-gradient(60rem 40rem at 12% -8%, var(--ambient-1), transparent 60%),
+    radial-gradient(50rem 36rem at 92% 4%, var(--ambient-2), transparent 62%),
+    radial-gradient(70rem 50rem at 50% 108%, var(--ambient-3), transparent 65%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: var(--ambient-veil);
+}
+
+/* Le même voile, pour un élément qui doit se confondre avec la page alors
+   qu'il la recouvre — la barre du haut quand elle est opaque.
+   
+   Dimensionné en 100vw/100vh et calé en haut à gauche : c'est la boîte de
+   `body::before`, donc les pourcentages des dégradés (`12% -8%`, `92% 4%`)
+   tombent au même endroit. Ça n'est vrai que pour un élément accroché au
+   sommet du viewport — c'est le cas d'une barre `sticky top-0`, et d'elle
+   seule. Il revient à l'appelant de le rogner à sa propre boîte. */
+.ambient-veil {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  background-image: var(--ambient-veil);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* En thème clair le grain doit être bien plus discret : sur du blanc il se
+   voit trois fois plus qu'il ne se verrait sur du noir. */
+:root[data-theme="light"] body::after {
+  opacity: 0.02;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) body::after {
+    opacity: 0.02;
+  }
 }
 
 ::selection {
@@ -72,9 +414,556 @@ body {
   color: #fff;
 }
 
+/* Bascule de thème : seules les COULEURS s'interpolent, sur 200 ms. Sans
+   ça le passage clair/sombre est un flash brutal ; avec une transition sur
+   `all`, chaque changement de page repeindrait tout. La classe est posée
+   par le script de bascule et retirée juste après. */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition:
+    background-color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease) !important;
+}
+
+/* ════════════════════════════════════════════════════════════════
+ * PRIMITIVES DE SURFACE
+ *
+ * Trois classes couvrent 90 % des blocs de l'app. Les utiliser plutôt que
+ * de recopier `border border-border bg-bg2 rounded-2xl` partout garantit
+ * que le relief reste cohérent — et qu'il suffit d'une ligne ici pour le
+ * faire évoluer sur tout le site.
+ * ════════════════════════════════════════════════════════════════ */
+
+/* Une carte posée : fond, contour, liseré clair en haut, ombre douce. */
+.surface {
+  background: var(--color-bg2);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--edge-light), var(--shadow-sm);
+}
+
+/* Une carte cliquable. Le survol change le FOND et lève la carte d'un
+   pixel — pas de bordure qui s'allume. */
+.surface-interactive {
+  background: var(--color-bg2);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--edge-light), var(--shadow-sm);
+  transition:
+    background-color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    box-shadow 0.25s var(--ease),
+    transform 0.25s var(--ease);
+}
+
+/* Un halo qui monte depuis le haut de la carte au survol.
+ *
+ * POURQUOI DEPUIS LE HAUT. Tout le relief de l'app suppose une lumière
+ * zénithale — c'est déjà ce que dit `--edge-light`, le liseré clair posé
+ * sur l'arête supérieure. Un halo centré contredirait cette lumière et la
+ * carte se mettrait à flotter sans direction. Ici il prolonge le liseré :
+ * la carte semble s'avancer VERS la source.
+ *
+ * POURQUOI UNE OMBRE INTERNE ET NON UN PSEUDO-ÉLÉMENT. Ma première version
+ * posait un `::before` en absolu, ce qui obligeait à repositionner tous les
+ * enfants directs pour qu'ils repassent au-dessus — et cassait donc au
+ * passage n'importe quel enfant déjà en `absolute` dans les cartes
+ * existantes. Une `box-shadow: inset` se peint d'office entre le fond et le
+ * contenu : aucune règle sur les enfants, aucun contexte d'empilement à
+ * gérer, et elle s'anime nativement.
+ *
+ * Portée par la classe partagée, donc acquise d'un coup pour toutes les
+ * cartes cliquables de l'app. */
+.surface-interactive:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow:
+    var(--edge-light),
+    var(--shadow-md),
+    inset 0 44px 56px -44px color-mix(in oklab, var(--color-accent) var(--glow-card), transparent);
+}
+
+.surface-interactive:active {
+  transform: translateY(0);
+  box-shadow: var(--edge-light), var(--shadow-sm);
+}
+
+/* Variante immobile, pour les boutons.
+ *
+ * POURQUOI SÉPARER PLUTÔT QUE DE MODIFIER `.surface-interactive`. Sur une
+ * CARTE, le soulèvement et l'ombre qui s'élargit sont justes : la carte est
+ * un objet qu'on saisit, et elle a de la place autour d'elle. Sur un
+ * BOUTON posé dans un formulaire ou dans une barre, le même mouvement fait
+ * sauter la ligne de base des éléments voisins, et l'ombre déborde sur ce
+ * qui le serre.
+ *
+ * FOND TRANSPARENT AU REPOS, et c'est le point important. `.surface-
+ * interactive` pose `--color-bg2`, soit du blanc pur en thème clair ; dans
+ * la barre de navigation, qui n'a pas de fond à elle et laisse voir celui
+ * de la page (#fafafc), le bouton ressortait donc comme une tache plus
+ * blanche que son environnement. Transparent, il prend exactement la
+ * couleur de la surface qui le porte — la barre, une carte, un formulaire —
+ * sans qu'on ait à la lui dire.
+ *
+ * AUCUNE OMBRE PORTÉE, ni au repos ni au survol : un bouton serré entre
+ * d'autres éléments n'a pas la place d'en projeter une. Il ne reste que le
+ * halo INTERNE venant du haut, qui est l'essentiel de l'effet. */
+.surface-interactive.surface-static {
+  background: transparent;
+  box-shadow: none;
+}
+
+.surface-interactive.surface-static:hover {
+  transform: none;
+  background: var(--surface-hover);
+  border-color: var(--border-hover);
+  box-shadow: inset 0 40px 52px -42px
+    color-mix(in oklab, var(--color-accent) var(--glow-btn), transparent);
+}
+
+.surface-interactive.surface-static:active {
+  transform: none;
+  background: var(--surface-active);
+  box-shadow: none;
+}
+
+/* Survol nu, pour les boutons discrets et les entrées de liste : un voile
+   qui apparaît, rien d'autre. */
+.hover-surface {
+  transition:
+    background-color 0.18s var(--ease),
+    color 0.18s var(--ease);
+}
+
+.hover-surface:hover {
+  background: var(--surface-hover);
+}
+
+.hover-surface:active {
+  background: var(--surface-active);
+}
+
+/* ════════════════════════════════════════════════════════════════
+ * BOUTONS
+ *
+ * CE QUI SÉPARE UN BOUTON PREMIUM D'UN BOUTON DE BIBLIOTHÈQUE, et qui est
+ * fait ici :
+ *   — il ne change pas QUE de couleur au survol. Il se soulève d'un pixel,
+ *     son ombre s'élargit, sa lumière interne se renforce. Trois signaux
+ *     simultanés valent mieux qu'un contour qui s'allume ;
+ *   — il RÉPOND au clic. `:active` le repose et l'assombrit très
+ *     légèrement : sans ça, un bouton reste inerte sous le doigt et
+ *     l'interface paraît morte même quand elle réagit ;
+ *   — il a un balayage de lumière. Un dégradé oblique traverse la surface
+ *     au survol, une seule fois, en 600 ms. C'est le détail qu'on ne sait
+ *     pas nommer mais qui fait la différence — et il ne coûte qu'une
+ *     transformation de pseudo-élément, composée par le GPU.
+ * ════════════════════════════════════════════════════════════════ */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 600;
+  transition:
+    background-color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease),
+    box-shadow 0.25s var(--ease),
+    transform 0.18s var(--ease),
+    filter 0.2s var(--ease);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+  transform: none;
+}
+
+/* Le balayage. `translateX` seul est animé — jamais une propriété qui
+   déclenche un recalcul de mise en page. */
+.btn-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.16) 46%,
+    transparent 72%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.6s var(--ease);
+}
+
+.btn-sheen:hover::after {
+  transform: translateX(120%);
+}
+
+/* Principal : dégradé vertical léger, lumière interne en haut, halo coloré
+   au survol. */
+.btn-primary {
+  background-image: var(--grad-accent);
+  color: #fff;
+  border: 1px solid color-mix(in oklab, var(--accent-lo) 80%, black);
+  /* Le halo coloré est présent DÈS LE REPOS, discret. Un bouton qui ne
+     s'éclaire qu'au survol paraît éteint le reste du temps ; celui-ci
+     rayonne déjà, et le survol ne fait qu'ouvrir le halo. */
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow:
+    var(--shadow-sm),
+    0 8px 22px -12px color-mix(in oklab, var(--color-accent) 65%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  filter: brightness(0.96);
+  box-shadow: var(--shadow-sm), inset 0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+/* Secondaire : la surface d'une carte, qui s'éclaircit et se soulève. */
+.btn-secondary {
+  background: var(--color-bg2);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--edge-light), var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg3);
+  border-color: var(--border-hover);
+  box-shadow: var(--edge-light), var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+  background: var(--surface-active);
+  box-shadow: var(--edge-light), var(--shadow-sm);
+}
+
+/* Discret : rien au repos, un voile au survol. Pour les actions de rang
+   inférieur, qui ne doivent pas peser dans la hiérarchie visuelle tant
+   qu'on ne les cherche pas. */
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-hover);
+  border-color: var(--color-border);
+}
+
+.btn-ghost:active {
+  background: var(--surface-active);
+}
+
+/* Contour : la variante précédente, conservée là où une limite visible est
+   nécessaire (bouton posé sur une image, sur un fond coloré). */
+.btn-outline {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-outline:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.btn-outline:active {
+  transform: translateY(0);
+  background: var(--surface-active);
+}
+
+/* Destructif : neutre au repos, rouge seulement au survol. Un bouton rouge
+   en permanence dans une liste attire l'œil sur la suppression, qui est la
+   dernière chose qu'on veut mettre en avant. */
+.btn-danger {
+  background: transparent;
+  color: var(--color-muted);
+  border: 1px solid transparent;
+}
+
+.btn-danger:hover {
+  background: color-mix(in oklab, var(--color-danger) 14%, transparent);
+  border-color: color-mix(in oklab, var(--color-danger) 40%, transparent);
+  color: var(--color-danger);
+}
+
+/* Accent secondaire : tout ce qui vient du modèle (IA). */
+.btn-ai {
+  background: color-mix(in oklab, var(--color-accent2) 12%, transparent);
+  color: var(--color-accent2);
+  border: 1px solid color-mix(in oklab, var(--color-accent2) 38%, transparent);
+}
+
+.btn-ai:hover {
+  background: color-mix(in oklab, var(--color-accent2) 20%, transparent);
+  border-color: color-mix(in oklab, var(--color-accent2) 60%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px -8px color-mix(in oklab, var(--color-accent2) 60%, transparent);
+}
+
+.btn-ai:active {
+  transform: translateY(0);
+}
+
+/* ════════════════════════════════════════════════════════════════
+ * SPOTLIGHT — la lumière qui suit le curseur
+ *
+ * COMMENT ÇA MARCHE, ET POURQUOI ÇA NE COÛTE RIEN. Le composant Spotlight
+ * n'écrit que deux variables CSS (`--mx`, `--my`) sur l'élément, une fois
+ * par trame. Aucune classe n'est ajoutée ou retirée, aucun style calculé
+ * en JavaScript, aucun rendu React déclenché — donc pas de re-rendu de
+ * l'arbre, ce qui est le piège habituel de cet effet. Le navigateur ne
+ * repeint qu'un dégradé radial déjà en place.
+ *
+ * Deux couches, et c'est ce qui fait la qualité :
+ *   — un halo DANS la carte, très diffus, qui éclaire le contenu ;
+ *   — un liseré sur la BORDURE, qui s'allume seulement là où passe le
+ *     curseur. C'est cette deuxième couche qu'on ne trouve presque jamais,
+ *     et celle qui donne l'impression d'un objet en verre éclairé de côté.
+ *
+ * L'opacité est portée par une transition de 300 ms : la lumière monte et
+ * descend au lieu d'apparaître d'un coup.
+ * ════════════════════════════════════════════════════════════════ */
+.spotlight {
+  position: relative;
+  isolation: isolate;
+}
+
+.spotlight::before,
+.spotlight::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+}
+
+/* Le halo intérieur. */
+.spotlight::before {
+  z-index: 0;
+  background: radial-gradient(
+    22rem circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--color-accent) var(--spot-inner), transparent),
+    transparent 42%
+  );
+}
+
+/* Le liseré. `mask-composite: exclude` évide l'intérieur pour ne garder
+   qu'un anneau de 1 px : le dégradé n'éclaire donc que la bordure. */
+.spotlight::after {
+  z-index: 1;
+  padding: 1px;
+  background: radial-gradient(
+    16rem circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--color-accent) var(--spot-ring), transparent),
+    transparent 45%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.spotlight:hover::before,
+.spotlight:hover::after {
+  opacity: 1;
+}
+
+/* Le contenu passe au-dessus des deux couches. */
+.spotlight > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Écran tactile : pas de curseur à suivre, donc pas d'effet — et surtout
+   pas de calcul inutile sur les appareils les plus modestes. */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .spotlight::before,
+  .spotlight::after {
+    display: none;
+  }
+}
+
+/* ── Bordure en dégradé ──────────────────────────────────────────
+   Pour les surfaces mises en avant. Même technique de masque : un dégradé
+   plein, évidé au centre. Une bordure d'une seule couleur ne sait pas
+   s'éteindre vers le bas — celle-ci si, ce qui pose la carte au lieu de
+   l'encadrer. */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-accent) 65%, transparent),
+    color-mix(in oklab, var(--color-accent2) 30%, transparent) 40%,
+    transparent 70%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* `.spotlight` ET `.gradient-border` SUR LE MÊME ÉLÉMENT.
+ *
+ * Les deux peignent `::before`. `.gradient-border` étant déclaré plus bas,
+ * son `background` masqué l'emporte — mais l'`opacity: 0` de `.spotlight`
+ * reste, lui, en place. Résultat sans cette règle : le liseré dégradé est
+ * INVISIBLE au repos et n'apparaît qu'au survol, où il prend la place de la
+ * nappe lumineuse. Les deux effets s'annulent l'un l'autre alors qu'on les a
+ * demandés ensemble.
+ *
+ * On tranche donc explicitement : `::before` revient au liseré, visible en
+ * permanence (c'est un ornement de la carte, pas une réaction au curseur), et
+ * le survol garde `::after`, l'anneau qui suit la souris. Ce qui se perd est
+ * la nappe intérieure — la seule des trois couches dont le liseré occupe
+ * légitimement la place.
+ *
+ * Placée APRÈS `.gradient-border::before` : à spécificité égale (0,2,1),
+ * c'est l'ordre qui tranche. */
+.spotlight.gradient-border::before {
+  opacity: 1;
+}
+
+/* ── Lumière ─────────────────────────────────────────────────────
+   Halos radiaux posés DERRIÈRE le contenu. `pointer-events: none` et
+   `position: absolute` : purement décoratifs, jamais dans le flux. */
+.glow {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.7;
+}
+
+.glow-accent {
+  background: var(--wash-accent);
+}
+
+.glow-accent2 {
+  background: var(--wash-accent2);
+}
+
+/* Texte en dégradé, pour un mot mis en avant dans un titre. */
+.text-gradient {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-text) 0%,
+    color-mix(in oklab, var(--color-accent) 75%, var(--color-text)) 55%,
+    var(--color-accent) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Filet dégradé : un séparateur qui s'éteint sur les bords plutôt qu'une
+   ligne pleine coupée net. */
+.hairline {
+  height: 1px;
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-border) 15%,
+    var(--color-border) 85%,
+    transparent
+  );
+}
+
 :focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  /* UN TRAIT FIN, PAS UN GROS CONTOUR BLEU.
+   *
+   * `outline: 2px solid` posait une barre épaisse, d'une seule couleur, à
+   * 2 px du champ : sur un champ arrondi elle se lit comme une deuxième
+   * bordure mal ajustée, et c'est la première chose qu'on voit de la page.
+   *
+   * Ce qui la remplace : un trait de 1,5 px à la couleur d'accent, puis
+   * deux halos très dilués — bleu vers le bas, rouge vers le haut — qui
+   * font lire un dégradé aux couleurs russes sans qu'aucun trait épais
+   * n'existe. Un vrai dégradé de contour reste impossible ici (`outline`
+   * n'accepte pas d'image, et `border-image` ignore le rayon des angles),
+   * mais l'empilement d'ombres, lui, suit toujours le rayon.
+   *
+   * L'`outline` transparent est conservé : en mode contraste élevé de
+   * Windows, les `box-shadow` sont supprimées et c'est LUI qui devient
+   * visible. Le retirer rendrait le focus invisible à ceux qui en ont le
+   * plus besoin. */
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  /* UN ANNEAU BICOLORE, obtenu par DÉCALAGE plutôt que par dégradé.
+   *
+   * Une `box-shadow` ne peut pas contenir de dégradé. Mais deux ombres
+   * pleines légèrement décalées en sens opposés produisent, sur un contour
+   * arrondi, un arc bleu en haut à gauche et un arc rouge en bas à droite,
+   * qui se rejoignent au milieu : l'œil lit un anneau qui passe du bleu au
+   * rouge. C'est la seule technique qui donne un contour bicolore tout en
+   * suivant le rayon des angles — `outline` n'accepte pas d'image et
+   * `border-image` ignore le rayon.
+   *
+   * L'ordre compte : la première ombre est peinte AU-DESSUS. Le bleu passe
+   * donc devant sur la portion commune, ce qui donne la transition. */
+  /* UNE LUMIÈRE INTÉRIEURE, pas une ombre portée.
+   *
+   * Tout se joue sur `inset`. Une ombre portée déborde du champ et pousse
+   * visuellement le voisinage ; une ombre interne éclaire le champ par ses
+   * bords, sans rien occuper au-dehors — le champ semble s'allumer plutôt
+   * que se cerner.
+   *
+   * ATTENTION AU SENS DES DÉCALAGES : en `inset`, un décalage POSITIF
+   * projette la lumière depuis le bord opposé. `inset 3px 3px` éclaire donc
+   * l'intérieur du bord HAUT-GAUCHE, et `inset -3px -3px` celui du bord
+   * bas-droite. C'est l'inverse d'une ombre portée, et c'est ce qui permet
+   * de garder le bleu en haut à gauche et le rouge en bas à droite comme
+   * avant.
+   *
+   * Le flou est large et l'étalement négatif : la lumière se fond vers le
+   * centre du champ au lieu de dessiner un liseré intérieur. */
+  box-shadow:
+    inset 3px 3px 10px -4px color-mix(in oklab, var(--flag-blue) 62%, transparent),
+    inset -3px -3px 11px -4px color-mix(in oklab, var(--flag-red) 50%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--flag-blue) 22%, transparent);
 }
 
 /* Le navigateur ne met PAS de curseur pointeur sur <button> par défaut
@@ -175,10 +1064,686 @@ button:disabled,
   animation: fadeInUp 0.35s ease-out;
 }
 
+/* ── Modales ─────────────────────────────────────────────────────
+ *
+ * Deux animations distinctes, et c'est le point : le fond ne doit pas
+ * bouger, seulement apparaître, tandis que le panneau monte. Les faire
+ * ensemble donne l'impression que toute la page glisse.
+ *
+ * Le fond est FLOUTÉ en plus d'être assombri. Un simple noir à 60 % laisse
+ * lire l'interface derrière et le regard y retourne ; le flou la range
+ * définitivement au second plan. Le flou s'installe en même temps que
+ * l'opacité — apparaître net puis flouter se remarque désagréablement.
+ *
+ * La sortie est plus RAPIDE que l'entrée (140 ms contre 260). Une fermeture
+ * aussi lente que l'ouverture donne toujours l'impression que l'interface
+ * traîne : on veut voir arriver, pas voir partir. */
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(10px);
+  }
+}
+
+@keyframes overlayOut {
+  from {
+    opacity: 1;
+    backdrop-filter: blur(10px);
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+}
+
+/* Le panneau part de 4 px plus bas et de 2 % plus petit — assez pour que
+   le mouvement se sente, trop peu pour qu'on puisse le décrire. Au-delà,
+   ça devient une animation qu'on regarde au lieu d'une interface qu'on
+   utilise. */
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+}
+
+.animate-overlay-in {
+  animation: overlayIn 0.26s var(--ease) both;
+}
+
+.animate-overlay-out {
+  animation: overlayOut 0.14s var(--ease) both;
+}
+
+.animate-modal-in {
+  animation: modalIn 0.26s var(--ease) both;
+}
+
+.animate-modal-out {
+  animation: modalOut 0.14s var(--ease) both;
+}
+
+/* Panneau de modale : la même surface que les cartes, mais posée plus
+   haut — ombre la plus large de l'échelle, et un contour légèrement plus
+   clair pour la détacher du fond flouté. */
+.modal-panel {
+  background: var(--color-bg2);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--edge-light), var(--shadow-lg);
+}
+
+/* ── Apparition d'un contenu qui glisse depuis le haut (menus, popovers).
+   Origine en haut : le menu semble se dérouler depuis son bouton plutôt
+   que grossir depuis son centre. */
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-pop-in {
+  animation: popIn 0.18s var(--ease) both;
+  transform-origin: top;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Les halos et le flou d'arrière-plan restent, mais figés : ce sont des
+     décors, pas des mouvements. Seule l'ANIMATION du flou disparaît. */
+  .animate-float,
+  .animate-float-slow {
+    animation: none !important;
+  }
+}
+
+/* Attente de la synthèse vocale : les ondes du haut-parleur se propagent,
+   la proche puis la lointaine. Une roulette générique aurait fait le même
+   travail, mais celle-ci reste DANS l'icône — pas de substitution, donc pas
+   de saut de mise en page, et le geste animé dit déjà de quoi on attend
+   (du son) sans une ligne de texte.
+   Les ondes ne sont animées QUE pendant l'attente : au repos elles sont
+   pleines et immobiles. */
+@keyframes waveOut {
+  0% {
+    opacity: 0.15;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.wave-pulse {
+  animation: waveOut 1.1s ease-in-out infinite;
+  transform-origin: 11px 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Rien ne clignote : l'icône s'éteint simplement le temps de l'attente. */
+  .wave-pulse {
+    animation: none;
+    opacity: 0.35;
+  }
+}
+
+/* ── Identité : les dégradés du drapeau ──────────────────────────
+   Réservés à la marque et aux traits d'accent. Jamais sur un fond de
+   contenu — trois couleurs saturées derrière du texte, c'est illisible. */
+.flag-gradient {
+  background-image: var(--grad-flag);
+}
+
+.flag-bar {
+  background-image: var(--grad-flag-bar);
+}
+
+/* Un mot de titre peint au drapeau. Le blanc du drapeau est remplacé par
+   la couleur du texte : sur fond clair, un dégradé qui commence en blanc
+   commence par disparaître. */
+.text-flag {
+  background-image: linear-gradient(
+    115deg,
+    var(--color-text) 0%,
+    var(--flag-blue) 45%,
+    var(--flag-red) 100%
+  );
+  filter: drop-shadow(0 4px 18px color-mix(in oklab, var(--flag-blue) 35%, transparent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Bandeau d'alphabet ──────────────────────────────────────────
+ *
+ * L'ALPHABET EST LE SIGNAL LE PLUS DIRECT. Un visiteur qui ne lit pas le
+ * titre comprend en une fraction de seconde qu'il s'agit de russe rien
+ * qu'en voyant du cyrillique défiler. C'est plus efficace que n'importe
+ * quel argument écrit, et ça coûte une seule animation.
+ *
+ * DÉFILEMENT SANS À-COUP ET SANS COÛT. La rangée est dupliquée, et on
+ * translate l'ensemble de exactement -50 % : au moment où l'animation
+ * boucle, la seconde copie occupe la position de départ de la première —
+ * la reprise est invisible, sans calcul de position ni JavaScript. Seul
+ * `transform` est animé, donc la composition reste sur le GPU et rien
+ * n'est repeint.
+ *
+ * Les bords s'estompent par un masque : une bande qui se coupe net contre
+ * la marge donne toujours l'impression d'un débordement accidentel. */
+@keyframes alphabetDrift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.alphabet-band {
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+.alphabet-track {
+  display: flex;
+  width: max-content;
+  animation: alphabetDrift 64s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alphabet-track {
+    animation: none;
+  }
+}
+
+/* ── L'abonnement : le tricolore comme signe distinctif ──────────
+ *
+ * Une seule règle porte l'identité Pro, réutilisée par le bouton de la
+ * barre, le badge de l'avatar et la carte du compte. Sans ça, trois
+ * dégradés « à peu près pareils » finiraient par diverger.
+ *
+ * Le halo est présent AU REPOS : c'est un statut, pas une action — il doit
+ * se voir sans qu'on ait à passer dessus. */
+.pro-gradient {
+  background-image: var(--grad-pro);
+  color: #fff;
+  box-shadow:
+    0 4px 14px -6px color-mix(in oklab, var(--pro-blue) 70%, transparent),
+    0 6px 20px -10px color-mix(in oklab, var(--pro-red) 60%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -6px 12px -8px rgba(0, 0, 0, 0.25);
+}
+
+/* MÊME GESTE QUE LE LOGO PRINCIPAL. Le bouton Pro de la barre et la marque
+   qui le précède sont deux objets de même nature — l'un ne doit pas se
+   soulever et grossir son ombre pendant que l'autre se contente de
+   s'éclairer. Le survol agit donc ici aussi à l'INTÉRIEUR : saturation et
+   luminosité, rien qui déborde. */
+.pro-gradient {
+  transition:
+    filter 0.35s var(--ease),
+    box-shadow 0.35s var(--ease);
+}
+
+.pro-gradient:hover,
+.group:hover .pro-gradient {
+  filter: saturate(1.22) brightness(1.08);
+}
+
+/* Surface d'une carte Pro : le dégradé reste au fond, très dilué, pour que
+   le texte garde son contraste. Trois couleurs saturées derrière un
+   paragraphe seraient illisibles. */
+.pro-surface {
+  position: relative;
+  background-image:
+    linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--accent-hi) 15%, transparent) 0%,
+      color-mix(in oklab, var(--flag-blue) 11%, transparent) 45%,
+      color-mix(in oklab, var(--flag-red) 12%, transparent) 100%
+    ),
+    linear-gradient(var(--color-bg2), var(--color-bg2));
+  border: 1px solid color-mix(in oklab, var(--flag-blue) 32%, var(--color-border));
+  box-shadow:
+    var(--edge-light),
+    var(--shadow-md),
+    0 12px 40px -16px color-mix(in oklab, var(--flag-blue) 55%, transparent);
+}
+
+/* En clair, le mot ne part plus du texte — qui est presque noir — mais
+   directement des couleurs : sinon la moitié du mot reste sombre alors
+   qu'en sombre elle était lumineuse. Le halo porté grossit d'autant, la
+   couleur ayant besoin de plus d'appui sur un fond blanc. */
+:root[data-theme="light"] .text-flag,
+:root[data-theme="light"] .text-gradient {
+  background-image: linear-gradient(
+    115deg,
+    var(--accent-hi) 0%,
+    var(--flag-blue) 42%,
+    var(--flag-red) 100%
+  );
+  filter: drop-shadow(0 4px 22px color-mix(in oklab, var(--flag-blue) 42%, transparent));
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .text-flag,
+  :root:not([data-theme="dark"]) .text-gradient {
+    background-image: linear-gradient(
+      115deg,
+      var(--accent-hi) 0%,
+      var(--flag-blue) 42%,
+      var(--flag-red) 100%
+    );
+    filter: drop-shadow(0 4px 22px color-mix(in oklab, var(--flag-blue) 42%, transparent));
+  }
+}
+
+/* ── La marque au survol ─────────────────────────────────────────
+ *
+ * AUCUNE OMBRE, AUCUN HALO. Un logo qui projette de la lumière autour de
+ * lui se détache de la barre au lieu d'y appartenir — et c'est encore plus
+ * vrai d'une ombre COLORÉE sur fond clair, qui laisse une tache bleue
+ * flottante là où on attend un objet posé.
+ *
+ * Le survol agit donc uniquement à l'INTÉRIEUR du dessin : les couleurs se
+ * saturent et s'éclaircissent d'un cran. Le carré ne bouge pas, ne
+ * grossit pas, ne déborde pas ; il s'allume. */
+.logo-lift {
+  filter: saturate(1) brightness(1);
+  transition: filter 0.35s var(--ease);
+}
+
+.group:hover .logo-lift,
+.logo-lift:hover {
+  filter: saturate(1.25) brightness(1.1);
+}
+
+/* En thème clair, AUCUNE OMBRE DU TOUT autour de la marque.
+ *
+ * J'avais compris « pas d'ombre COLORÉE » et remplacé le halo bleu par une
+ * ombre neutre — c'était encore une ombre, et elle se voyait tout autant
+ * sur un fond blanc. Le carré n'a aucun besoin d'être décollé : ses
+ * couleurs saturées le détachent déjà d'un fond clair. Le survol reste
+ * donc interne au dessin, dans les deux thèmes. */
+:root[data-theme="light"] .logo-lift {
+  filter: saturate(1) brightness(1);
+}
+
+:root[data-theme="light"] .group:hover .logo-lift,
+:root[data-theme="light"] .logo-lift:hover {
+  filter: saturate(1.22) brightness(1.06);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .logo-lift {
+    filter: saturate(1) brightness(1);
+  }
+
+  :root:not([data-theme="dark"]) .group:hover .logo-lift,
+  :root:not([data-theme="dark"]) .logo-lift:hover {
+    filter: saturate(1.22) brightness(1.06);
+  }
+}
+
+/* En thème clair, AUCUNE OMBRE DU TOUT autour de la marque.
+ *
+ * J'avais compris « pas d'ombre COLORÉE » et remplacé le halo bleu par une
+ * ombre neutre — c'était encore une ombre, et elle se voyait tout autant
+ * sur un fond blanc. Le carré n'a aucun besoin d'être décollé : ses
+ * couleurs saturées le détachent déjà d'un fond clair. Le survol reste
+ * donc interne au dessin, dans les deux thèmes. */
+:root[data-theme="light"] .logo-lift {
+  filter: saturate(1) brightness(1);
+}
+
+:root[data-theme="light"] .group:hover .logo-lift,
+:root[data-theme="light"] .logo-lift:hover {
+  filter: saturate(1.22) brightness(1.06);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .logo-lift {
+    filter: saturate(1) brightness(1);
+  }
+
+  :root:not([data-theme="dark"]) .group:hover .logo-lift,
+  :root:not([data-theme="dark"]) .logo-lift:hover {
+    filter: saturate(1.22) brightness(1.06);
+  }
+}
+
+/* ── Champs de saisie ────────────────────────────────────────────
+   Le focus d'un <input> passe par `:focus` et non `:focus-visible` (on veut
+   la marque même au clic, pas seulement au clavier). Cette classe porte la
+   même signature que la règle globale, pour que rien ne diverge. */
+.field-focus:focus,
+.field-focus:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  border-color: color-mix(in oklab, var(--flag-blue) 28%, var(--color-border));
+  /* UN ANNEAU BICOLORE, obtenu par DÉCALAGE plutôt que par dégradé.
+   *
+   * Une `box-shadow` ne peut pas contenir de dégradé. Mais deux ombres
+   * pleines légèrement décalées en sens opposés produisent, sur un contour
+   * arrondi, un arc bleu en haut à gauche et un arc rouge en bas à droite,
+   * qui se rejoignent au milieu : l'œil lit un anneau qui passe du bleu au
+   * rouge. C'est la seule technique qui donne un contour bicolore tout en
+   * suivant le rayon des angles — `outline` n'accepte pas d'image et
+   * `border-image` ignore le rayon.
+   *
+   * L'ordre compte : la première ombre est peinte AU-DESSUS. Le bleu passe
+   * donc devant sur la portion commune, ce qui donne la transition. */
+  /* UNE LUMIÈRE INTÉRIEURE, pas une ombre portée.
+   *
+   * Tout se joue sur `inset`. Une ombre portée déborde du champ et pousse
+   * visuellement le voisinage ; une ombre interne éclaire le champ par ses
+   * bords, sans rien occuper au-dehors — le champ semble s'allumer plutôt
+   * que se cerner.
+   *
+   * ATTENTION AU SENS DES DÉCALAGES : en `inset`, un décalage POSITIF
+   * projette la lumière depuis le bord opposé. `inset 3px 3px` éclaire donc
+   * l'intérieur du bord HAUT-GAUCHE, et `inset -3px -3px` celui du bord
+   * bas-droite. C'est l'inverse d'une ombre portée, et c'est ce qui permet
+   * de garder le bleu en haut à gauche et le rouge en bas à droite comme
+   * avant.
+   *
+   * Le flou est large et l'étalement négatif : la lumière se fond vers le
+   * centre du champ au lieu de dessiner un liseré intérieur. */
+  box-shadow:
+    inset 3px 3px 10px -4px color-mix(in oklab, var(--flag-blue) 62%, transparent),
+    inset -3px -3px 11px -4px color-mix(in oklab, var(--flag-red) 50%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--flag-blue) 22%, transparent);
+}
+
+/* ── Teinte de cas ───────────────────────────────────────────────
+ *
+ * Chaque cas grammatical porte sa couleur (lib/grammar/cases.ts), et elle ne
+ * servait qu'à peindre le bandeau de l'en-tête. Les commandes de l'exercice
+ * — champ de saisie, bouton de validation, mode actif — restaient au bleu de
+ * l'app : on changeait de cas sans que rien ne change là où l'on travaille
+ * vraiment. La couleur du cas ne se voyait qu'au-dessus de la zone active,
+ * jamais dedans.
+ *
+ * LA COULEUR ARRIVE PAR VARIABLE, PAS PAR CLASSE. Six cas × trois éléments
+ * feraient dix-huit règles à écrire, puis à redoubler dans les deux thèmes.
+ * Ici le composant pose `--case` sur son conteneur et tout le reste en
+ * dérive par `color-mix` : ajouter un cas ne demande aucune ligne de CSS, et
+ * les six restent cohérents par construction.
+ *
+ * LES NUANCES DÉRIVÉES ÉCLAIRCISSENT, ELLES N'ASSOMBRISSENT QUE LA BORDURE.
+ * Assombrir #1C6E5C donne un vert quasi noir, indiscernable du fond sombre
+ * de l'app : un dégradé qui plonge vers le noir n'y serait pas un dégradé,
+ * juste une moitié manquante. L'écart clair → teinte de référence, lui, se
+ * lit sur les deux thèmes.
+ */
+.case-tint {
+  /* Le haut des dégradés : un cran plus clair, assez peu pour qu'on ne voie
+     pas le dégradé lui-même mais seulement l'orientation qu'il donne — même
+     règle que `--accent-hi` pour le bleu de l'app. */
+  --case-hi: color-mix(in oklab, var(--case) 56%, white);
+  /* La lumière intérieure du champ, plus claire encore : elle est diffusée
+     par un flou large et perdrait toute présence à la valeur du dégradé. */
+  --case-glow: color-mix(in oklab, var(--case) 42%, white);
+  /* Le seul assombrissement : une arête, pas une surface. */
+  --case-edge: color-mix(in oklab, var(--case) 74%, black);
+}
+
+/* Au repos, le champ porte déjà une trace du cas dans sa bordure. Sans elle,
+   l'association couleur/cas n'existerait qu'une fois le champ actif — donc
+   jamais pour qui lit l'écran avant d'y écrire. */
+.field-case {
+  border-color: color-mix(in oklab, var(--case) 24%, var(--color-border));
+}
+
+/* Actif, c'est la lumière intérieure de `.field-focus` (voir cette règle
+   pour la technique : `inset`, sens des décalages, flou négatif), mais tirée
+   des deux nuances du cas au lieu du bleu et du rouge du drapeau. */
+.field-case:focus,
+.field-case:focus-visible {
+  border-color: color-mix(in oklab, var(--case) 44%, var(--color-border));
+  box-shadow:
+    inset 3px 3px 10px -4px color-mix(in oklab, var(--case-glow) 76%, transparent),
+    inset -3px -3px 11px -4px color-mix(in oklab, var(--case) 82%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--case) 32%, transparent);
+}
+
+/* Le bouton de validation. Posé APRÈS `.btn-primary` dans la feuille : à
+   spécificité égale, c'est l'ordre qui tranche, et c'est voulu — le bouton
+   garde toute la mécanique de `.btn-primary` (balayage, relief, appui) et ne
+   remplace que la couleur.remplace que la couleur.
+
+   LA NUANCE CLAIRE S'ARRÊTE À 42 %, pas au milieu : sur un bouton de 80 px,
+   un dégradé à 135° qui tiendrait le clair jusqu'à mi-course passerait sous
+   le début du libellé — et le blanc du texte devient illisible sur l'ambre
+   du datif (#B5762A éclairci) bien avant de l'être sur le vert du génitif.
+   C'est la même répartition que `--grad-accent`, pour la même raison. */
+.btn-case {
+  background-image: linear-gradient(135deg, var(--case-hi) 0%, var(--case) 42%, var(--case-edge) 100%);
+  border-color: var(--case-edge);
+}
+
+.btn-case:hover {
+  box-shadow:
+    var(--shadow-sm),
+    0 8px 22px -12px color-mix(in oklab, var(--case) 70%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Le mode en cours. Le même dégradé que le bouton, mais sans halo : la
+   pastille indique un état, elle n'appelle pas le clic — lui donner le même
+   rayonnement qu'à l'action principale brouillerait la hiérarchie. */
+.mode-case {
+  background-image: linear-gradient(135deg, var(--case-hi) 0%, var(--case) 42%, var(--case-edge) 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 4px 12px -9px color-mix(in oklab, var(--case) 70%, transparent);
+}
+
+/* En thème clair, la marque Pro ne projette rien — même raison que pour le
+   logo : sur un fond blanc, un halo coloré ne se lit pas comme de la
+   lumière mais comme une salissure. Le dégradé tricolore suffit largement
+   à la détacher. */
+:root[data-theme="light"] .pro-gradient,
+:root[data-theme="light"] .pro-gradient:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+:root[data-theme="light"] .pro-surface {
+  box-shadow: var(--edge-light), var(--shadow-sm);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .pro-gradient,
+  :root:not([data-theme="dark"]) .pro-gradient:hover {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  :root:not([data-theme="dark"]) .pro-surface {
+    box-shadow: var(--edge-light), var(--shadow-sm);
+  }
+}
+
+/* ── Entrées de menu déroulant ───────────────────────────────────
+ *
+ * `.hover-surface` posait un voile gris uniforme : correct, mais c'est
+ * exactement le rendu par défaut d'une bibliothèque de composants. Ici le
+ * voile est ORIENTÉ — il naît à gauche, là où le regard entre dans la
+ * ligne, et s'éteint vers la droite. Un liseré d'accent apparaît au bord
+ * gauche pour marquer l'entrée survolée, comme un curseur.
+ *
+ * Le dégradé est posé en permanence sur un pseudo-élément dont on anime
+ * l'opacité : `background-image` ne s'interpole pas, on ne peut donc pas
+ * faire fondre un dégradé depuis « rien ». */
+.menu-item {
+  position: relative;
+  isolation: isolate;
+  transition: color 0.2s var(--ease);
+}
+
+.menu-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.24s var(--ease);
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--color-accent) 20%, transparent) 0%,
+    color-mix(in oklab, var(--color-accent) 8%, transparent) 45%,
+    transparent 100%
+  );
+}
+
+/* Le liseré : 2 px collés au bord gauche, qui grandissent depuis le centre.
+   C'est ce détail qui fait qu'une ligne survolée se lit comme sélectionnée
+   plutôt que simplement éclairée. */
+.menu-item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  background-image: linear-gradient(180deg, var(--pro-blue), var(--pro-red));
+  transition: height 0.26s var(--ease);
+}
+
+.menu-item:hover::before,
+.menu-item:focus-visible::before {
+  opacity: 1;
+}
+
+.menu-item:hover::after,
+.menu-item:focus-visible::after {
+  height: 62%;
+}
+
+/* ── Pages en diapositives ───────────────────────────────────────
+ *
+ * Une section qui laisse dépasser le titre de la suivante en bas de l'écran
+ * demande au lecteur de tenir deux idées à la fois. Ici chaque section
+ * occupe exactement un écran et le défilement se cale dessus.
+ *
+ * L'ACCROCHE SE POSE SUR LE DOCUMENT, PAS SUR UN CONTENEUR INTERNE.
+ * `scroll-snap-type` n'a d'effet que sur l'élément qui défile réellement —
+ * ici <html>. Enfermer la page dans un div en `overflow-y: auto` aurait
+ * marché aussi, mais au prix d'un défilement imbriqué : la barre d'URL des
+ * navigateurs mobiles ne se rétracte pas dans un scroller interne, et la
+ * position de lecture ne survit plus au retour arrière.
+ *
+ * D'OÙ LE `:has()`. Il conditionne <html> à la seule présence de la page
+ * concernée, sans composant client qui poserait puis retirerait une classe
+ * au montage — donc sans état à défaire quand on quitte la page, et sans
+ * risque de la laisser accrochée sur une autre. Là où `:has()` manque, la
+ * règle entière est ignorée et la page défile normalement : le repli exact
+ * qu'on veut.
+ *
+ * `proximity`, PAS `mandatory`. `mandatory` oblige le navigateur à
+ * s'immobiliser sur un point d'accroche. Dès qu'une section dépasse la
+ * hauteur de l'écran — le comparatif sur un portable peu haut, la FAQ dont
+ * on ouvre trois réponses — il n'existe plus de point au milieu, et le
+ * défilement se met à repousser le lecteur vers l'un des deux bords : le
+ * contenu du milieu devient inatteignable. `proximity` donne le même geste
+ * tant que les sections tiennent dans l'écran (elles en font exactement la
+ * hauteur, on est donc toujours près d'un point) et lâche prise dès
+ * qu'elles n'y tiennent plus.
+ *
+ * LE SEUIL N'EST PAS DÉCORATIF. Sous 1024 px, les grilles retombent en une
+ * colonne et les sections font deux à trois écrans ; sous 700 px de haut,
+ * plus rien ne tient. Accrocher dans ces cas-là reviendrait à cacher les
+ * deux tiers du contenu.
+ */
+@media (min-width: 1024px) and (min-height: 700px) {
+  html:has(.slides) {
+    scroll-snap-type: y proximity;
+    /* La barre de navigation est `sticky` : sans ce retrait, le haut de
+       chaque section viendrait se ranger DERRIÈRE elle. */
+    scroll-padding-top: 4rem;
+  }
+
+  .slides > .slide {
+    min-height: calc(100svh - 4rem);
+    scroll-snap-align: start;
+
+    /* Centrage vertical : une section courte calée en haut d'un écran
+       entier laisse en bas un vide qu'on lit comme une page cassée. */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    /* Reprend la main sur les `py-*` de la page. Ils dimensionnaient des
+       blocs qui s'enchaînaient ; ici la hauteur est imposée et l'espace
+       vient du centrage, si bien que ces marges ne servent plus qu'à faire
+       déborder les sections les plus chargées. */
+    padding-block: 3.5rem;
+  }
+
+  .slides .slide-cue {
+    display: flex;
+  }
+}
+
+/* L'indice de défilement. Une section pleine hauteur ne montre RIEN de ce
+   qui suit — c'est tout l'objet du procédé, mais c'est aussi son défaut :
+   plus rien ne dit qu'il y a une suite. Il n'apparaît donc que dans le mode
+   diapositive, où le problème existe. */
+.slide-cue {
+  display: none;
+  animation: cueNudge 2.4s var(--ease) infinite;
+}
+
+@keyframes cueNudge {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(5px);
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-cue {
+    animation: none;
   }
 }

@@ -108,9 +108,8 @@ export default function TurnstileWidget({ action, resetSignal = 0, onToken }: Pr
         role="alert"
         className="rounded-[10px] border border-danger/40 bg-danger/10 px-3.5 py-2.5 font-display text-sm text-danger"
       >
-        Le captcha n&apos;est pas configuré sur ce serveur
-        (NEXT_PUBLIC_TURNSTILE_SITE_KEY manquante). L&apos;inscription est
-        indisponible.
+        L&apos;inscription est momentanément indisponible. Réessaie plus tard, ou écris-nous si
+        cela persiste.
       </p>
     );
   }

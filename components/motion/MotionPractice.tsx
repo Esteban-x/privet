@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PaywallNotice from "@/components/ui/PaywallNotice";
+import { usePracticeAttempt } from "@/lib/practice/attempt-client";
 import TrajectoryDiagram, { SCHEMA_LABEL } from "./TrajectoryDiagram";
 import {
   generateMotionExercise,
@@ -27,6 +29,10 @@ export default function MotionPractice({
   const [checking, setChecking] = useState(false);
   const [streak, setStreak] = useState(0);
   const [accuracy, setAccuracy] = useState<number | null>(null);
+  // Le plafond de pratique du plan gratuit. `blocked` remplace la carte
+  // par l'écran d'abonnement ; `stopHere` l'anticipe d'un exercice pour
+  // ne pas faire répondre à un exercice qui allait être refusé.
+  const { blocked, submit, stopHere } = usePracticeAttempt("/api/motion/attempt");
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +45,7 @@ export default function MotionPractice({
   }, [skill, round]);
 
   function next() {
+    if (stopHere()) return;
     setFeedback(null);
     setPicked(null);
     setChecking(false);
@@ -53,45 +60,50 @@ export default function MotionPractice({
     // Le client n'annonce jamais s'il a juste : il envoie l'item et sa
     // réponse, le serveur rejuge. Même règle que le module Cas — un seul
     // verdict, donc écran et base ne peuvent pas diverger.
-    try {
-      const res = await fetch("/api/motion/attempt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skill, itemId: exercise.itemId, answer: option }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error();
-      const correct = data.correct === true;
+    const outcome = await submit({ skill, itemId: exercise.itemId, answer: option });
+    setChecking(false);
+
+    // Plafond atteint : le hook a déjà basculé l'écran sur l'abonnement.
+    // Surtout ne rien corriger ici — afficher un verdict local reviendrait à
+    // laisser la pratique continuer malgré le refus.
+    if (outcome.kind === "blocked") return;
+
+    if (outcome.kind === "verdict") {
+      const correct = outcome.data.correct === true;
       setFeedback({ correct, reason: exercise.explain });
       setStreak((s) => (correct ? s + 1 : 0));
-      if (typeof data.accuracy === "number") setAccuracy(data.accuracy);
-    } catch {
-      // Serveur indisponible : on retombe sur le calcul local pour ne pas
-      // bloquer l'exercice, la tentative n'est simplement pas comptée.
-      const correct = option === exercise.options[exercise.correctIndex];
-      setFeedback({ correct, reason: exercise.explain });
-      setStreak((s) => (correct ? s + 1 : 0));
-    } finally {
-      setChecking(false);
+      if (typeof outcome.data.accuracy === "number") setAccuracy(outcome.data.accuracy);
+      return;
     }
+
+    // Serveur indisponible ou visiteur non connecté : on retombe sur le
+    // calcul local pour ne pas bloquer l'exercice, la tentative n'est
+    // simplement pas comptée.
+    const correct = option === exercise.options[exercise.correctIndex];
+    setFeedback({ correct, reason: exercise.explain });
+    setStreak((s) => (correct ? s + 1 : 0));
+  }
+
+  if (blocked) {
+    return <PaywallNotice quota={blocked.quota} message={blocked.message} what="les exercices de mouvement" />;
   }
 
   return (
-    <div className="overflow-hidden rounded-[20px] border border-border bg-bg2 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+    <div className="overflow-hidden rounded-[20px] surface shadow-float">
       <div
-        className="flex items-center justify-between px-6 py-3.5 text-white"
+        className="flex items-center justify-between gap-3 px-5 py-3 text-white sm:px-6 sm:py-3.5"
         style={{ background: color }}
       >
-        <span className="font-display text-sm font-semibold uppercase tracking-wide">
+        <span className="min-w-0 truncate font-display text-[13px] font-semibold uppercase tracking-wide sm:text-sm">
           Verbes de mouvement
         </span>
-        <span className="font-display text-xs font-bold">
+        <span className="shrink-0 font-display text-xs font-bold">
           Série : {streak}
           {accuracy !== null ? ` · ${accuracy}%` : ""}
         </span>
       </div>
 
-      <div className="p-7">
+      <div className="p-5 sm:p-7">
         {!exercise ? (
           <div className="animate-fade-in space-y-4">
             <div className="skeleton h-4 w-48 rounded-full" />
@@ -139,7 +151,7 @@ export default function MotionPractice({
                         ? "border-success bg-success/10 text-success"
                         : isWrongPick
                           ? "border-danger bg-danger/10 text-danger"
-                          : "border-border bg-bg text-text hover:border-accent"
+                          : "border-border bg-bg text-text hover:bg-accent/10 hover:border-accent/35"
                     } disabled:cursor-default`}
                   >
                     {option}
@@ -164,7 +176,7 @@ export default function MotionPractice({
                 </div>
                 <button
                   onClick={next}
-                  className="mt-4 rounded-[10px] bg-bg3 px-6 py-3 font-display text-sm font-semibold text-text transition-colors hover:bg-accent"
+                  className="btn btn-primary btn-sheen mt-4 rounded-[10px] bg-bg3 px-6 py-3 font-display text-sm text-text transition-colors hover:"
                 >
                   Suivant →
                 </button>

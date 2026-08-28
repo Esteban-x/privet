@@ -5,7 +5,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { loadRetestStatus } from "@/lib/leveltest/history";
 
 export const metadata = {
-  title: "Test de placement — Privet",
+  title: "Test de placement",
 };
 
 export default async function OnboardingPage() {

@@ -1,0 +1,73 @@
+# Applique les migrations à la base de production, à chaque fusion sur main.
+#
+# POURQUOI LA BASE AVANT L'APPLICATION. Une migration qui ajoute une colonne
+# est inoffensive pour du code qui l'ignore ; du code déployé qui écrit dans
+# une colonne absente, non. On fait donc évoluer la base d'abord, puis
+# l'application — ce qui suppose que chaque migration reste compatible avec
+# la version encore en ligne (voir la règle « rien de destructif en un seul
+# coup » dans supabase/README.md).
+#
+# POURQUOI UNE URL DE CONNEXION ET NON UN JETON D'ACCÈS. Le jeton personnel
+# de Supabase expire (30 jours). Une CI qui en dépend tombe en panne un
+# matin, sans prévenir, et toujours au mauvais moment : le mode de
+# défaillance est silencieux jusqu'à la prochaine migration. L'URL de
+# connexion, elle, ne périme pas — elle change seulement si tu réinitialises
+# le mot de passe Postgres, ce qui est un geste volontaire.
+#
+# CE QU'IL RESTE À FAIRE POUR L'ACTIVER — UN seul secret de dépôt, dans
+# Settings → Secrets and variables → Actions :
+#
+#   SUPABASE_DB_URL
+#   postgresql://postgres.<ref>:<MOT_DE_PASSE>@<hôte-pooler>:5432/postgres
+#
+# Pour ce projet, tout est déjà connu sauf le mot de passe :
+#   postgresql://postgres.wlrobqzxexrcykakcisa:<MOT_DE_PASSE>@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+#
+# Le mot de passe se réinitialise dans Settings → Database → Database
+# password. Deux précautions : PORT 5432 (mode session) et non 6543 (mode
+# transaction, qui ne supporte pas tout le SQL d'une migration) ; et un mot
+# de passe contenant @ : / ? # doit être encodé en pourcentage.
+#
+# Tant que le secret manque, ce fichier ne fait rien : l'étape échoue sans
+# avoir touché à la base.
+
+name: Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/migrations.yml"
+  # Permet de relancer à la main depuis l'onglet Actions.
+  workflow_dispatch:
+
+# Deux fusions rapprochées ne doivent pas appliquer des migrations en
+# parallèle sur la même base.
+concurrency:
+  group: supabase-migrations
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # `--dry-run` d'abord : le journal montre ce qui VA tourner avant que
+      # quoi que ce soit ne touche la base. En cas d'incident, c'est cette
+      # ligne du journal qu'on relit.
+      - name: Migrations en attente
+        run: supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Appliquer
+        run: supabase db push --db-url "$SUPABASE_DB_URL"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

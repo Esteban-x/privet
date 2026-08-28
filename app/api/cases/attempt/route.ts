@@ -3,12 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCase } from "@/lib/grammar/cases";
 import { CaseId } from "@/lib/grammar/types";
 import { bumpStreakAndXp } from "@/lib/progress/streak";
-import { getAdjective } from "@/lib/grammar/adjectives-data";
 import { declineNoun } from "@/lib/grammar/decline";
-import { declineAdjective } from "@/lib/grammar/decline-adjective";
 import { normalizeAnswer, resolveExerciseNoun } from "@/lib/grammar/exercise-generator";
 import { getTrigger } from "@/lib/grammar/triggers";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
+import { consumeQuota, recordTokens } from "@/lib/ai/quota";
+import { allowPractice } from "@/lib/practice/quota";
 import { answerVerificationPrompt } from "@/lib/ai/prompts";
 
 /**
@@ -33,15 +33,28 @@ interface VerificationResult {
   reason?: string;
 }
 
-async function aiSecondOpinion(input: {
-  lemma: string;
-  gender: string;
-  animacy: string;
-  targetCase: string;
-  plural: boolean;
-  computedForm: string;
-  userAnswer: string;
-}): Promise<VerificationResult> {
+type Db = Awaited<ReturnType<typeof createClient>>;
+
+async function aiSecondOpinion(
+  supabase: Db,
+  input: {
+    lemma: string;
+    gender: string;
+    animacy: string;
+    targetCase: string;
+    plural: boolean;
+    computedForm: string;
+    userAnswer: string;
+  }
+): Promise<VerificationResult> {
+  // Hors quota, le verdict déterministe (« faux ») tient. C'est déjà ce
+  // que fait le `catch` ci-dessous : on ne marque jamais « correct » par
+  // défaut. L'apprenant du plan gratuit garde donc une correction complète
+  // — il perd seulement le rattrapage des variantes que le moteur de
+  // règles refuse à tort.
+  const quota = await consumeQuota(supabase, "verify");
+  if (!quota.allowed) return { acceptable: false };
+
   try {
     const msg = await getAnthropic().messages.create({
       model: MODEL_FAST,
@@ -49,6 +62,7 @@ async function aiSecondOpinion(input: {
       system: answerVerificationPrompt(input),
       messages: [{ role: "user", content: "Vérifie cette réponse." }],
     });
+    await recordTokens(supabase, "verify", msg.usage);
     const result = parseJsonResponse<VerificationResult>(textFromMessage(msg));
     return { acceptable: result.acceptable === true, reason: result.reason };
   } catch (err) {
@@ -90,25 +104,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Mot inconnu de la banque" }, { status: 400 });
   }
 
+  // Le péage de pratique : vingt exercices par jour au plan gratuit, tous
+  // modules confondus.
+  //
+  // PLACÉ ICI, ET PAS PLUS HAUT. Une requête malformée (cas invalide, nom
+  // hors banque) ressort en 400 sans grignoter la journée de personne. Et il
+  // reste AVANT la seconde lecture IA et avant toute écriture : un refus n'a
+  // donc rien coûté en tokens ni rien laissé derrière lui.
+  const gate = await allowPractice(supabase, "practice");
+  if (!gate.ok) return gate.response;
+
   // Un déclencheur inexistant, ou appartenant à un autre cas, polluerait
   // case_trigger_progress (et donc le tirage adaptatif) avec des lignes qui
   // ne correspondent à aucun exercice réel.
   const trigger = typeof body.triggerId === "string" ? getTrigger(body.triggerId) : undefined;
   const triggerId = trigger?.caseId === targetCase ? trigger.id : null;
 
-  const adjective =
-    typeof body.adjectiveId === "string" ? getAdjective(body.adjectiveId) : undefined;
-  if (typeof body.adjectiveId === "string" && !adjective) {
-    return NextResponse.json({ error: "Adjectif inconnu" }, { status: 400 });
-  }
-
-  // Mode « accord adjectif » : la réponse attendue est le SEUL adjectif —
-  // le nom est déjà écrit dans la phrase (voir generateAdjectiveExercise).
-  // C'est ici, et nulle part ailleurs, que la forme est recalculée : le
-  // client n'envoie que l'identifiant du nom, celui de l'adjectif et le cas.
-  const expectedForm = adjective
-    ? declineAdjective(adjective, targetCase, noun.gender, plural, noun.animacy).form
-    : declineNoun(noun, targetCase, plural).form;
+  // C'est ici, et nulle part ailleurs, que la forme attendue est recalculée :
+  // le client n'envoie que l'identifiant du nom et le cas. L'accord de
+  // l'adjectif a son propre module (app/api/adjectives/attempt) depuis qu'il
+  // a quitté cet onglet.
+  const expectedForm = declineNoun(noun, targetCase, plural).form;
 
   // "Je ne sais pas" compte comme un échec quoi qu'il y ait dans le champ de
   // saisie : sans ce drapeau, une bonne réponse déjà tapée puis révélée
@@ -118,7 +134,7 @@ export async function POST(req: Request) {
   if (!revealed) {
     correct = normalizeAnswer(userAnswer) === normalizeAnswer(expectedForm);
     if (!correct && !multipleChoice && userAnswer.trim()) {
-      const verdict = await aiSecondOpinion({
+      const verdict = await aiSecondOpinion(supabase, {
         lemma: noun.lemma,
         gender: noun.gender,
         animacy: noun.animacy,
@@ -195,5 +211,9 @@ export async function POST(req: Request) {
     expectedForm,
     reason,
     caseAccuracy: Math.round((correctTotal / attempts) * 100),
+    // Ce qu'il reste APRÈS celui-ci : l'écran sait donc qu'il vient de
+    // servir le dernier, et propose l'abonnement plutôt qu'un exercice
+    // qu'il faudrait refuser une fois répondu.
+    quota: gate.allowance,
   });
 }

@@ -1,9 +1,24 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Logo from "@/components/layout/Logo";
 import SignupForm from "@/components/auth/SignupForm";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
-export const metadata = {
-  title: "Créer un compte — Privet",
+/**
+ * PAS DE « — Privetik » DANS LE TITRE : le gabarit du layout l'ajoute déjà, et
+ * l'écrire ici donnait « Créer un compte — Privetik — Privetik ».
+ *
+ * `noindex` PLUTÔT QU'UN `Disallow`. Cette page est liée depuis la barre de
+ * navigation de toutes les pages publiques : un moteur la découvre de toute
+ * façon. L'interdire d'exploration l'aurait fait publier en résultat nu, sans
+ * titre ni description, sans qu'on puisse jamais l'en retirer — puisqu'il
+ * aurait fallu qu'il lise la page pour apprendre qu'il ne doit pas la garder.
+ * On le laisse donc entrer, et on lui demande de ne rien garder. `follow`
+ * reste vrai : les liens de la page continuent de compter.
+ */
+export const metadata: Metadata = {
+  title: "Créer un compte",
+  robots: { index: false, follow: true },
 };
 
 export default async function SignupPage() {
@@ -18,10 +33,10 @@ export default async function SignupPage() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md flex-col justify-center px-6 py-10">
-      <div className="rounded-[20px] border border-border bg-bg2 p-8 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+      <div className="rounded-[20px] surface p-8 shadow-float">
         <div className="text-center">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-accent font-display text-xl font-extrabold text-white">
-            П
+          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center">
+<Logo size={48} />
           </div>
           <h1 className="font-display text-2xl font-bold">Créer un compte</h1>
           <p className="mt-2 font-display text-sm text-muted">

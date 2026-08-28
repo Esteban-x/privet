@@ -35,7 +35,7 @@ export default function ProfileSettings({ email, initialDisplayName }: Props) {
   }
 
   return (
-    <section className="rounded-[20px] border border-border bg-bg2 p-6">
+    <section className="rounded-[20px] surface p-6">
       <h2 className="font-display text-lg font-bold">Profil</h2>
 
       <form onSubmit={save} className="mt-4">
@@ -50,7 +50,7 @@ export default function ProfileSettings({ email, initialDisplayName }: Props) {
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           maxLength={80}
-          className="w-full max-w-sm rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text focus:border-accent focus:outline-none"
+          className="w-full max-w-sm rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text field-focus focus:outline-none"
         />
 
         <p className="mb-1.5 mt-4 font-display text-sm font-medium text-muted">Email</p>
@@ -59,7 +59,7 @@ export default function ProfileSettings({ email, initialDisplayName }: Props) {
         <button
           type="submit"
           disabled={saving || !displayName.trim() || displayName.trim() === initialDisplayName}
-          className="mt-5 rounded-[10px] bg-accent px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn btn-primary btn-sheen mt-5 rounded-[10px] px-5 py-2.5 font-display text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
           {saving ? "Enregistrement…" : "Enregistrer"}
         </button>

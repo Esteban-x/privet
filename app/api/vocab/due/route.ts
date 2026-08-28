@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { masteryScore } from "@/lib/srs/sm2";
+import { countFocus, focusOf, reviewQueue } from "@/lib/vocabulary/focus";
 
 // File de révision GLOBALE (module /vocabulary/review) : agrège les mots dus
 // de TOUTES les listes de l'utilisateur, contrairement à
 // GET /api/vocab/lists/[listId] qui reste scopé à une seule liste. Même
-// logique de repli que useReviewQueue côté liste unique : si rien n'est dû,
-// on renvoie tout, trié du moins bien su au mieux su.
+// logique de file que useReviewQueue côté liste unique, et la même
+// définition partagée (lib/vocabulary/focus.ts) : les mots « à travailler »
+// d'abord, puis les « normal » échus, jamais les « je le sais ».
 export async function GET() {
   const supabase = await createClient();
   const {
@@ -19,7 +20,7 @@ export async function GET() {
     supabase
       .from("vocab_words")
       .select(
-        "id, list_id, ru, transliteration, fr, example_ru, example_fr, gender, animacy, stem_type, indeclinable, french_gender"
+        "id, list_id, ru, transliteration, fr, example_ru, example_fr, gender, animacy, stem_type, indeclinable, french_gender, focus"
       )
       .eq("user_id", user.id),
     supabase
@@ -48,6 +49,7 @@ export async function GET() {
       frenchGender: w.french_gender,
       listId: w.list_id,
       listName: listNameById.get(w.list_id) ?? "",
+      focus: focusOf(w),
       srs: srs
         ? {
             easeFactor: srs.ease_factor,
@@ -60,9 +62,15 @@ export async function GET() {
     };
   });
 
-  const due = enriched.filter((w) => !w.srs || w.srs.dueAt <= now);
-  const pool = due.length > 0 ? due : enriched;
-  const sorted = [...pool].sort((a, b) => masteryScore(a.srs) - masteryScore(b.srs));
+  const counts = countFocus(enriched, now);
 
-  return NextResponse.json({ words: sorted, dueCount: due.length, totalWords: enriched.length });
+  // `totalWords` compte tout, mots mis de côté compris : la page
+  // /vocabulary/review s'en sert pour distinguer « aucun mot » de « rien à
+  // réviser », deux situations qui n'appellent pas le même message.
+  return NextResponse.json({
+    words: reviewQueue(enriched, now),
+    dueCount: counts.due,
+    knownCount: counts.known,
+    totalWords: enriched.length,
+  });
 }

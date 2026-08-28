@@ -1,0 +1,496 @@
+import { NOUNS } from "@/lib/grammar/nouns-data";
+import {
+  buildOptions,
+  pick,
+  shuffle,
+  type PracticeExercise,
+  type Rng,
+  type Skill,
+} from "@/lib/exercises/types";
+
+/**
+ * Lire et écrire — le module A0 qui manquait.
+ *
+ * Tous les autres modules supposent la lecture acquise : ils affichent des
+ * phrases russes et demandent une terminaison. Or c'est le déchiffrage qui
+ * bloque les premières semaines, et rien ne le faisait travailler.
+ *
+ * TROIS DES CINQ ONGLETS SONT GÉNÉRATIFS. La lecture fautive « à la latine »
+ * se calcule (il suffit d'appliquer la valeur latine aux six lettres qui
+ * trompent), et les positions d'accent possibles d'un mot aussi. Les deux
+ * autres — l'orthographe et la réduction — reposent sur des couples écrits,
+ * parce qu'ils ne se déduisent d'aucune règle mécanique.
+ *
+ * Les mots accentués viennent de la banque de noms du projet, dont chaque
+ * forme est vérifiée par `npm run check:grammar`.
+ */
+
+export const ALPHABET_SKILLS: Skill[] = [
+  {
+    id: "letters",
+    title: "La valeur des lettres",
+    level: "A0",
+    summary:
+      "Trente-trois lettres, une par son. Celle-ci se prononce comment ? C'est la seule liste du russe qu'il faut savoir par cœur, et elle se retient en une soirée.",
+  },
+  {
+    id: "traps",
+    title: "Les lettres qui trompent",
+    level: "A0",
+    summary:
+      "В, Н, Р, С, У, Х ressemblent à des lettres latines et se lisent tout autrement. Tant que l'œil les lit à la française, « ресторан » reste un mot inconnu.",
+  },
+  {
+    id: "stress",
+    title: "Où tombe l'accent",
+    level: "A1",
+    summary:
+      "L'accent russe est libre, mobile, et jamais écrit. Il décide pourtant de la prononciation de toutes les voyelles du mot : le placer au mauvais endroit rend le mot méconnaissable.",
+  },
+  {
+    id: "spelling",
+    title: "Les règles d'orthographe",
+    level: "A1",
+    summary:
+      "Après г к х ж ч ш щ, jamais ы ; après ж ч ш щ ц non accentué, jamais о. Ces deux règles expliquent la moitié des « irrégularités » de déclinaison.",
+  },
+  {
+    id: "sounds",
+    title: "Ce qu'on entend vraiment",
+    level: "A1",
+    summary:
+      "Молоко́ se dit « malako », сейча́с se dit « sitchas » : hors accent, о devient a et е devient i. C'est la raison pour laquelle un débutant qui lit bien ne comprend rien à l'oral.",
+  },
+];
+
+export function getAlphabetSkill(id: string): Skill | undefined {
+  return ALPHABET_SKILLS.find((s) => s.id === id);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 1. La valeur des lettres
+// ─────────────────────────────────────────────────────────────────
+
+const LETTERS: { letter: string; sound: string; example: string }[] = [
+  { letter: "Б", sound: "b de bon", example: "брат" },
+  { letter: "В", sound: "v de vent", example: "вода́" },
+  { letter: "Г", sound: "g de gare", example: "год" },
+  { letter: "Д", sound: "d de date", example: "дом" },
+  { letter: "Ж", sound: "j de jour", example: "жена́" },
+  { letter: "З", sound: "z de zéro", example: "зима́" },
+  { letter: "И", sound: "i de midi", example: "и́мя" },
+  { letter: "Й", sound: "y de yaourt", example: "мой" },
+  { letter: "Л", sound: "l de lac", example: "луна́" },
+  { letter: "Н", sound: "n de nord", example: "нос" },
+  { letter: "П", sound: "p de page", example: "план" },
+  { letter: "Р", sound: "r roulé", example: "рука́" },
+  { letter: "С", sound: "s de sac", example: "суп" },
+  { letter: "У", sound: "ou de tout", example: "у́тро" },
+  { letter: "Ф", sound: "f de fil", example: "фильм" },
+  { letter: "Х", sound: "kh, la jota espagnole", example: "хлеб" },
+  { letter: "Ц", sound: "ts de tsar", example: "центр" },
+  { letter: "Ч", sound: "tch de tchèque", example: "час" },
+  { letter: "Ш", sound: "ch dur de chat", example: "шко́ла" },
+  { letter: "Щ", sound: "chtch mouillé", example: "щи" },
+  { letter: "Ы", sound: "i guttural, sans équivalent", example: "ты" },
+  { letter: "Э", sound: "è de mère", example: "э́то" },
+  { letter: "Ю", sound: "iou", example: "юг" },
+  { letter: "Я", sound: "ia", example: "я́блоко" },
+  { letter: "Ё", sound: "io, toujours accentué", example: "ёлка" },
+  { letter: "Ь", sound: "aucun son : il mouille la consonne d'avant", example: "соль" },
+  { letter: "Ъ", sound: "aucun son : il sépare", example: "объе́кт" },
+];
+
+function letterExercise(random: Rng): PracticeExercise {
+  const target = pick(LETTERS, random);
+  // Tirage SANS remise : quatre `pick` indépendants peuvent ramener deux
+  // fois le même son, et le QCM tombait alors à deux options — c'est-à-dire
+  // à pile ou face.
+  const others = shuffle(
+    LETTERS.filter((l) => l.letter !== target.letter).map((l) => l.sound),
+    random
+  );
+  const { options, correctIndex } = buildOptions(target.sound, others.slice(0, 3), random);
+  return {
+    itemId: `letters:${target.letter}`,
+    prompt: "Cette lettre se prononce",
+    question: target.letter,
+    options,
+    correctIndex,
+    explain: `${target.letter} se lit « ${target.sound} » — comme dans ${target.example}.`,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 2. Les lettres qui trompent
+// ─────────────────────────────────────────────────────────────────
+
+/** La valeur réelle de chaque lettre, pour transcrire un mot. */
+const READING: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "io", ж: "j", з: "z",
+  и: "i", й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r",
+  с: "s", т: "t", у: "ou", ф: "f", х: "kh", ц: "ts", ч: "tch", ш: "ch",
+  щ: "chtch", ъ: "", ы: "y", ь: "", э: "è", ю: "iou", я: "ia",
+};
+
+/** Les six lettres lues « à la latine », et la faute qu'elles produisent. */
+const TRAP_READING: Record<string, string> = { в: "b", н: "h", р: "p", с: "c", у: "y", х: "x" };
+
+/**
+ * Uniquement des mots contenant AU MOINS DEUX lettres-pièges différentes.
+ *
+ * Un mot qui n'en contient qu'une (« парк », « метро́ ») ne produit qu'un
+ * seul leurre : le QCM tombe alors à deux options, c'est-à-dire à pile ou
+ * face. Avec deux pièges, on obtient la lecture fautive complète plus une
+ * fautive par lettre — quatre options, dont trois erreurs réelles.
+ */
+const TRAP_WORDS = [
+  "рестора́н", "спорт", "суп", "вход", "вы́ход", "па́спорт", "университе́т",
+  "авто́бус", "сувени́р", "тури́ст", "курс", "фру́кты", "но́мер", "Росси́я",
+  "но́вость", "хорошо́", "врач", "сын", "нос", "суббо́та", "ру́сский",
+  "вопро́с", "стра́на", "здра́вствуйте", "у́жин", "ве́чер", "но́вый", "вкус",
+  "сестра́", "кварти́ра",
+];
+
+function transcribe(word: string, traps: string[]): string {
+  let out = "";
+  for (const char of word.toLowerCase()) {
+    if (char === "́") continue;
+    if (traps.includes(char) && TRAP_READING[char]) out += TRAP_READING[char];
+    else out += READING[char] ?? char;
+  }
+  return out;
+}
+
+/** Les lettres-pièges réellement présentes dans un mot. */
+function trapsIn(word: string): string[] {
+  return Object.keys(TRAP_READING).filter((t) => word.toLowerCase().includes(t));
+}
+
+function trapExercise(random: Rng): PracticeExercise {
+  const word = pick(TRAP_WORDS, random);
+  const correct = transcribe(word, []);
+  const present = trapsIn(word);
+  // La lecture fautive complète, puis une fautive par lettre-piège : chaque
+  // leurre correspond à une erreur qu'on fait réellement, et il y en a
+  // toujours au moins trois puisque la banque impose deux pièges par mot.
+  const candidates = [transcribe(word, present), ...present.map((t) => transcribe(word, [t]))];
+  const { options, correctIndex } = buildOptions(correct, candidates, random);
+  return {
+    itemId: `traps:${word}`,
+    prompt: "Comment se lit ce mot ?",
+    question: word,
+    options,
+    correctIndex,
+    explain: present.length
+      ? `Les pièges de ce mot : ${present.map((t) => `${t} = ${READING[t]}, pas ${TRAP_READING[t]}`).join(" ; ")}.`
+      : "Aucun faux ami ici : toutes les lettres se lisent comme elles se prononcent.",
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 3. Où tombe l'accent
+// ─────────────────────────────────────────────────────────────────
+
+const ACCENT = "́";
+const VOWELS = "аеёиоуыэюя";
+
+/** Toutes les positions d'accent possibles d'un mot, la vraie comprise. */
+function accentVariants(accented: string): { correct: string; variants: string[] } {
+  const bare = accented.split(ACCENT).join("");
+  const variants: string[] = [];
+  for (let i = 0; i < bare.length; i += 1) {
+    if (VOWELS.includes(bare[i])) {
+      variants.push(bare.slice(0, i + 1) + ACCENT + bare.slice(i + 1));
+    }
+  }
+  return { correct: accented, variants };
+}
+
+/** Des mots d'au moins trois syllabes : sur deux, le choix est trop pauvre. */
+const STRESS_WORDS = NOUNS.filter((n) => {
+  const bare = n.forms.singular[0].split(ACCENT).join("");
+  const vowels = [...bare].filter((c) => VOWELS.includes(c)).length;
+  return vowels >= 3 && n.rank < 3000 && n.forms.singular[0].includes(ACCENT);
+}).slice(0, 90);
+
+function stressExercise(random: Rng): PracticeExercise {
+  const noun = pick(STRESS_WORDS, random);
+  const accented = noun.forms.singular[0];
+  const { correct, variants } = accentVariants(accented);
+  const { options, correctIndex } = buildOptions(
+    correct,
+    variants.filter((v) => v !== correct),
+    random
+  );
+  return {
+    itemId: `stress:${noun.id}`,
+    prompt: "Où tombe l'accent ?",
+    question: accented.split(ACCENT).join(""),
+    hint: noun.translation,
+    options,
+    correctIndex,
+    explain: `${correct}. L'accent n'est jamais écrit en russe : il fait partie du mot, comme son genre — et il commande la prononciation de toutes les autres voyelles.`,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 4. Les règles d'orthographe
+// ─────────────────────────────────────────────────────────────────
+
+interface SpellingItem {
+  id: string;
+  question: string;
+  hint: string;
+  correct: string;
+  wrong: string[];
+  why: string;
+}
+
+const SPELLING_ITEMS: SpellingItem[] = [
+  {
+    id: "knigi",
+    question: "одна́ кни́га → две ___",
+    hint: "deux livres",
+    correct: "кни́ги",
+    wrong: ["кни́гы", "кни́гa", "кни́гэ"],
+    why: "Après г, jamais ы : la règle des sept lettres impose и. La terminaison reste celle du génitif singulier, seule son orthographe change.",
+  },
+  {
+    id: "ruchki",
+    question: "одна́ ру́чка → две ___",
+    hint: "deux stylos",
+    correct: "ру́чки",
+    wrong: ["ру́чкы", "ру́чке", "ру́чкя"],
+    why: "Après к, и obligatoire — et le ч n'y change rien, c'est la consonne juste avant la terminaison qui commande.",
+  },
+  {
+    id: "pishu",
+    question: "я ___ письмо́",
+    hint: "j'écris une lettre",
+    correct: "пишу́",
+    wrong: ["пишю́", "писа́ю", "пишо́"],
+    why: "Après ш, jamais ю : on écrit -у. Et le radical alterne (с → ш), d'où пишу́ et non писа́ю.",
+  },
+  {
+    id: "khoroshee",
+    question: "___ ме́сто",
+    hint: "un bon endroit",
+    correct: "хоро́шее",
+    wrong: ["хоро́шое", "хоро́шые", "хоро́шие"],
+    why: "Après ш en terminaison NON accentuée, о devient е. Comparer avec большо́е, où la terminaison porte l'accent et garde son о.",
+  },
+  {
+    id: "bolshoy",
+    question: "___ дом",
+    hint: "une grande maison",
+    correct: "большо́й",
+    wrong: ["больше́й", "больши́й", "большы́й"],
+    why: "Ici la terminaison est accentuée : о se maintient. La règle « е après une sifflante » ne vaut que hors accent.",
+  },
+  {
+    id: "tovarishchem",
+    question: "с ___",
+    hint: "avec le camarade",
+    correct: "това́рищем",
+    wrong: ["това́рищом", "това́рищым", "това́рищам"],
+    why: "Instrumental singulier après щ, terminaison atone : -ем et non -ом.",
+  },
+  {
+    id: "vrachi",
+    question: "оди́н врач → два ___",
+    hint: "deux médecins",
+    correct: "врача́",
+    wrong: ["врачы́", "врачи́", "врачо́в"],
+    why: "Après 2, 3, 4 : génitif singulier — врача́. Le génitif pluriel враче́й viendrait après 5.",
+  },
+  {
+    id: "russkiy",
+    question: "___ язы́к",
+    hint: "la langue russe",
+    correct: "ру́сский",
+    wrong: ["ру́сскый", "ру́сское", "ру́сская"],
+    why: "Après к, и obligatoire : l'adjectif dur ру́сск- ne peut pas prendre -ый.",
+  },
+];
+
+function spellingExercise(random: Rng): PracticeExercise {
+  const item = pick(SPELLING_ITEMS, random);
+  const { options, correctIndex } = buildOptions(item.correct, item.wrong, random);
+  return {
+    itemId: `spelling:${item.id}`,
+    prompt: "Complète",
+    question: item.question,
+    hint: item.hint,
+    options,
+    correctIndex,
+    explain: item.why,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 5. Ce qu'on entend vraiment
+// ─────────────────────────────────────────────────────────────────
+
+interface SoundItem {
+  id: string;
+  word: string;
+  translation: string;
+  heard: string;
+  wrong: string[];
+  why: string;
+}
+
+const SOUND_ITEMS: SoundItem[] = [
+  {
+    id: "moloko",
+    word: "молоко́",
+    translation: "le lait",
+    heard: "malako",
+    wrong: ["moloko", "malaka", "moulouko"],
+    why: "Les deux о atones se prononcent a ; seul le о accentué garde son timbre.",
+  },
+  {
+    id: "khorosho",
+    word: "хорошо́",
+    translation: "bien",
+    heard: "kharacho",
+    wrong: ["khorocho", "karacho", "khorosho"],
+    why: "Même règle : о atone → a. Et х se lit kh, jamais k.",
+  },
+  {
+    id: "spasibo",
+    word: "спаси́бо",
+    translation: "merci",
+    heard: "spassiba",
+    wrong: ["spassibo", "spasiba", "spazibo"],
+    why: "Le о final atone s'entend a — d'où « spassiba », que tout le monde reconnaît à l'oral.",
+  },
+  {
+    id: "sestra",
+    word: "сестра́",
+    translation: "la sœur",
+    heard: "sistra",
+    wrong: ["sestra", "sietra", "chestra"],
+    why: "Le е atone se prononce i : c'est l'иканье, l'autre grande règle de réduction.",
+  },
+  {
+    id: "seychas",
+    word: "сейча́с",
+    translation: "maintenant",
+    heard: "sitchas",
+    wrong: ["seytchas", "seïchas", "sitchass"],
+    why: "е atone → i, et ч = tch. À l'oral rapide, le mot se réduit encore, jusqu'à « chtchas ».",
+  },
+  {
+    id: "khleb",
+    word: "хлеб",
+    translation: "le pain",
+    heard: "khlep",
+    wrong: ["khleb", "kleb", "khlièb"],
+    why: "En fin de mot, une consonne sonore se dévoise : б se prononce p.",
+  },
+  {
+    id: "vodka",
+    word: "во́дка",
+    translation: "la vodka",
+    heard: "votka",
+    wrong: ["vodka", "vadka", "botka"],
+    why: "Assimilation : д devient t devant к, qui est sourd. C'est la dernière consonne du groupe qui impose son camp.",
+  },
+  {
+    id: "chto",
+    word: "что",
+    translation: "que, quoi",
+    heard: "chto",
+    wrong: ["tchto", "kto", "chtcho"],
+    why: "Irrégularité isolée, mais du mot le plus fréquent de la langue : ч s'y prononce ch.",
+  },
+  {
+    id: "ego",
+    word: "его́",
+    translation: "son, le sien",
+    heard: "yivo",
+    wrong: ["yego", "ego", "yigo"],
+    why: "Le г des terminaisons -его / -ого se prononce v, et le е atone se réduit en i.",
+  },
+  {
+    id: "pozhaluysta",
+    word: "пожа́луйста",
+    translation: "s'il vous plaît",
+    heard: "pajalsta",
+    wrong: ["pojalouïsta", "pozhalousta", "pajalouysta"],
+    why: "Quatre syllabes à l'écrit, trois à l'oral : le -уй- disparaît dans l'usage courant.",
+  },
+];
+
+function soundExercise(random: Rng): PracticeExercise {
+  const item = pick(SOUND_ITEMS, random);
+  const { options, correctIndex } = buildOptions(item.heard, item.wrong, random);
+  return {
+    itemId: `sounds:${item.id}`,
+    prompt: "Qu'entend-on réellement ?",
+    question: item.word,
+    hint: item.translation,
+    options,
+    correctIndex,
+    explain: item.why,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Tirage et correction
+// ─────────────────────────────────────────────────────────────────
+
+export function generateAlphabetExercise(
+  skill: string,
+  random: Rng = Math.random
+): PracticeExercise {
+  switch (skill) {
+    case "letters":
+      return letterExercise(random);
+    case "traps":
+      return trapExercise(random);
+    case "stress":
+      return stressExercise(random);
+    case "spelling":
+      return spellingExercise(random);
+    case "sounds":
+      return soundExercise(random);
+    default:
+      throw new Error(`Compétence inconnue : ${skill}`);
+  }
+}
+
+export function checkAlphabetAnswer(itemId: string, answer: string): boolean | null {
+  const separator = itemId.indexOf(":");
+  const skill = itemId.slice(0, separator);
+  const id = itemId.slice(separator + 1);
+
+  switch (skill) {
+    case "letters": {
+      const letter = LETTERS.find((l) => l.letter === id);
+      return letter ? letter.sound === answer : null;
+    }
+    case "traps": {
+      if (!TRAP_WORDS.includes(id)) return null;
+      return transcribe(id, []) === answer;
+    }
+    case "stress": {
+      const noun = NOUNS.find((n) => n.id === id);
+      return noun ? noun.forms.singular[0] === answer : null;
+    }
+    case "spelling": {
+      const item = SPELLING_ITEMS.find((s) => s.id === id);
+      return item ? item.correct === answer : null;
+    }
+    case "sounds": {
+      const item = SOUND_ITEMS.find((s) => s.id === id);
+      return item ? item.heard === answer : null;
+    }
+    default:
+      return null;
+  }
+}
+
+export { LETTERS, SPELLING_ITEMS, SOUND_ITEMS, STRESS_WORDS, TRAP_WORDS, transcribe };

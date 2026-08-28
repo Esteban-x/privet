@@ -19,6 +19,16 @@ export interface Profile {
   streak_last: string | null;
   xp: number;
   vocab_daily_goal: number;
+  // Abonnement. Ces colonnes sont en lecture seule pour le client : un
+  // trigger (guard_plan_columns) refuse toute modification venue du rôle
+  // `authenticated`, seuls le webhook Stripe et grant_plan les écrivent.
+  // Le plan EFFECTIF se lit avec resolvePlan() — `plan` seul ignore
+  // l'échéance. Voir lib/billing/plans.ts.
+  plan: "free" | "premium";
+  plan_source: "stripe" | "grant" | "trial" | null;
+  plan_expires_at: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -26,26 +36,9 @@ export interface Profile {
 export interface ActivityRow {
   id: string;
   user_id: string;
-  kind: "case" | "motion" | "aspect" | "participle" | "vocab" | "reading" | "chat";
+  kind: "case" | "motion" | "aspect" | "participle" | "adjective" | "vocab" | "reading";
   correct: boolean | null;
   meta: Record<string, unknown> | null;
-  created_at: string;
-}
-
-export interface ChatConversationRow {
-  id: string;
-  user_id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ChatMessageRow {
-  id: string;
-  user_id: string;
-  conversation_id: string;
-  role: "user" | "assistant";
-  content: string;
   created_at: string;
 }
 

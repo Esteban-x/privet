@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { bumpStreakAndXp } from "@/lib/progress/streak";
 import { checkMotionAnswer, getSkill } from "@/lib/motion/exercises";
+import { allowPractice } from "@/lib/practice/quota";
 
 /**
  * Seule autorité sur la justesse d'une réponse du module « verbes de
@@ -31,6 +32,18 @@ export async function POST(req: Request) {
   if (correct === null) {
     return NextResponse.json({ error: "Exercice inconnu" }, { status: 400 });
   }
+
+  // Le péage de pratique : vingt exercices par jour au plan gratuit, tous
+  // modules confondus.
+  //
+  // PLACÉ ICI, ET PAS PLUS HAUT. La correction ci-dessus ne coûte rien —
+  // c'est une lecture de banque en mémoire. Ce qu'il faut éviter, c'est
+  // qu'une requête malformée (compétence inconnue, item inexistant) grignote
+  // la journée de quelqu'un : elle ressort en 400 sans avoir rien consommé.
+  // Et le péage reste AVANT toute écriture, donc un refus ne laisse ni
+  // progression ni XP derrière lui.
+  const gate = await allowPractice(supabase, "practice");
+  if (!gate.ok) return gate.response;
 
   const { data: existing } = await supabase
     .from("motion_progress")
@@ -66,5 +79,9 @@ export async function POST(req: Request) {
   return NextResponse.json({
     correct,
     accuracy: Math.round((correctTotal / attempts) * 100),
+    // Ce qu'il reste APRÈS celui-ci : l'écran sait donc qu'il vient de
+    // servir le dernier, et propose l'abonnement plutôt qu'un exercice
+    // qu'il faudrait refuser une fois répondu.
+    quota: gate.allowance,
   });
 }

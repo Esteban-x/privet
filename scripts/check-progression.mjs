@@ -25,17 +25,38 @@ const E = await jiti.import("../lib/progress/level-estimate.ts");
 const MOTION = await jiti.import("../lib/motion/exercises.ts");
 const ASPECT = await jiti.import("../lib/aspect/exercises.ts");
 const PART = await jiti.import("../lib/participles/exercises.ts");
+const CONJ = await jiti.import("../lib/conjugation/exercises.ts");
+const ALPHA = await jiti.import("../lib/alphabet/exercises.ts");
+const NUM = await jiti.import("../lib/numbers/exercises.ts");
 
 /** Progression fictive : toutes les compétences d'un module maîtrisées. */
 function solidModule(skills) {
   return skills.map((s) => ({ skill_id: s.id, attempts: 6, correct: 6 }));
 }
 const ALL_MODULES_SOLID = {
+  alphabet: solidModule(ALPHA.ALPHABET_SKILLS),
+  conjugation: solidModule(CONJ.CONJUGATION_SKILLS),
   motion: solidModule(MOTION.MOTION_SKILLS),
   aspect: solidModule(ASPECT.ASPECT_SKILLS),
+  numbers: solidModule(NUM.NUMBER_SKILLS),
   participles: solidModule(PART.PARTICIPLE_SKILLS),
 };
-const NO_MODULES = { motion: [], aspect: [], participles: [] };
+const NO_MODULES = {
+  alphabet: [],
+  conjugation: [],
+  motion: [],
+  aspect: [],
+  numbers: [],
+  participles: [],
+};
+
+/**
+ * Lire le cyrillique et manier les nombres ne plafonnent rien : leur
+ * maîtrise se démontre dans tous les autres modules, qui affichent du russe.
+ * Ce scénario le vérifie — un apprenant solide partout SAUF là ne doit pas
+ * être rabattu.
+ */
+const WITHOUT_UNGATED = { ...ALL_MODULES_SOLID, alphabet: [], numbers: [] };
 
 const LEVELS = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
 const failures = [];
@@ -207,8 +228,31 @@ require_(
   "tous les modules devraient être solides dans ce scénario"
 );
 require_(
-  everything.modules.length === 3,
-  `${everything.modules.length} modules dans l'estimation, 3 attendus`
+  everything.modules.length === 6,
+  `${everything.modules.length} modules dans l'estimation, 6 attendus`
+);
+
+// Le choix inverse, verrouillé : « Lire et écrire » et « Nombres » comptent
+// dans l'affichage mais ne rabattent jamais le niveau. Sans cette
+// assertion, leur donner un plafond un jour passerait inaperçu — et ferait
+// retomber à A1 des apprenants solides sur toute la grammaire.
+const withoutUngated = E.computeLevelEstimate(
+  progressRows({ basic: 1, intermediate: 1, advanced: 1 }),
+  solidCases,
+  WITHOUT_UNGATED,
+  0
+);
+require_(
+  withoutUngated.level === withoutUngated.depthLevel,
+  `alphabet et nombres non travaillés : le niveau ne doit pas être plafonné (niveau ${withoutUngated.level}, profondeur ${withoutUngated.depthLevel})`
+);
+require_(
+  withoutUngated.blockedBy === null,
+  "aucun module sans plafond ne doit être signalé comme bloquant"
+);
+require_(
+  withoutUngated.modules.filter((m) => m.state === "untouched").length === 2,
+  "les deux modules non travaillés doivent rester visibles dans l'estimation"
 );
 
 // Travailler les modules sans travailler les cas ne fait pas monter non plus.

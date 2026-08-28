@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { SavedReadingTextSummary } from "@/lib/reading/client";
 import { deleteMyReadingText } from "@/lib/reading/client";
+import { CrossIcon } from "@/components/ui/icons";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
@@ -33,7 +34,7 @@ export default function MyReadingTexts({
       {texts.map((t) => (
         <div
           key={t.id}
-          className="relative rounded-2xl border border-border bg-bg2 p-7 transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.5)]"
+          className="relative rounded-2xl surface-interactive p-7 hover:-translate-y-1 hover:"
         >
           <Link href={`/reading/mine/${t.id}`} className="block pr-6">
             <div className="flex items-center gap-2">
@@ -52,7 +53,7 @@ export default function MyReadingTexts({
             title="Supprimer"
             className="absolute right-4 top-4 rounded-md px-1.5 py-1 font-display text-xs text-muted transition-colors hover:text-danger"
           >
-            ✕
+            <CrossIcon className="h-3.5 w-3.5" />
           </button>
         </div>
       ))}

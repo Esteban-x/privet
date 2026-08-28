@@ -9,7 +9,7 @@ import SectionLabel from "@/components/ui/SectionLabel";
 import type { Profile } from "@/lib/supabase/types";
 
 export const metadata = {
-  title: "Repasser le test — Privet",
+  title: "Repasser le test",
 };
 
 export default async function LevelTestPage() {
@@ -40,7 +40,7 @@ export default async function LevelTestPage() {
       </h1>
 
       {/* Historique : c'est lui qui transforme un chiffre en trajectoire. */}
-      <div className="mb-8 rounded-[20px] border border-border bg-bg2 p-6">
+      <div className="mb-8 rounded-[20px] surface p-6">
         <p className="font-display text-xs font-semibold uppercase tracking-wide text-muted">
           Tes passations
         </p>
@@ -108,7 +108,7 @@ export default async function LevelTestPage() {
           }
         />
       ) : (
-        <div className="rounded-[20px] border border-border bg-bg2 p-8">
+        <div className="rounded-[20px] surface p-8">
           <h2 className="font-display text-xl font-bold">Encore un peu de patience</h2>
           <p className="mt-3 font-display text-sm leading-relaxed text-muted">
             Tu as passé le test il y a moins de {RETEST_COOLDOWN_DAYS} jours. Deux passations
@@ -126,13 +126,13 @@ export default async function LevelTestPage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/cases"
-              className="rounded-[10px] bg-accent px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+              className="btn btn-primary btn-sheen rounded-[10px] px-5 py-2.5 font-display text-sm"
             >
               Travailler les cas
             </Link>
             <Link
               href="/motion"
-              className="rounded-[10px] border border-border px-5 py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+              className="rounded-[10px] border border-border px-5 py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:bg-accent/10 hover:border-accent/35 hover:text-accent"
             >
               Verbes de mouvement
             </Link>

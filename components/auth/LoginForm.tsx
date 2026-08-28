@@ -6,9 +6,10 @@ import { Suspense, useState } from "react";
 import ResendConfirmationForm from "@/components/auth/ResendConfirmationForm";
 import TurnstileWidget from "@/components/auth/TurnstileWidget";
 import { createClient } from "@/lib/supabase/client";
+import Logo from "@/components/layout/Logo";
 
 // Le lien de confirmation échoué n'est pas toujours une inscription — un
-// message "demande une nouvelle confirmation" serait trompeur pour un lien
+// message "demande une nouvelle confirmation"serait trompeur pour un lien
 // de réinitialisation de mot de passe ou de changement d'email.
 function confirmErrorMessage(type: string | null): string {
   if (type === "recovery") {
@@ -40,11 +41,11 @@ function LoginCard() {
       ? confirmErrorMessage(searchParams.get("type"))
       : searchParams.get("error") === "auth"
         ? "La connexion a échoué. Réessaie."
-        : null
+        : null,
   );
   const [unconfirmed, setUnconfirmed] = useState(false);
   const [notice, setNotice] = useState<string | null>(
-    searchParams.get("deleted") === "1" ? "Ton compte a bien été supprimé." : null
+    searchParams.get("deleted") === "1" ? "Ton compte a bien été supprimé." : null,
   );
   const [loading, setLoading] = useState<"password" | "google" | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -101,7 +102,7 @@ function LoginCard() {
       router.push(next);
       router.refresh();
     } catch {
-      setError("La connexion a échoué. Vérifie que Supabase est configuré.");
+      setError("La connexion a échoué. Réessaie dans un instant.");
       setCaptchaToken(null);
       setCaptchaResetSignal((n) => n + 1);
       setLoading(null);
@@ -121,21 +122,25 @@ function LoginCard() {
       });
       if (error) throw error;
     } catch {
-      setError("La connexion a échoué. Vérifie que Google est activé dans Supabase.");
+      setError("La connexion avec Google a échoué. Réessaie, ou utilise ton adresse e-mail.");
       setLoading(null);
     }
   }
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md flex-col justify-center px-6 py-10">
-      <div className="rounded-[20px] border border-border bg-bg2 p-8 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+      <div className="rounded-[20px] surface p-8 shadow-float">
         <div className="text-center">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-accent font-display text-xl font-extrabold text-white">
-            П
+          {/* Le vrai logo, pas un carré bleu portant une lettre : c'est la
+              première chose que voit quelqu'un qui arrive sur le site depuis
+              un lien, et elle doit dire « russe ». Le halo reprend celui de
+              la barre pour que les deux se répondent. */}
+          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center">
+            <Logo size={48} />
           </div>
-          <h1 className="font-display text-2xl font-bold">Bienvenue sur Privet</h1>
+          <h1 className="font-display text-2xl font-bold">Bienvenue sur Privetik</h1>
           <p className="mt-2 font-display text-sm text-muted">
-            Connecte-toi pour sauvegarder ta progression et débloquer le professeur IA.
+            Connecte-toi pour sauvegarder ta progression et retrouver tes modules.
           </p>
         </div>
 
@@ -155,7 +160,7 @@ function LoginCard() {
             placeholder="toi@exemple.fr"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text placeholder:text-muted/60 focus:border-accent focus:outline-none"
+            className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text placeholder:text-muted/60 field-focus focus:outline-none"
           />
 
           <label
@@ -172,19 +177,23 @@ function LoginCard() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text focus:border-accent focus:outline-none"
+            className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text field-focus focus:outline-none"
           />
 
           <div className="mt-4">
-            <TurnstileWidget action="login" onToken={setCaptchaToken} resetSignal={captchaResetSignal} />
+            <TurnstileWidget
+              action="login"
+              onToken={setCaptchaToken}
+              resetSignal={captchaResetSignal}
+            />
           </div>
 
           <button
             type="submit"
             disabled={loading !== null}
-            className="mt-5 w-full rounded-[10px] bg-accent px-4 py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-60"
+            className="btn surface-interactive surface-static mt-5 h-12 w-full rounded-xl px-4 font-display text-sm font-semibold disabled:opacity-60"
           >
-            {loading === "password" ? "Connexion…" : "Se connecter"}
+            <span>{loading === "password" ? "Connexion…" : "Se connecter"}</span>
           </button>
         </form>
 
@@ -213,14 +222,14 @@ function LoginCard() {
         <button
           onClick={signInWithGoogle}
           disabled={loading !== null}
-          className="flex w-full items-center justify-center gap-3 rounded-[10px] border border-border bg-bg px-4 py-3 font-display text-sm font-semibold text-text transition-colors hover:border-accent hover:bg-accent/10 disabled:opacity-60"
+          className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-border bg-bg px-4 font-display text-sm font-semibold text-text transition-colors hover:bg-accent/10 disabled:opacity-60"
         >
           <GoogleIcon />
           {loading === "google" ? "Redirection…" : "Continuer avec Google"}
         </button>
 
         <p className="mt-6 text-center font-display text-sm text-muted">
-          Pas encore de compte ?{" "}
+          Pas encore de compte ?{""}
           <Link href="/signup" className="font-semibold text-text hover:text-accent">
             Créer un compte
           </Link>

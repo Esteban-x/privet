@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createNewCard, reviewCard, type Quality } from "@/lib/srs/sm2";
 import { bumpStreakAndXp } from "@/lib/progress/streak";
+import { allowPractice } from "@/lib/practice/quota";
 
 // Enregistre une révision de carte SRS pour un mot d'une liste personnelle
 // (le catalogue intégré, lui, reste sur localStorage — voir lib/storage.ts).
@@ -23,6 +24,13 @@ export async function POST(req: Request) {
   if (!cardId || ![0, 1, 2, 3, 4, 5].includes(quality)) {
     return NextResponse.json({ error: "cardId et quality (0-5) requis" }, { status: 400 });
   }
+
+  // Le péage de révision : vingt cartes par jour au plan gratuit, tous modes
+  // confondus (cartes retournées, oral, QCM, frappe). Après la validation,
+  // pour qu'une requête malformée ne grignote la journée de personne ; avant
+  // l'écriture, pour qu'un refus ne déplace aucun intervalle de révision.
+  const gate = await allowPractice(supabase, "vocab_review");
+  if (!gate.ok) return gate.response;
 
   const { data: existing } = await supabase
     .from("srs_cards")
@@ -73,5 +81,8 @@ export async function POST(req: Request) {
   });
   await bumpStreakAndXp(supabase, user.id, correct ? 5 : 1);
 
-  return NextResponse.json({ card: updated });
+  // Ce qu'il reste APRÈS celle-ci : la file sait donc qu'elle vient de
+  // servir la dernière carte, et propose l'abonnement plutôt qu'une carte
+  // de plus qu'il faudrait refuser une fois répondue.
+  return NextResponse.json({ card: updated, quota: gate.allowance });
 }

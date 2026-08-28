@@ -1,9 +1,7 @@
-import { Adjective, CaseId, Noun } from "./types";
+import { CaseId, Noun } from "./types";
 import { NOUNS } from "./nouns-data";
-import { ADJECTIVES } from "./adjectives-data";
 import { RUSSIAN_NAMES } from "./names-data";
 import { declineNoun } from "./decline";
-import { declineAdjective } from "./decline-adjective";
 import { CaseTrigger, PROPER_NOUN_TRIGGER_ID, triggersForCase } from "./triggers";
 import { CASES } from "./cases";
 import { CountForm, countFormFor, randomCountNumber } from "./numerals";
@@ -27,8 +25,7 @@ export type ExerciseKind =
   | "sentence-fixed"
   | "sentence-ai"
   | "trigger-mcq"
-  | "numeral"
-  | "adjective-agreement";
+  | "numeral";
 
 export interface CaseExercise {
   kind: ExerciseKind;
@@ -57,10 +54,6 @@ export interface CaseExercise {
   // numeral
   numeral?: number;
   countForm?: CountForm;
-
-  // adjective-agreement
-  adjective?: Adjective;
-  adjectiveForm?: string;
 }
 
 function pickRandom<T>(arr: T[]): T {
@@ -97,8 +90,14 @@ function shuffle<T>(arr: T[]): T[] {
  * mots fréquents) et ne rien contenir d'utilisable : on élargit alors à la
  * banque entière avant de renoncer. Un mot plus rare vaut mieux qu'une
  * phrase que personne ne dirait.
+ *
+ * Exporté : la route IA (app/api/ai/exercise/route.ts) doit composer son
+ * échantillon avec EXACTEMENT ce filtre. Elle tirait auparavant 40 mots au
+ * hasard dans toute la banque du niveau, ce qui court-circuitait la
+ * curation : « владеть » (maîtriser) recevait « рот » (bouche) faute d'un
+ * seul mot valide dans l'échantillon.
  */
-function poolFor(trigger: CaseTrigger, pool: Noun[]): Noun[] {
+export function poolFor(trigger: CaseTrigger, pool: Noun[]): Noun[] {
   if (trigger.id === PROPER_NOUN_TRIGGER_ID) return RUSSIAN_NAMES;
 
   const curated = TRIGGER_NOUNS[trigger.id];
@@ -227,120 +226,6 @@ export function generateNumeralExercise(pool: Noun[] = DECLINABLE_NOUNS): CaseEx
     ruleApplied: result.ruleApplied,
     numeral,
     countForm,
-  };
-}
-
-// ─── Accord adjectif + nom ──────────────────────────────────────────
-export function generateAdjectiveExercise(
-  targetCase: CaseId,
-  trigger?: CaseTrigger,
-  pool: Noun[] = DECLINABLE_NOUNS,
-  adjPool: Adjective[] = ADJECTIVES
-): CaseExercise {
-  // "Меня зовут ___" est incompatible avec cet exercice : il tire un prénom,
-  // et accorder un adjectif dessus donne "Меня зовут синий Александр" — une
-  // phrase absurde dont la traduction française ("Je m'appelle Alexandre")
-  // ne laisse même pas deviner l'adjectif attendu. On retire ce déclencheur
-  // du tirage plutôt que de produire l'exercice.
-  const eligible = triggersForCase(targetCase).filter((t) => t.id !== PROPER_NOUN_TRIGGER_ID);
-  const chosenTrigger =
-    trigger && trigger.id !== PROPER_NOUN_TRIGGER_ID ? trigger : pickRandom(eligible);
-  const plural = chosenTrigger.plural ?? false;
-
-  // Deux filtres se combinent pour choisir le couple adjectif + nom.
-  //
-  // 1. GRAMMATICAL. Certaines combinaisons donnent pour réponse la forme du
-  //    dictionnaire déjà montrée en indice — nominatif masculin singulier,
-  //    accusatif masculin inanimé : il suffisait de recopier « плохо́й ».
-  //    C'est le genre et l'animacité du nom qui décident, jamais l'adjectif :
-  //    tous sont dégénérés dans les mêmes cases. Six combinaisons genre ×
-  //    animacité suffisent donc à trancher.
-  //
-  // 2. SÉMANTIQUE. Un adjectif restreint (voir adjectives-data.ts) n'accepte
-  //    qu'une partie des noms : « вку́сный » va avec un plat, pas avec une
-  //    voisine.
-  //
-  // Un filtre plutôt qu'un tirage répété : c'est exact, là où redessiner
-  // jusqu'à tomber juste laisse toujours une queue de cas ratés. Et si un
-  // adjectif ne trouve aucun nom dans le pool courant — pool réduit par
-  // niveau, liste comestible presque vide — on change d'ADJECTIF, jamais de
-  // phrase : mieux vaut un autre qualificatif qu'une phrase absurde.
-  // Le déclencheur restreint d'abord ce qui est dicible ; les contraintes
-  // d'adjectif s'appliquent ensuite à ce qu'il reste.
-  const sayable = poolFor(chosenTrigger, pool);
-
-  const shuffled = [...adjPool];
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
-  let adjective = shuffled[0];
-  let candidates: Noun[] = [];
-  for (const candidate of shuffled) {
-    const usable = new Set(
-      (["masculine", "feminine", "neuter"] as const).flatMap((gender) =>
-        (["animate", "inanimate"] as const)
-          .filter(
-            (animacy) =>
-              declineAdjective(candidate, targetCase, gender, plural, animacy).form !==
-              candidate.lemmaM
-          )
-          .map((animacy) => `${gender}:${animacy}`)
-      )
-    );
-    const allowed = candidate.onlyNouns ? new Set(candidate.onlyNouns) : null;
-    const found = sayable.filter(
-      (n) =>
-        usable.has(`${n.gender}:${n.animacy}`) &&
-        (candidate.appliesTo === undefined || n.animacy === candidate.appliesTo) &&
-        (allowed === null || allowed.has(n.id))
-    );
-    if (found.length > 0) {
-      adjective = candidate;
-      candidates = found;
-      break;
-    }
-  }
-
-  const noun = pickRandom(candidates.length > 0 ? candidates : sayable);
-  const adjResult = declineAdjective(adjective, targetCase, noun.gender, plural, noun.animacy);
-
-  const nounResult = declineNoun(noun, targetCase, plural);
-
-  return {
-    kind: "adjective-agreement",
-    noun,
-    targetCase,
-    plural,
-    // SEUL l'adjectif est demandé. Le nom, déjà décliné, est écrit dans la
-    // phrase : l'exercice porte sur l'accord, et faire retaper le nom en
-    // même temps mélangeait deux compétences dans une seule réponse — une
-    // faute sur le nom masquait un accord réussi, et inversement.
-    correctForm: adjResult.form,
-    accentedForm: adjResult.accented,
-    ruleApplied: adjResult.ruleApplied,
-    trigger: chosenTrigger,
-    // Le nom décliné suit le blanc, avec son accent tonique : la phrase
-    // reste lisible et l'apprenant voit sur quoi il accorde.
-    sentenceTemplate: chosenTrigger.template.ru.replace("___", `___ ${nounResult.accented}`),
-    // La traduction porte l'adjectif, accordé et placé du bon côté :
-    // « C'est une bague brillante » dit à elle seule ce qu'il faut produire.
-    // Les formes françaises sont écrites dans la banque (voir `fr` sur
-    // Adjective) parce que le français ne place ni n'accorde comme le russe
-    // — concaténer la glose brute donnait « vif, éclatant bâtiment ».
-    sentenceFr: fillFrenchBlank(
-      chosenTrigger.template.fr,
-      frenchNounPhrase(
-        noun.translation,
-        noun.frenchGender,
-        chosenTrigger.article,
-        plural,
-        adjective.fr
-      )
-    ),
-    adjective,
-    adjectiveForm: adjResult.form,
   };
 }
 

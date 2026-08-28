@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
+import { consumeQuota, quotaDeniedResponse, recordTokens, refundQuota } from "@/lib/ai/quota";
 import { readingSystemPrompt, type ReadingLength, type ReadingStyle } from "@/lib/ai/prompts";
 import { toReadingText } from "@/lib/reading/validate";
 import { CaseId } from "@/lib/grammar/types";
@@ -16,6 +17,23 @@ const VALID_CASES = new Set<CaseId>([
   "instrumental",
   "prepositional",
 ]);
+
+/**
+ * LE PLAFOND D'EXÉCUTION, EXPLICITEMENT.
+ *
+ * Une fonction déployée sur Vercel est coupée à DIX SECONDES par défaut, et
+ * la coupure ne ressemble pas à une erreur : le client reçoit une 504 sans
+ * corps, aucune trace n'apparaît côté application, et le même appel réussit
+ * en local où aucun plafond ne s'applique. C'est le bug le plus difficile à
+ * diagnostiquer de tout un déploiement, parce que rien ne le nomme.
+ *
+ * Cette route est la plus exposée : elle demande au modèle un texte entier
+ * (4096 jetons), ce qui dépasse dix secondes dès que le texte est long ou
+ * que l'API répond lentement. Soixante secondes est le maximum du plan
+ * Hobby ; le temps réellement consommé reste facturé à la seconde, donc un
+ * plafond haut ne coûte rien tant que les appels sont normaux.
+ */
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -42,6 +60,13 @@ export async function POST(req: Request) {
   const level: CefrLevel =
     requested && READING_LEVELS.includes(requested) ? requested : (profile?.level ?? "A1");
 
+  // La route la plus chère de l'app, et de loin : ~0,021 $ l'appel, contre
+  // 0,0016 $ pour un exercice. C'est aussi la seule sans repli local — le
+  // refus doit donc remonter jusqu'à l'écran, avec de quoi proposer
+  // l'abonnement plutôt qu'une erreur muette.
+  const quota = await consumeQuota(supabase, "reading");
+  if (!quota.allowed) return quotaDeniedResponse(quota);
+
   try {
     const msg = await getAnthropic().messages.create({
       model: MODEL_FAST,
@@ -60,10 +85,13 @@ export async function POST(req: Request) {
       // interpréter dans les logs.
       console.error("reading route: réponse tronquée par max_tokens");
     }
+    await recordTokens(supabase, "reading", msg.usage);
     const raw = parseJsonResponse(textFromMessage(msg));
     const text = toReadingText(raw, level);
     if (!text) {
       console.error("reading route: forme inattendue", raw);
+      // Rien n'a été rendu : le texte ne doit pas être décompté.
+      await refundQuota(supabase, "reading");
       return NextResponse.json({ error: "Génération indisponible pour le moment." }, { status: 502 });
     }
 
@@ -100,6 +128,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ text, id: saved?.id ?? null });
   } catch (err) {
     console.error("reading route error", err);
+    await refundQuota(supabase, "reading");
     return NextResponse.json(
       { error: "Génération indisponible pour le moment." },
       { status: 502 }

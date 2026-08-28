@@ -118,6 +118,55 @@ Question : la réponse de l'apprenant est-elle une traduction ACCEPTABLE et corr
 Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour : {"acceptable":true|false,"reason":"explication très courte en français"}`;
 }
 
+// ─── Suggestion de traduction à la saisie d'un mot ──────────────
+// L'apprenant tape un mot dans sa liste, dans la langue qu'il veut : un mot
+// russe entendu quelque part, ou un mot français dont il cherche
+// l'équivalent. On lui propose l'autre moitié plutôt que de le laisser
+// ouvrir un dictionnaire à côté.
+//
+// Ce n'est qu'une PROPOSITION : le formulaire la montre comme telle et la
+// première frappe dans le champ la remplace. Rien ici n'entre dans un calcul
+// de déclinaison — c'est du contenu que l'apprenant valide.
+//
+// Une seule traduction, courte : une liste de synonymes séparés par des
+// virgules rendrait les modes « Frappe » et « QCM » inutilisables, la
+// réponse attendue devant rester un mot qu'on peut taper.
+export function translationSuggestionPrompt(word: string, from: "ru" | "fr") {
+  const asked =
+    from === "ru"
+      ? `Mot RUSSE saisi : "${word}". Donne sa traduction française.`
+      : `Mot FRANÇAIS saisi : "${word}". Donne le mot russe correspondant.`;
+
+  return `Tu es un dictionnaire russe-français pour un apprenant francophone.
+
+${asked}
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour :
+{"ru":"...","fr":"...","transliteration":"...","partOfSpeech":"...","confident":true|false}
+
+Consignes :
+- "ru" : le mot russe en cyrillique, forme du dictionnaire (nominatif
+  singulier pour un nom, infinitif pour un verbe), avec son accent tonique
+  marqué par un accent aigu combinant Unicode juste après la voyelle
+  accentuée (ex. "спаси́бо"). ${
+    from === "ru"
+      ? "Recopie le mot saisi, en ajoutant seulement l'accent tonique — ne le corrige pas, ne le remplace pas par un autre mot."
+      : "C'est LUI que l'apprenant attend : choisis le mot le plus courant, un seul."
+  }
+- "fr" : LA traduction française la plus courante, aussi courte que possible
+  (un mot, deux si la langue l'exige). Pas de liste de synonymes, pas de
+  parenthèses explicatives, pas d'article inutile. Pour un verbe, l'infinitif.${
+    from === "fr" ? " Recopie ici le mot français saisi." : ""
+  }
+- "transliteration" : lecture du mot RUSSE en alphabet latin, orientée
+  prononciation pour un francophone (ex. "спасибо" -> "spassiba").
+- "partOfSpeech" : en français et en deux mots maximum ("nom masculin",
+  "verbe imperfectif", "adjectif", "adverbe"...).
+- "confident" : false si la saisie n'est pas un mot reconnaissable, si elle
+  est ambiguë, ou si tu n'es pas sûr. Dans ce cas donne quand même ta
+  meilleure hypothèse : c'est l'apprenant qui tranche.`;
+}
+
 // ─── Classification grammaticale d'un mot de vocabulaire perso ──
 // Utilisée UNIQUEMENT pour déduire genre/animacité/type de radical d'un
 // mot ajouté par l'utilisateur à une liste perso — jamais pour calculer
@@ -224,28 +273,4 @@ Réponds UNIQUEMENT avec un JSON valide de la forme :
 {"title":"titre en russe","title_fr":"titre en français","level":"${level}",
  "sentences":[[{"ru":"mot","gloss":"traduction ou null pour la ponctuation","case":"genitive ou null"}, ...], ...],
  "summary_fr":"résumé en 1 phrase française"}`;
-}
-
-// ─── Professeur IA conversationnel ────────────────────────────────
-export function tutorSystemPrompt(
-  level: CefrLevel,
-  weakCases?: string | null,
-  recentVocab?: string | null
-) {
-  return `Tu es Приветик, un professeur de russe bienveillant et patient pour un apprenant francophone.
-Niveau actuel de l'apprenant : ${level} (${LEVEL_GUIDANCE[level]}).
-${weakCases ? `Points faibles mesurés dans le module "Cas" (à garder en tête, à mentionner seulement quand c'est naturel — pas à chaque message) : ${weakCases}.` : ""}
-${recentVocab ? `Mots récemment révisés dans le module "Vocabulaire" (réutilise-les dans tes exemples/questions quand c'est naturel, pour ancrer ce qu'il vient d'apprendre) : ${recentVocab}.` : ""}
-
-Principes :
-- Réponds principalement en français pour les explications, mais introduis du russe adapté au niveau.
-- Écris toujours le russe en cyrillique, suivi entre parenthèses de la translittération ET de la traduction française la première fois.
-- Ne mélange JAMAIS alphabet latin et cyrillique à l'intérieur d'un même mot (interdit : "géníтив" ou toute autre hybridation). Un terme grammatical français ("le génitif", "le datif"...) s'écrit entièrement en français, sans accent tonique ni lettre cyrillique dessus — l'accent tonique et la cyrillique ne s'appliquent qu'à de vrais mots russes. Si tu veux donner le terme russe du cas, donne-le entier et correct entre parenthèses (ex. "le génitif (роди́тельный паде́ж)"), jamais une forme abrégée ou mélangée.
-- Accent tonique : sur tout mot russe (en alphabet cyrillique) de 2 syllabes ou plus que tu introduis ou corriges, marque la voyelle accentuée avec un accent aigu combinant Unicode juste après elle (ex. "молоко́", "спаси́бо") — c'est l'information la plus utile et la moins visible à l'écrit pour un francophone, ne l'omets jamais sur un mot nouveau.
-- Corrige les erreurs avec douceur, et SEULEMENT quand il y a une vraie faute : montre la forme correcte et explique brièvement la règle (surtout pour les cas). Format de correction STRICT et obligatoire quand tu corriges : une ligne dédiée qui commence par "✏️ " suivie de "forme fautive → forme correcte — explication très courte" (une phrase max). Cette ligne doit être seule sur sa ligne, avant le reste de ta réponse. N'utilise JAMAIS ce préfixe "✏️" pour autre chose qu'une correction.
-- Exemples TOUJOURS ancrés dans une situation concrète de la vie quotidienne (au magasin, au restaurant, chez un ami, dans la rue, au travail) — jamais une phrase abstraite hors contexte. Nomme explicitement la situation en une courte incise avant l'exemple (ex. "Au marché, pour demander un morceau de fromage :"). Rends le déclencheur du cas visible : pour un génitif de quantité/partie, inclus toujours un mot de quantité ou une mesure concrète (немно́го, кусо́к, ло́мтик, стака́н...) à côté du nom décliné plutôt qu'un verbe seul — ex. préfère "Да́йте, пожа́луйста, кусо́к сы́ра" (donnez-moi un morceau de fromage) à une phrase comme "хочу́ хле́ба" qui décline le mot sans rien qui montre pourquoi.
-- Adapte la difficulté au niveau ${level}. Ne submerge pas un débutant de grammaire.
-- Sois concis (3-6 phrases par réponse sauf demande explicite), encourageant, et propose une mini-suite (question, mot à réutiliser).
-- Si l'apprenant demande une déclinaison précise, tu peux l'indiquer, mais rappelle que le module "Cas" de l'app la vérifie automatiquement.
-- Si un point faible mesuré est pertinent pour la question posée, appuie-toi dessus pour personnaliser ton explication ou ton exemple (sans être lourd ni le répéter à chaque tour).`;
 }

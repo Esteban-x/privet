@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ParticiplePractice from "@/components/participles/ParticiplePractice";
@@ -10,6 +11,26 @@ const SKILL_COLOR: Record<string, string> = {
   gerund: "#2456A6",
   subject: "#6F4A2E",
 };
+
+/**
+ * Le titre de l'onglet, pris à la compétence.
+ *
+ * SANS LUI, LA PAGE PORTE CELUI DE L'ACCUEIL : le layout racine définit un
+ * `title.default`, que Next donne à toute page qui n'en déclare pas. Les
+ * cinq compétences de ce module affichaient donc le même onglet, et le même
+ * que l'accueil.
+ *
+ * Sans « — Privetik » : le gabarit du layout l'ajoute.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ skill: string }>;
+}): Promise<Metadata> {
+  const { skill } = await params;
+  const info = getSkill(skill);
+  return { title: info ? info.title : "Exercice introuvable" };
+}
 
 export default async function ParticipleSkillPage({
   params,
@@ -24,7 +45,7 @@ export default async function ParticipleSkillPage({
   const next = PARTICIPLE_SKILLS[index + 1];
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
+    <div className="mx-auto max-w-4xl px-6 py-8 sm:py-16">
       <Link
         href="/participles"
         className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
@@ -32,16 +53,16 @@ export default async function ParticipleSkillPage({
         ← Participes et gérondifs
       </Link>
 
-      <div className="mb-3 flex items-baseline gap-3">
-        <h1 className="font-display text-4xl font-extrabold tracking-tight">{info.title}</h1>
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1 className="font-display text-3xl font-extrabold sm:text-4xl tracking-tight">{info.title}</h1>
         <span className="font-display text-sm font-bold text-accent">{info.level}</span>
       </div>
-      <p className="mb-10 max-w-2xl font-display leading-relaxed text-muted">{info.summary}</p>
+      <p className="mb-7 sm:mb-10 max-w-2xl font-display leading-relaxed text-muted">{info.summary}</p>
 
       <ParticiplePractice skill={info.id as ParticipleSkillId} color={SKILL_COLOR[info.id]} />
 
       {next && (
-        <div className="mt-10 rounded-[20px] border border-border bg-bg2 p-6">
+        <div className="mt-10 rounded-[20px] surface p-6">
           <p className="font-display text-xs font-semibold uppercase tracking-wide text-muted">
             Étape suivante
           </p>
@@ -52,7 +73,7 @@ export default async function ParticipleSkillPage({
             </div>
             <Link
               href={`/participles/${next.id}`}
-              className="shrink-0 rounded-[10px] bg-accent px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+              className="btn btn-primary btn-sheen shrink-0 rounded-[10px] px-5 py-2.5 font-display text-sm"
             >
               Continuer →
             </Link>

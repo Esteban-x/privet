@@ -9,7 +9,12 @@ import { SrsCard, createNewCard } from "./srs/sm2";
 const KEYS = {
   srs: "ru-app:srs-cards",
   direction: "ru-app:vocab-direction", // + `:${mode}`
+  addWordFirstSide: "ru-app:add-word-first-side",
+  coursesRead: "ru-app:courses-read",
 };
+
+/** Exposée pour lib/courses/use-read-lessons.ts, qui lit le brut sans le parser. */
+export const COURSES_READ_KEY = KEYS.coursesRead;
 
 // --- SRS (vocabulaire) ---
 
@@ -52,4 +57,56 @@ export function loadDirection(mode: VocabMode, fallback: VocabDirection): VocabD
 export function saveDirection(mode: VocabMode, direction: VocabDirection) {
   if (typeof window === "undefined") return;
   localStorage.setItem(`${KEYS.direction}:${mode}`, direction);
+}
+
+// --- Formulaire d'ajout : quelle langue en premier ---
+//
+// Purement visuel : l'ordre des deux champs, pas le sens de la traduction.
+// Quelqu'un qui part systématiquement du français ne doit pas le redire à
+// chaque mot.
+
+export function loadAddWordFirstSide(): "ru" | "fr" {
+  if (typeof window === "undefined") return "ru";
+  try {
+    return localStorage.getItem(KEYS.addWordFirstSide) === "fr" ? "fr" : "ru";
+  } catch {
+    // Stockage refusé (navigation privée, cookies bloqués) : le russe
+    // d'abord, ce n'est qu'une préférence d'affichage.
+    return "ru";
+  }
+}
+
+export function saveAddWordFirstSide(side: "ru" | "fr") {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(KEYS.addWordFirstSide, side);
+  } catch {}
+}
+
+// --- Cours : leçons déjà lues ---
+//
+// Uniquement local, et volontairement : c'est un marque-page, pas une
+// progression pédagogique. Rien n'en dépend (aucun calcul de niveau, aucun
+// tirage d'exercice), donc rien ne justifie une table, une requête au
+// chargement de la page, ni un compte obligatoire pour lire un cours.
+
+export function loadReadLessons(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(KEYS.coursesRead);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveReadLessons(slugs: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(KEYS.coursesRead, JSON.stringify(slugs));
+  } catch {
+    // Quota plein ou stockage refusé : la lecture reste possible, seule la
+    // coche est perdue. Rien à signaler à l'apprenant.
+  }
 }

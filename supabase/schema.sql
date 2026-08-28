@@ -1,5 +1,22 @@
 -- ════════════════════════════════════════════════════════════════
--- Schéma Privet — à exécuter dans Supabase → SQL Editor → New query
+-- CE FICHIER NE SE COLLE PLUS DANS L'ÉDITEUR SQL.
+--
+-- La source de vérité est `supabase/migrations/` : une suite de fichiers
+-- datés, appliqués une seule fois chacun, dont Supabase tient le compte
+-- dans la base. On applique avec `npm run db:push`.
+--
+-- Ce fichier reste comme VUE CONSOLIDÉE du schéma — utile pour lire d'un
+-- coup ce que la base contient, et référencé par quelques commentaires du
+-- code. Il n'est plus exécuté par personne, et il peut être régénéré :
+--
+--     npx supabase db dump --local -f supabase/schema.sql
+--
+-- Y ajouter une table sans écrire la migration correspondante ne changera
+-- donc rien à la base : c'est la migration qui fait foi.
+-- ════════════════════════════════════════════════════════════════
+
+-- ════════════════════════════════════════════════════════════════
+-- Schéma Privetik — à exécuter dans Supabase → SQL Editor → New query
 -- Idempotent : peut être relancé sans casser l'existant.
 -- ════════════════════════════════════════════════════════════════
 
@@ -115,6 +132,20 @@ alter table public.vocab_words add column if not exists indeclinable boolean def
 -- par l'IA de classification.
 alter table public.vocab_words add column if not exists french_gender text;
 
+-- Priorité de révision, choisie par l'APPRENANT (« à travailler » /
+-- « normal » / « je le sais »). Elle remplace l'ancien classement déduit du
+-- nombre de répétitions SRS : la machine décidait qu'un mot était maîtrisé
+-- après deux réussites d'affilée, ce que l'apprenant n'a jamais demandé et
+-- ne pouvait pas corriger. Ici c'est lui qui range ses mots, et le SM-2 ne
+-- sert plus qu'à espacer les « normal » entre eux.
+--   priority → toujours dans la file, en tête
+--   normal   → soumis à l'intervalle SRS (srs_cards.due_at)
+--   known    → hors file tant qu'il n'est pas remis à normal
+alter table public.vocab_words add column if not exists focus text not null default 'normal';
+alter table public.vocab_words drop constraint if exists vocab_words_focus_check;
+alter table public.vocab_words
+  add constraint vocab_words_focus_check check (focus in ('priority', 'normal', 'known'));
+
 -- Explication du mot rédigée par l'IA (nuance, registre, exemples, pièges),
 -- mise en cache ici parce qu'elle ne dépend que du mot : la calculer une
 -- fois évite de repayer des tokens à chaque ouverture de la fiche.
@@ -175,64 +206,65 @@ create table if not exists public.participle_progress (
   primary key (user_id, skill_id)
 );
 
+-- ─── adjective_progress ─────────────────────────────────────────
+-- Précision par compétence du module « accord de l'adjectif »
+-- (lib/adjectives/exercises.ts : nominative, spelling, accusative,
+-- oblique, plural). Ce module était un onglet du module Cas ; il en a été
+-- sorti parce qu'il y tirait le couple adjectif + nom au hasard dans deux
+-- banques, ce qui produisait une phrase sur trois hors de sens. Les
+-- réponses de cet onglet vivaient dans case_progress et y restent — elles
+-- comptent pour la précision du cas concerné, ce qui reste vrai.
+create table if not exists public.adjective_progress (
+  user_id   uuid not null references auth.users(id) on delete cascade,
+  skill_id  text not null,
+  attempts  int default 0,
+  correct   int default 0,
+  last_seen timestamptz default now(),
+  primary key (user_id, skill_id)
+);
+
+-- ─── exercise_progress ──────────────────────────────────────────
+-- Précision par module × compétence pour les modules d'exercices ajoutés
+-- après les cinq premiers (nombres, conjugaison, alphabet…).
+--
+-- POURQUOI UNE TABLE UNIQUE ICI, ALORS QUE LES CINQ PREMIERS EN ONT CHACUN
+-- UNE. case_progress, motion_progress, aspect_progress, participle_progress
+-- et adjective_progress ont la même forme à un nom près : cinq tables pour
+-- une seule structure. Elles restent (le calcul de niveau les lit
+-- nommément, lib/progress/level-estimate.ts), mais la sixième n'a pas de
+-- raison d'être la sixième copie : `module_id` fait le travail du nom de
+-- table, et un module de plus ne demande plus de migration.
+create table if not exists public.exercise_progress (
+  user_id   uuid not null references auth.users(id) on delete cascade,
+  module_id text not null,               -- 'numbers' | 'conjugation' | 'alphabet'
+  skill_id  text not null,
+  attempts  int default 0,
+  correct   int default 0,
+  last_seen timestamptz default now(),
+  primary key (user_id, module_id, skill_id)
+);
+
 -- ─── activity_log ───────────────────────────────────────────────
 -- Journal d'activité pour alimenter le dashboard (graphes, streak…).
 create table if not exists public.activity_log (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users(id) on delete cascade,
-  kind       text not null,             -- 'case' | 'motion' | 'aspect' | 'participle' | 'vocab' | 'reading' | 'chat'
+  kind       text not null,             -- 'case' | 'motion' | 'aspect' | 'participle' | 'adjective'
+                                         -- | 'alphabet' | 'conjugation' | 'numbers' | 'vocab' | 'reading'
   correct    boolean,
   meta       jsonb,
   created_at timestamptz default now()
 );
 create index if not exists activity_log_user_time on public.activity_log (user_id, created_at desc);
 
--- ─── chat_conversations / chat_messages ──────────────────────────
--- Plusieurs fils de discussion par utilisateur avec le professeur IA
--- (façon ChatGPT/Claude), chacun listé dans la sidebar de /tutor avec
--- possibilité de suppression individuelle.
-create table if not exists public.chat_conversations (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references auth.users(id) on delete cascade,
-  title      text not null default 'Nouvelle conversation',
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-create index if not exists chat_conversations_user_time on public.chat_conversations (user_id, updated_at desc);
-
-create table if not exists public.chat_messages (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references auth.users(id) on delete cascade,
-  role       text not null,             -- 'user' | 'assistant'
-  content    text not null,
-  created_at timestamptz default now()
-);
-create index if not exists chat_messages_user_time on public.chat_messages (user_id, created_at);
-
--- Rattachement à une conversation (colonne ajoutée après coup : les
--- messages existaient avant l'introduction des fils multiples).
-alter table public.chat_messages add column if not exists conversation_id uuid references public.chat_conversations(id) on delete cascade;
-
--- Rattrapage idempotent : regroupe les messages déjà en base (avant les
--- fils multiples) dans une conversation "Historique" par utilisateur, pour
--- ne rien perdre. Ne fait rien si tous les messages ont déjà une
--- conversation (relances suivantes, ou base neuve sans messages).
-do $$
-declare
-  u record;
-  conv_id uuid;
-begin
-  for u in select distinct user_id from public.chat_messages where conversation_id is null
-  loop
-    insert into public.chat_conversations (user_id, title) values (u.user_id, 'Historique')
-    returning id into conv_id;
-    update public.chat_messages set conversation_id = conv_id
-      where user_id = u.user_id and conversation_id is null;
-  end loop;
-end $$;
-
-alter table public.chat_messages alter column conversation_id set not null;
-create index if not exists chat_messages_conversation on public.chat_messages (conversation_id, created_at);
+-- ─── Purge : professeur IA conversationnel (fonctionnalité retirée) ──
+-- Le tuteur/chat n'existe plus dans l'app : ses deux tables et les lignes
+-- d'activité qu'il écrivait sont supprimées ici plutôt que laissées
+-- orphelines. Ordre imposé par la FK (chat_messages -> chat_conversations).
+-- Idempotent : sans objet sur une base neuve, ou déjà purgée.
+drop table if exists public.chat_messages;
+drop table if exists public.chat_conversations;
+delete from public.activity_log where kind = 'chat';
 
 -- ─── reading_texts ────────────────────────────────────────────────
 -- Textes de lecture générés par l'IA, sauvegardés automatiquement (comme un
@@ -255,6 +287,7 @@ create index if not exists reading_texts_user_time on public.reading_texts (user
 -- ════════════════════════════════════════════════════════════════
 -- Row Level Security : chaque utilisateur ne voit QUE ses données.
 -- ════════════════════════════════════════════════════════════════
+alter table public.exercise_progress     enable row level security;
 alter table public.profiles              enable row level security;
 alter table public.level_tests           enable row level security;
 alter table public.case_progress         enable row level security;
@@ -262,10 +295,9 @@ alter table public.case_trigger_progress enable row level security;
 alter table public.motion_progress       enable row level security;
 alter table public.aspect_progress       enable row level security;
 alter table public.participle_progress   enable row level security;
+alter table public.adjective_progress    enable row level security;
 alter table public.srs_cards             enable row level security;
 alter table public.activity_log          enable row level security;
-alter table public.chat_conversations    enable row level security;
-alter table public.chat_messages         enable row level security;
 alter table public.vocab_lists           enable row level security;
 alter table public.vocab_words           enable row level security;
 alter table public.reading_texts         enable row level security;
@@ -274,7 +306,7 @@ alter table public.reading_texts         enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['level_tests','case_progress','case_trigger_progress','motion_progress','aspect_progress','participle_progress','srs_cards','activity_log','chat_conversations','chat_messages','vocab_lists','vocab_words','reading_texts']
+  foreach t in array array['level_tests','case_progress','case_trigger_progress','motion_progress','aspect_progress','participle_progress','adjective_progress','exercise_progress','srs_cards','activity_log','vocab_lists','vocab_words','reading_texts']
   loop
     execute format('drop policy if exists own_select on public.%I;', t);
     execute format('drop policy if exists own_all on public.%I;', t);
@@ -329,8 +361,9 @@ create trigger on_auth_user_created
 -- ne peut pas être falsifié depuis le client. search_path vidé + tout
 -- qualifié explicitement, pour ne pas dépendre d'objets résolus ailleurs.
 -- La suppression cascade sur profiles, level_tests, case_progress,
--- case_trigger_progress, srs_cards, activity_log, chat_conversations, chat_messages,
--- vocab_lists, vocab_words, reading_texts (toutes `references auth.users(id)
+-- case_trigger_progress, adjective_progress, srs_cards, activity_log,
+-- vocab_lists, vocab_words,
+-- reading_texts (toutes `references auth.users(id)
 -- on delete cascade`) ainsi que sur les tables internes de Supabase Auth
 -- (sessions, identités, tokens…).
 create or replace function public.delete_own_account()
@@ -368,15 +401,16 @@ alter table public.profiles    drop column if exists goals;
 --    niveau mesuré.
 alter type cefr_level add value if not exists 'C2';
 
--- 3. Tables de progression des trois modules de grammaire ajoutés après la
+-- 3. Tables de progression des modules de grammaire ajoutés après la
 --    version initiale. Le `create table if not exists` plus haut les crée
 --    déjà sur une base neuve ; ici on ne fait qu'activer la sécurité au cas
 --    où la table préexisterait sans elle.
 alter table public.motion_progress     enable row level security;
 alter table public.aspect_progress     enable row level security;
 alter table public.participle_progress enable row level security;
+alter table public.adjective_progress  enable row level security;
 
--- 4. Politiques « propriétaire uniquement » sur ces trois tables. Le bloc
+-- 4. Politiques « propriétaire uniquement » sur ces tables. Le bloc
 --    `do $$` plus haut les couvre déjà : le relancer suffit, cette ligne
 --    n'est là que pour rappeler qu'il FAUT le relancer.
 --    → remonte au bloc « Row Level Security » et réexécute-le.

@@ -46,6 +46,26 @@ const CYRILLIC = /^[а-яё']+$/;
 const RARE_RANK = 50000;
 const GENDER = { m: "masculine", f: "feminine", n: "neuter" };
 
+/**
+ * Animacité corrigée à la main, par lemme.
+ *
+ * OpenRussian marque `animate=0` sur quelques noms de personnes. L'erreur
+ * ne se voit pas dans les FORMES — le dictionnaire donne bien
+ * acc.sg = gen.sg (ме́неджера) — mais le drapeau, lui, sert ailleurs :
+ * il choisit la désinence de l'ADJECTIF accordé à l'accusatif masculin, et
+ * il filtre ce qu'un adjectif peut qualifier. Sans correction, le module
+ * proposait « синий менеджер » et attendait « синий » là où il faut
+ * « синего ».
+ *
+ * Les collectifs (семья, полиция, армия, команда…) ne sont PAS concernés :
+ * ils désignent des personnes mais sont grammaticalement inanimés en russe,
+ * et le dictionnaire a raison sur eux.
+ */
+const ANIMACY_OVERRIDES = {
+  "менеджер": "animate",
+  "режиссёр": "animate",
+};
+
 // Translittération pour les identifiants : стол -> stol, учитель -> uchitel.
 // Stable dans le temps (les ids servent de clés dans case_progress et dans
 // les composants de référence), donc à ne pas changer à la légère.
@@ -228,7 +248,7 @@ async function main() {
       translation: w.translation,
       frenchGender: w.frenchGender,
       gender,
-      animacy: r.animate === "1" ? "animate" : "inanimate",
+      animacy: ANIMACY_OVERRIDES[w.lemma] ?? (r.animate === "1" ? "animate" : "inanimate"),
       // Hors liste de fréquence : considéré comme rare plutôt qu'exclu — le
       // mot reste jouable, simplement réservé aux niveaux avancés.
       rank: ranks.get(w.lemma) ?? RARE_RANK,

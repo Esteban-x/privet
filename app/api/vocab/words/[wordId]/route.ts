@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/api/validate";
+import { isFocus } from "@/lib/vocabulary/focus";
 
 function field(body: Record<string, unknown>, key: string, max: number): string | undefined {
   const value = body[key];
@@ -32,23 +33,21 @@ export async function PATCH(
   if (transliteration !== undefined) update.transliteration = transliteration || null;
   if (exampleRu !== undefined) update.example_ru = exampleRu || null;
   if (exampleFr !== undefined) update.example_fr = exampleFr || null;
+  // Priorité de révision : le seul champ d'état que l'apprenant règle
+  // lui-même. Validée ici plutôt que laissée à la contrainte SQL, pour
+  // renvoyer un 400 lisible au lieu d'une erreur Postgres.
+  if (body.focus !== undefined) {
+    if (!isFocus(body.focus)) {
+      return NextResponse.json({ error: "Priorité inconnue" }, { status: 400 });
+    }
+    update.focus = body.focus;
+  }
 
-  // Correction manuelle de la classification grammaticale (filet de
-  // sécurité si l'heuristique/IA s'est trompée — voir grammar-classify.ts).
-  if (body.gender === "masculine" || body.gender === "feminine" || body.gender === "neuter") {
-    update.gender = body.gender;
-  } else if (body.gender === null) {
-    update.gender = null;
-  }
-  if (body.animacy === "animate" || body.animacy === "inanimate") {
-    update.animacy = body.animacy;
-  }
-  if (typeof body.indeclinable === "boolean") {
-    update.indeclinable = body.indeclinable;
-  }
-  if (body.frenchGender === "m" || body.frenchGender === "f") {
-    update.french_gender = body.frenchGender;
-  }
+  // La classification grammaticale (genre, animacité, type de radical) n'est
+  // PAS modifiable ici : elle est établie une fois à l'ajout du mot
+  // (app/api/vocab/words) et n'a aucun réglage côté apprenant. Lui demander
+  // de corriger le genre d'un mot russe revenait à lui demander de corriger
+  // ce qu'il vient précisément apprendre.
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Rien à mettre à jour" }, { status: 400 });

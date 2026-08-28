@@ -7,6 +7,9 @@ import { MASTERY_ACCURACY, MASTERY_MIN_ATTEMPTS_EACH } from "@/lib/grammar/exerc
 import { MOTION_SKILLS } from "@/lib/motion/exercises";
 import { ASPECT_SKILLS } from "@/lib/aspect/exercises";
 import { PARTICIPLE_SKILLS } from "@/lib/participles/exercises";
+import { CONJUGATION_SKILLS } from "@/lib/conjugation/exercises";
+import { ALPHABET_SKILLS } from "@/lib/alphabet/exercises";
+import { NUMBER_SKILLS } from "@/lib/numbers/exercises";
 
 /**
  * Niveau de PRATIQUE : ce que la progression réelle démontre, par opposition
@@ -21,9 +24,9 @@ import { PARTICIPLE_SKILLS } from "@/lib/participles/exercises";
  * 1. La PROFONDEUR sur les cas : part des déclencheurs maîtrisés par palier.
  *    C'est le signal le plus riche (136 déclencheurs gradués).
  * 2. La COUVERTURE du programme : les cas ne sont pas toute la grammaire.
- *    L'aspect et les verbes de mouvement sont du A2-B1, les participes du
- *    B2-C1. Quelqu'un qui n'a jamais touché à l'aspect n'a pas démontré un
- *    niveau B1, quelle que soit sa virtuosité sur le génitif.
+ *    La conjugaison, l'aspect et les verbes de mouvement sont du A2-B1, les
+ *    participes du B2-C1. Quelqu'un qui n'a jamais touché à l'aspect n'a pas
+ *    démontré un niveau B1, quelle que soit sa virtuosité sur le génitif.
  *
  * Le niveau retenu est donc le MINIMUM des deux. Le plafond est expliqué à
  * l'apprenant plutôt que subi : « plafonné à A2 — l'aspect n'a pas encore
@@ -109,26 +112,62 @@ const THRESHOLDS: { level: CefrLevel; basic: number; intermediate: number; advan
 const MIN_ATTEMPTS_FOR_ESTIMATE = 30;
 
 // ─── Couverture du programme ───────────────────────────────────────
-export type ModuleId = "motion" | "aspect" | "participles";
+export type ModuleId =
+  | "alphabet"
+  | "conjugation"
+  | "motion"
+  | "aspect"
+  | "numbers"
+  | "participles";
 
 /**
  * Chaque module ouvre un plafond. Tant qu'il n'est pas SOLIDE, la pratique
  * ne peut pas justifier un niveau au-delà de `unlocks`.
  *
- * Les niveaux viennent des compétences du module : les verbes de mouvement
- * et l'aspect sont introduits en A2 et consolidés en B1, les participes
- * relèvent du B2. Un apprenant qui n'a jamais quitté le module Cas plafonne
- * donc à A2 — ce qui est exact : il n'a rien démontré au-delà.
+ * Les niveaux viennent des compétences du module : les verbes de mouvement,
+ * l'aspect et la conjugaison sont introduits en A1-A2 et consolidés en B1,
+ * les participes relèvent du B2. Un apprenant qui n'a jamais quitté le
+ * module Cas plafonne donc à A2 — ce qui est exact : il n'a rien démontré
+ * au-delà.
+ *
+ * `unlocks: null` — UN MODULE QUI COMPTE SANS PLAFONNER. Lire le cyrillique
+ * et manier les nombres sont indispensables, mais leur maîtrise se démontre
+ * ailleurs : tous les autres modules affichent du russe accentué, et on ne
+ * peut pas y répondre juste sans savoir lire. Leur imposer un plafond
+ * ferait retomber à A1 un apprenant solide sur les cas au seul motif qu'il
+ * n'a pas ouvert un onglet A0. Ces deux modules alimentent donc l'affichage
+ * et le seuil de significativité, sans jamais rabattre le niveau.
  */
 const MODULE_SPECS: {
   id: ModuleId;
   label: string;
   href: string;
-  unlocks: CefrLevel;
+  unlocks: CefrLevel | null;
   skills: readonly { id: string }[];
 }[] = [
+  {
+    id: "alphabet",
+    label: "Lire et écrire",
+    href: "/alphabet",
+    unlocks: null,
+    skills: ALPHABET_SKILLS,
+  },
+  {
+    id: "conjugation",
+    label: "Conjugaison",
+    href: "/conjugation",
+    unlocks: "B1",
+    skills: CONJUGATION_SKILLS,
+  },
   { id: "motion", label: "Verbes de mouvement", href: "/motion", unlocks: "B1", skills: MOTION_SKILLS },
   { id: "aspect", label: "Aspect verbal", href: "/aspect", unlocks: "B1", skills: ASPECT_SKILLS },
+  {
+    id: "numbers",
+    label: "Nombres, heure et dates",
+    href: "/numbers",
+    unlocks: null,
+    skills: NUMBER_SKILLS,
+  },
   {
     id: "participles",
     label: "Participes et gérondifs",
@@ -231,6 +270,7 @@ export function computeLevelEstimate(
   let coverageCeiling: CefrLevel = "C2";
   let blockedBy: ModuleMastery | null = null;
   for (const spec of MODULE_SPECS) {
+    if (spec.unlocks === null) continue;
     const mastery = modules.find((m) => m.id === spec.id)!;
     if (mastery.state === "solid") continue;
     const ceiling = ceilingWithout(spec.unlocks);
@@ -276,6 +316,7 @@ export async function loadLevelEstimate(
     { data: motionRows },
     { data: aspectRows },
     { data: participleRows },
+    { data: sharedRows },
     { count: vocabKnown },
   ] = await Promise.all([
     supabase
@@ -289,6 +330,12 @@ export async function loadLevelEstimate(
       .from("participle_progress")
       .select("skill_id, attempts, correct")
       .eq("user_id", userId),
+    // Les modules récents partagent une table : une seule lecture pour les
+    // trois, filtrée ensuite par `module_id`.
+    supabase
+      .from("exercise_progress")
+      .select("module_id, skill_id, attempts, correct")
+      .eq("user_id", userId),
     supabase
       .from("srs_cards")
       .select("card_id", { count: "exact", head: true })
@@ -296,12 +343,20 @@ export async function loadLevelEstimate(
       .gte("interval_days", KNOWN_INTERVAL_DAYS),
   ]);
 
+  const shared = (module: string): SkillProgressRow[] =>
+    (sharedRows ?? [])
+      .filter((row) => row.module_id === module)
+      .map((row) => ({ skill_id: row.skill_id, attempts: row.attempts, correct: row.correct }));
+
   return computeLevelEstimate(
     triggerRows ?? [],
     caseRows ?? [],
     {
+      alphabet: shared("alphabet"),
+      conjugation: shared("conjugation"),
       motion: motionRows ?? [],
       aspect: aspectRows ?? [],
+      numbers: shared("numbers"),
       participles: participleRows ?? [],
     },
     vocabKnown ?? 0

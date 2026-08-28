@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
+import { consumeQuota, quotaDeniedResponse, recordTokens, refundQuota } from "@/lib/ai/quota";
 import { wordExplanationPrompt } from "@/lib/ai/prompts";
 import { toWordExplanation } from "@/lib/vocabulary/explanation";
 
@@ -12,6 +13,13 @@ import { toWordExplanation } from "@/lib/vocabulary/explanation";
  * tokens à chaque ouverture de la fiche, et rend l'affichage instantané au
  * deuxième passage. `?refresh=1` force une nouvelle génération.
  */
+/**
+ * Sans ce plafond, Vercel coupe à dix secondes — une 504 sans corps, sans
+ * trace, et qui ne se reproduit jamais en local. Voir la note détaillée dans
+ * app/api/ai/reading/route.ts.
+ */
+export const maxDuration = 30;
+
 export async function POST(req: Request) {
   const supabase = await createClient();
   const {
@@ -41,6 +49,18 @@ export async function POST(req: Request) {
     if (cached) return NextResponse.json({ explanation: cached, cached: true });
   }
 
+  // Quota, APRÈS le cache : une fiche déjà rédigée est relue gratuitement,
+  // autant de fois qu'on veut et quel que soit le plan. Les vingt
+  // explications du plan gratuit sont donc vingt MOTS expliqués, acquis
+  // pour de bon — pas vingt consultations.
+  //
+  // Le rafraîchissement a son propre compteur, beaucoup plus serré. Sans
+  // lui, `refresh: true` régénérerait indéfiniment la même fiche en
+  // contournant le cache : c'est le chemin par lequel un abonné pourrait
+  // à lui seul consommer tout le plafond quotidien d'explications.
+  const quota = await consumeQuota(supabase, refresh ? "explain_refresh" : "explain");
+  if (!quota.allowed) return quotaDeniedResponse(quota);
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("level")
@@ -58,9 +78,12 @@ export async function POST(req: Request) {
       }),
       messages: [{ role: "user", content: "Explique ce mot." }],
     });
+    await recordTokens(supabase, refresh ? "explain_refresh" : "explain", msg.usage);
     const explanation = toWordExplanation(parseJsonResponse(textFromMessage(msg)), word.ru);
     if (!explanation) {
       console.error("vocab explain: forme inattendue pour", word.ru);
+      // Rien n'a été rendu : la fiche ne doit pas être décomptée.
+      await refundQuota(supabase, refresh ? "explain_refresh" : "explain");
       return NextResponse.json(
         { error: "Explication indisponible pour le moment." },
         { status: 502 }
@@ -79,6 +102,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ explanation, cached: false });
   } catch (err) {
     console.error("vocab explain route error", err);
+    await refundQuota(supabase, refresh ? "explain_refresh" : "explain");
     return NextResponse.json({ error: "Explication indisponible pour le moment." }, { status: 502 });
   }
 }

@@ -93,15 +93,15 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 --------------------------------------------------------------------------
 
-NOTE DE MODIFICATION (Privet)
+NOTE DE MODIFICATION (Privetik)
 
-privet-cyrillic.woff2 est le sous-ensemble cyrillique d'Inter, modifié :
+privetik-cyrillic.woff2 est le sous-ensemble cyrillique d'Inter, modifié :
 
   1. les fonctions GPOS « mark » et « mkmk » sont enregistrées sous le script
      `cyrl`, où Inter ne déclarait que `kern` — sans quoi aucun moteur de
      rendu n'applique les ancres d'accent sur du texte russe ;
   2. deux ancres d'accent aigu absentes ont été ajoutées, sur « я » et « Ю ».
 
-La police est renommée « Privet Cyrillic », comme le veut l'OFL pour une
+La police est renommée « Privetik Cyrillic », comme le veut l'OFL pour une
 version modifiée. scripts/build-cyrillic-font.py reconstruit le fichier depuis
 la source originale et vérifie le résultat en composant de vrais mots.

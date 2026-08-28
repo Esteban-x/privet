@@ -14,7 +14,9 @@
  * 3. PRÉNOMS : paradigmes écrits à la main (absents du dictionnaire), donc
  *    vérifiés en entier.
  * 4. ADJECTIFS : eux restent calculés par règle (système fermé et régulier),
- *    donc entièrement testés contre une table de référence.
+ *    donc entièrement testés contre une table de référence. Les PHRASES
+ *    d'accord, elles, ont leur propre module et leur propre suite
+ *    (`npm run check:adjectives`).
  *
  * Il affiche aussi le taux d'accord entre le moteur de règles et le
  * dictionnaire — la mesure qui justifie l'architecture (le moteur explique,
@@ -28,14 +30,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
 const { declineNoun, stripAccent } = await jiti.import("../lib/grammar/decline.ts");
 const { declineAdjective } = await jiti.import("../lib/grammar/decline-adjective.ts");
-const { NOUNS } = await jiti.import("../lib/grammar/nouns-data.ts");
+const { NOUNS, nounsForLevel } = await jiti.import("../lib/grammar/nouns-data.ts");
 const { RUSSIAN_NAMES } = await jiti.import("../lib/grammar/names-data.ts");
 const { ADJECTIVES } = await jiti.import("../lib/grammar/adjectives-data.ts");
 const { CASE_ORDER } = await jiti.import("../lib/grammar/types.ts");
-const { generateAdjectiveExercise, generateSentenceExercise } = await jiti.import(
+const { generateSentenceExercise, poolFor } = await jiti.import(
   "../lib/grammar/exercise-generator.ts"
 );
-const { TRIGGERS } = await jiti.import("../lib/grammar/triggers.ts");
+const { TRIGGERS, PROPER_NOUN_TRIGGER_ID } = await jiti.import("../lib/grammar/triggers.ts");
 const { categoryOf, DECLARED_CATEGORIES } = await jiti.import(
   "../lib/grammar/noun-categories.ts"
 );
@@ -299,109 +301,7 @@ for (const adj of ADJECTIVES) {
   expect(`${adj.lemmaM} pl. animé acc.`, declineAdjective(adj, "accusative", "masculine", true, "animate").form, animate.plural);
 }
 
-// ─── 5. Mode « accord adjectif » ───────────────────────────────────
-// L'exercice demande le SEUL adjectif, le nom étant déjà décliné dans la
-// phrase. Trois façons de le casser, toutes vérifiées sur un vrai tirage :
-//
-//   - demander plusieurs mots, ce qui mêlerait accord et déclinaison dans
-//     une seule réponse ;
-//   - oublier d'écrire le nom après le blanc, l'apprenant n'ayant alors
-//     rien sur quoi accorder ;
-//   - tirer une combinaison où la réponse EST la forme du dictionnaire
-//     montrée en indice (nominatif masculin, accusatif masculin inanimé) :
-//     l'exercice est alors donné.
-{
-  let multiword = 0;
-  let missingNoun = 0;
-  let degenerate = 0;
-  let serverMismatch = 0;
-  let offScope = 0;
-  let offList = 0;
-  let draws = 0;
-  const adjectivesSeen = new Set();
-
-  for (const caseId of CASE_ORDER) {
-    for (let i = 0; i < 500; i += 1) {
-      const ex = generateAdjectiveExercise(caseId);
-      draws += 1;
-
-      if (ex.correctForm.trim().includes(" ")) multiword += 1;
-      if (ex.correctForm === ex.adjective.lemmaM) degenerate += 1;
-      if (!(ex.sentenceTemplate.split("___")[1] ?? "").trim()) missingNoun += 1;
-
-      // Ce que le serveur recalculera à partir des seuls identifiants
-      // envoyés par le client (app/api/cases/attempt/route.ts).
-      const server = declineAdjective(
-        ex.adjective,
-        caseId,
-        ex.noun.gender,
-        ex.plural,
-        ex.noun.animacy
-      ).form;
-      if (server !== ex.correctForm) serverMismatch += 1;
-
-      // La portée sémantique est-elle respectée sur un vrai tirage ? C'est
-      // ce qui empêche « вку́сная сосе́дка » — désinence juste, phrase
-      // inavouable.
-      adjectivesSeen.add(ex.adjective.id);
-      if (ex.adjective.appliesTo && ex.noun.animacy !== ex.adjective.appliesTo) offScope += 1;
-      if (ex.adjective.onlyNouns && !ex.adjective.onlyNouns.includes(ex.noun.id)) offList += 1;
-    }
-  }
-
-  expect(
-    `accord adjectif : adjectifs jamais tirés (${adjectivesSeen.size}/${ADJECTIVES.length})`,
-    adjectivesSeen.size,
-    ADJECTIVES.length
-  );
-
-  expect(`accord adjectif : réponses en plusieurs mots (${draws} tirages)`, multiword, 0);
-  expect("accord adjectif : nom manquant après le blanc", missingNoun, 0);
-  expect("accord adjectif : réponse identique à l'indice", degenerate, 0);
-  expect("accord adjectif : forme attendue différente côté serveur", serverMismatch, 0);
-  expect("accord adjectif : adjectif hors de sa portée sémantique", offScope, 0);
-  expect("accord adjectif : nom hors de la liste autorisée", offList, 0);
-}
-
-// La contrainte sémantique ne doit pas se payer en variété : un adjectif
-// qui ne sortirait plus jamais, ou un cas qui n'en verrait qu'un seul,
-// appauvrirait l'exercice en silence.
-{
-  const NOUN_IDS = new Set(NOUNS.map((n) => n.id));
-  for (const adj of ADJECTIVES) {
-    for (const id of adj.onlyNouns ?? []) {
-      expect(`${adj.lemmaM} : « ${id} » de onlyNouns absent de la banque`, NOUN_IDS.has(id), true);
-    }
-    // Chaque adjectif doit rester tirable dans les six cas, au singulier
-    // comme au pluriel : sinon la contrainte l'a purement éliminé.
-    for (const caseId of CASE_ORDER) {
-      for (const plural of [false, true]) {
-        const usable = ["masculine", "feminine", "neuter"].flatMap((gender) =>
-          ["animate", "inanimate"]
-            .filter(
-              (animacy) =>
-                declineAdjective(adj, caseId, gender, plural, animacy).form !== adj.lemmaM
-            )
-            .map((animacy) => `${gender}:${animacy}`)
-        );
-        const allowed = adj.onlyNouns ? new Set(adj.onlyNouns) : null;
-        const count = NOUNS.filter(
-          (n) =>
-            usable.includes(`${n.gender}:${n.animacy}`) &&
-            (adj.appliesTo === undefined || n.animacy === adj.appliesTo) &&
-            (allowed === null || allowed.has(n.id))
-        ).length;
-        expect(
-          `${adj.lemmaM} : aucun nom disponible au ${caseId}${plural ? " pluriel" : " singulier"}`,
-          count > 0,
-          true
-        );
-      }
-    }
-  }
-}
-
-// ─── 6. Genre français des traductions ─────────────────────────────
+// ─── 5. Genre français des traductions ─────────────────────────────
 // Le genre français est écrit à la main dans scripts/data/nouns-fr.tsv, et
 // il est INDÉPENDANT du genre russe : гости́ница est féminin en russe, mais
 // « hôtel » est masculin. La confusion est facile à faire en saisissant les
@@ -447,7 +347,7 @@ for (const adj of ADJECTIVES) {
   }
 }
 
-// ─── 7. Classes sémantiques et déclencheurs ────────────────────────
+// ─── 6. Classes sémantiques et déclencheurs ────────────────────────
 // Un exercice de phrase colle un déclencheur et un nom tirés séparément.
 // Sans contrainte, « Я ем ___ » recevait « помо́щник » : « je mange cet
 // assistant ». Trois choses doivent tenir.
@@ -536,13 +436,73 @@ let demandingTriggers = 0;
       const ex = generateSentenceExercise(trigger.caseId, trigger);
       draws += 1;
       if (!allowed.has(ex.noun.id)) outOfPool += 1;
-
-      const adj = generateAdjectiveExercise(trigger.caseId, trigger);
-      draws += 1;
-      if (!allowed.has(adj.noun.id)) outOfPool += 1;
     }
   }
   expect(`nom servi hors du pool autorisé (${draws} tirages)`, outOfPool, 0);
+}
+
+// ─── 7. Pool servi à la génération IA ──────────────────────────────
+// Le mode « Phrase » passe par l'IA (app/api/ai/exercise/route.ts) et ne
+// retombe sur le gabarit fixe qu'en cas d'échec. Cette route compose son
+// échantillon avec `poolFor` — le même filtre que le gabarit fixe. Elle
+// tirait auparavant 40 mots au hasard dans toute la banque du niveau, si
+// bien que la curation ne protégeait que le chemin de secours : « владеть »
+// (maîtriser) recevait « рот » (bouche), « работать + » (métier) recevait
+// « женщина ».
+//
+// Ce qui doit tenir : à TOUS les niveaux, le pool d'un déclencheur est non
+// vide et entièrement compris dans ce qu'il admet. Un pool vide renverrait
+// la banque entière et ramènerait le bug en silence.
+{
+  const NOUN_IDS = new Set(NOUNS.map((n) => n.id));
+  for (const trigger of TRIGGERS) {
+    if (trigger.id === PROPER_NOUN_TRIGGER_ID) continue;
+    const curated = TRIGGER_NOUNS[trigger.id];
+    const allowed = curated?.length
+      ? new Set(curated)
+      : trigger.accepts
+        ? new Set(
+            NOUNS.filter((n) => trigger.accepts.includes(categoryOf(n.id))).map((n) => n.id)
+          )
+        : NOUN_IDS;
+    for (const level of ["A0", "A1", "A2", "B1", "B2"]) {
+      const served = poolFor(trigger, nounsForLevel(level));
+      expect(`pool IA « ${trigger.id} » vide au niveau ${level}`, served.length > 0, true);
+      const outside = served.filter((n) => !allowed.has(n.id));
+      expect(
+        `pool IA « ${trigger.id} » (${level}) : ${outside.length} mot(s) non admis` +
+          `${outside.length ? ` — ex. ${outside[0].lemma} (${outside[0].translation})` : ""}`,
+        outside.length,
+        0
+      );
+    }
+  }
+}
+
+// ─── 8. Animacité des personnes ────────────────────────────────────
+// Le drapeau `animacy` ne décide pas des formes du nom (le dictionnaire
+// fait foi) mais il décide de la désinence de l'ADJECTIF à l'accusatif
+// masculin, et de ce qu'un adjectif peut qualifier. Une personne marquée
+// inanimée fait donc enseigner « синий менеджер » au lieu de « синего », en
+// silence. Corrigé à la source (ANIMACY_OVERRIDES dans build-nouns.mjs) ;
+// ceci empêche qu'une réimportation le ramène.
+{
+  // Personnes au sens grammatical russe : ces collectifs désignent des gens
+  // mais se déclinent comme des inanimés (вижу семью, не вижу семьи).
+  const GRAMMATICALLY_INANIMATE = new Set([
+    "famille", "police", "armée", "équipe", "société", "entreprise", "firme",
+    "gouvernement", "peuple",
+  ]);
+  for (const noun of NOUNS) {
+    const category = categoryOf(noun.id);
+    if (category !== "human" && category !== "animal") continue;
+    if (GRAMMATICALLY_INANIMATE.has(noun.translation)) continue;
+    expect(
+      `« ${noun.translation} » (${noun.lemma}) est une personne/un animal mais marqué inanimé`,
+      noun.animacy,
+      "animate"
+    );
+  }
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────

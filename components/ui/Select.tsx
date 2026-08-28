@@ -83,7 +83,7 @@ export default function Select({
       {open && (
         <ul
           role="listbox"
-          className="animate-fade-in absolute z-20 mt-1.5 max-h-64 min-w-full overflow-auto rounded-[10px] border border-border bg-bg3 p-1.5 shadow-[0_16px_32px_-12px_rgba(0,0,0,0.6)]"
+          className="animate-fade-in absolute z-20 mt-1.5 max-h-64 min-w-full overflow-auto rounded-[10px] border border-border bg-bg3 p-1.5 shadow-card"
         >
           {safeOptions.map((opt) => (
             <li key={opt.value}>

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Construit public/fonts/privet-cyrillic.woff2 — `python scripts/build-cyrillic-font.py`.
+Construit public/fonts/privetik-cyrillic.woff2 — `python scripts/build-cyrillic-font.py`.
 
 POURQUOI CE FICHIER EXISTE
 
@@ -49,7 +49,7 @@ SRC_URL = (
     "UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2"
 )
 SRC = "scripts/.cache/inter-cyrillic.woff2"
-OUT = "public/fonts/privet-cyrillic.woff2"
+OUT = "public/fonts/privetik-cyrillic.woff2"
 
 VOWELS = "аеёиоуыэюяАЕЁИОУЫЭЮЯ"
 
@@ -254,7 +254,7 @@ def main():
     # pile CSS doit pouvoir la désigner séparément.
     for record in font["name"].names:
         if record.nameID in (1, 3, 4, 6):
-            value = record.toUnicode().replace("Inter", "Privet Cyrillic")
+            value = record.toUnicode().replace("Inter", "Privetik Cyrillic")
             record.string = value
 
     font.flavor = "woff2"

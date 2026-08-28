@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CaseInfo } from "@/lib/grammar/types";
 import { CefrLevel } from "@/lib/supabase/types";
@@ -8,7 +9,6 @@ import { fillFrenchBlank, frenchNounPhrase } from "@/lib/grammar/french-article"
 import {
   CaseExercise,
   checkAnswer,
-  generateAdjectiveExercise,
   generateIsolatedExercise,
   generateMcqExercise,
   generateNumeralExercise,
@@ -18,8 +18,12 @@ import { PROPER_NOUN_TRIGGER_ID, triggersForCase } from "@/lib/grammar/triggers"
 import { getNoun, nounsForLevel } from "@/lib/grammar/nouns-data";
 import type { Noun } from "@/lib/grammar/types";
 import { pickWeightedTrigger } from "@/lib/grammar/exercise-selector";
+import { BulbIcon } from "@/components/ui/icons";
+import AiSpark from "@/components/ui/AiSpark";
+import PaywallNotice from "@/components/ui/PaywallNotice";
+import { usePracticeAttempt } from "@/lib/practice/attempt-client";
 
-type Tab = "isolated" | "sentence" | "mcq" | "numeral" | "adjective";
+type Tab = "isolated" | "sentence" | "mcq" | "numeral";
 type Feedback = {
   status: "correct" | "incorrect" | "revealed";
   exercise: CaseExercise;
@@ -29,12 +33,21 @@ type Feedback = {
 type TriggerStats = Record<string, { attempts: number; correct: number }>;
 type CaseAccuracy = Record<string, number>; // clé = `${caseId}:${gender}`
 
-const TAB_LABEL: Record<Tab, string> = {
-  isolated: "Déclinaison isolée",
-  sentence: "Phrase",
-  mcq: "QCM",
-  numeral: "Chiffres",
-  adjective: "Accord adjectif",
+/**
+ * Deux longueurs par onglet.
+ *
+ * « Déclinaison isolée » à lui seul mange la moitié de la barre sur un
+ * écran de 375 px : les quatre pastilles passaient à la ligne, et « Chiffres »
+ * se retrouvait seul sur un second rang à l'intérieur d'un conteneur
+ * arrondi en gélule — ce qui donnait l'impression d'un bouton égaré plutôt
+ * que d'un sélecteur. La version courte tient sur une ligne ; le mot
+ * « déclinaison » ne manque pas, la page entière parle de déclinaison.
+ */
+const TAB_LABEL: Record<Tab, { full: string; short: string }> = {
+  isolated: { full: "Déclinaison isolée", short: "Isolée" },
+  sentence: { full: "Phrase", short: "Phrase" },
+  mcq: { full: "QCM", short: "QCM" },
+  numeral: { full: "Chiffres", short: "Chiffres" },
 };
 
 const GENDER_LABEL: Record<string, string> = {
@@ -61,29 +74,20 @@ async function buildExercise(
   triggerStats: TriggerStats,
   userLevel: CefrLevel | undefined,
   recentLemmas: string[],
-  pool: Noun[]
+  pool: Noun[],
 ): Promise<CaseExercise> {
   if (tab === "isolated") return generateIsolatedExercise(caseInfo.id, false, pool);
   if (tab === "numeral") return generateNumeralExercise(pool);
 
-  // L'onglet "Accord adjectif" exclut "Меня зовут ___" du tirage : ce
-  // gabarit demande un prénom, sur lequel accorder un adjectif n'a pas de
-  // sens ("Меня зовут синий Александр"). Filtré AVANT la pondération pour
-  // que le tirage adaptatif porte sur les déclencheurs réellement jouables.
-  const eligible =
-    tab === "adjective"
-      ? triggersForCase(caseInfo.id).filter((t) => t.id !== PROPER_NOUN_TRIGGER_ID)
-      : triggersForCase(caseInfo.id);
-  const trigger = pickWeightedTrigger(eligible, triggerStats, userLevel);
+  const trigger = pickWeightedTrigger(triggersForCase(caseInfo.id), triggerStats, userLevel);
 
   if (tab === "mcq") return generateMcqExercise(caseInfo.id, trigger, pool);
-  if (tab === "adjective") return generateAdjectiveExercise(caseInfo.id, trigger, pool);
 
-  // "Phrase" : IA en premier (phrase personnalisée, ciblée sur le
+  // "Phrase": IA en premier (phrase personnalisée, ciblée sur le
   // déclencheur choisi), repli SILENCIEUX sur le gabarit fixe si
   // indisponible/erreur.
   //
-  // Exception : "Меня зовут ___" n'a de sens qu'avec un prénom et reste
+  // Exception : "Меня зовут ___"n'a de sens qu'avec un prénom et reste
   // toujours au nominatif (aucune vraie déclinaison à tester) — le gabarit
   // fixe + la banque de prénoms couvrent déjà l'exercice parfaitement,
   // aucune valeur à risquer une phrase IA imprévisible ici.
@@ -110,14 +114,14 @@ async function buildExercise(
     const result = declineNoun(noun, caseInfo.id, plural);
     // Filet de sécurité : le prompt demande une traduction française sans
     // trou, mais si le modèle en laisse quand même un (ambiguïté du style
-    // "sans ___" — impossible de deviner sucre/lait sans indice), on le
+    // "sans ___"— impossible de deviner sucre/lait sans indice), on le
     // comble avec la traduction de la banque plutôt que de laisser
     // l'apprenant deviner à l'aveugle.
     const sentenceFr =
       typeof ai.sentence_fr === "string" && ai.sentence_fr.includes("___")
         ? fillFrenchBlank(
             ai.sentence_fr,
-            frenchNounPhrase(noun.translation, noun.frenchGender, trigger.article, plural)
+            frenchNounPhrase(noun.translation, noun.frenchGender, trigger.article, plural),
           )
         : ai.sentence_fr;
     return {
@@ -141,20 +145,26 @@ async function buildExercise(
 export default function CaseDeclension({
   caseInfo,
   userLevel,
+  signedIn,
 }: {
   caseInfo: CaseInfo;
   userLevel?: CefrLevel;
+  /**
+   * La page est publique depuis qu'elle sert au référencement ; la carte
+   * d'entraînement, elle, ne l'est pas. Voir `VisitorCard` plus bas.
+   */
+  signedIn: boolean;
 }) {
   const tabs: Tab[] = useMemo(
     () =>
       caseInfo.id === "genitive"
-        ? ["isolated", "sentence", "mcq", "numeral", "adjective"]
-        : ["isolated", "sentence", "mcq", "adjective"],
-    [caseInfo.id]
+        ? ["isolated", "sentence", "mcq", "numeral"]
+        : ["isolated", "sentence", "mcq"],
+    [caseInfo.id],
   );
 
   const [tab, setTab] = useState<Tab>("isolated");
-  const [round, setRound] = useState(0); // incrémenté à chaque "Suivant" pour relancer le tirage
+  const [round, setRound] = useState(0); // incrémenté à chaque "Suivant"pour relancer le tirage
   const [exercise, setExercise] = useState<CaseExercise | null>(null);
   const [input, setInput] = useState("");
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -166,8 +176,18 @@ export default function CaseDeclension({
   // serveur, donc la vérification de la réponse est inchangée.
   const pool = useMemo(() => nounsForLevel(userLevel), [userLevel]);
   const [caseAccuracy, setCaseAccuracy] = useState<CaseAccuracy>({});
+  // Le plafond de pratique du plan gratuit. `blocked` remplace la carte
+  // par l'écran d'abonnement ; `stopHere` l'anticipe d'un exercice pour ne
+  // pas faire répondre à un exercice qui allait être refusé.
+  // `submit` est renommé : le composant a déjà une fonction de ce nom, qui
+  // valide le champ de saisie avant d'appeler `record`.
+  const {
+    blocked,
+    submit: postAttempt,
+    stopHere,
+  } = usePracticeAttempt("/api/cases/attempt");
 
-  // Derniers lemmes vus en mode "Phrase" IA (tous cas confondus, cette
+  // Derniers lemmes vus en mode "Phrase"IA (tous cas confondus, cette
   // session) — envoyés au prompt pour qu'il évite de reproposer les mêmes
   // mots en boucle. Volontairement en mémoire seule (pas persisté) : juste
   // assez pour casser une répétition immédiate, pas un vrai suivi.
@@ -197,12 +217,12 @@ export default function CaseDeclension({
           for (const row of data.caseProgress ?? []) {
             if (row.attempts > 0) {
               accuracy[`${row.case_id}:${row.gender}`] = Math.round(
-                (row.correct / row.attempts) * 100
+                (row.correct / row.attempts) * 100,
               );
             }
           }
           setCaseAccuracy(accuracy);
-        }
+        },
       )
       .catch(() => {});
     return () => {
@@ -236,6 +256,7 @@ export default function CaseDeclension({
   }, [tab, caseInfo.id, round, pool]);
 
   function nextExercise() {
+    if (stopHere()) return;
     setFeedback(null);
     setInput("");
     setVerifying(false);
@@ -260,13 +281,13 @@ export default function CaseDeclension({
    */
   async function record(
     userAnswer: string,
-    options: { revealed?: boolean; optimistic?: boolean; multipleChoice?: boolean } = {}
+    options: { revealed?: boolean; optimistic?: boolean; multipleChoice?: boolean } = {},
   ) {
     if (!exercise) return;
     const { revealed = false, optimistic = false, multipleChoice = false } = options;
 
     if (optimistic) {
-      // La comparaison locale a déjà dit "juste" et le serveur applique le
+      // La comparaison locale a déjà dit "juste"et le serveur applique le
       // même calcul sur les mêmes données : afficher tout de suite évite
       // une latence réseau sur le chemin le plus fréquent.
       applyVerdict(true, revealed, userAnswer, null);
@@ -274,47 +295,51 @@ export default function CaseDeclension({
       setVerifying(true);
     }
 
-    try {
-      const res = await fetch("/api/cases/attempt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetCase: exercise.targetCase,
-          nounId: exercise.noun.id,
-          adjectiveId: exercise.adjective?.id,
-          triggerId: exercise.trigger?.id,
-          plural: exercise.plural,
-          userAnswer,
-          revealed,
-          // En QCM, la réponse est une des formes proposées : inutile de
-          // payer une vérification IA pour un choix qu'on sait faux.
-          multipleChoice,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "échec");
+    const outcome = await postAttempt({
+      targetCase: exercise.targetCase,
+      nounId: exercise.noun.id,
+      triggerId: exercise.trigger?.id,
+      plural: exercise.plural,
+      userAnswer,
+      revealed,
+      // En QCM, la réponse est une des formes proposées : inutile de payer
+      // une vérification IA pour un choix qu'on sait faux.
+      multipleChoice,
+    });
+    setVerifying(false);
+
+    // Plafond atteint. Le hook a déjà basculé l'écran sur l'abonnement, qui
+    // remplace toute la carte — y compris le verdict optimiste éventuel :
+    // cette tentative n'a pas été enregistrée, elle ne doit pas laisser un
+    // « ✓ Correct » à l'écran.
+    if (outcome.kind === "blocked") {
+      setFeedback(null);
+      return;
+    }
+
+    if (outcome.kind === "verdict") {
+      const data = outcome.data as { caseAccuracy?: number; correct?: boolean; reason?: string };
       if (typeof data.caseAccuracy === "number") {
         setCaseAccuracy((prev) => ({
           ...prev,
-          [`${exercise.targetCase}:${exercise.noun.gender}`]: data.caseAccuracy,
+          [`${exercise.targetCase}:${exercise.noun.gender}`]: data.caseAccuracy as number,
         }));
       }
       if (!optimistic) applyVerdict(data.correct === true, revealed, userAnswer, data.reason);
-    } catch {
-      // Serveur indisponible : on affiche quand même un retour à partir du
-      // calcul local, l'exercice reste utilisable même si la progression de
-      // cette tentative est perdue.
-      if (!optimistic) applyVerdict(checkAnswer(exercise, userAnswer), revealed, userAnswer, null);
-    } finally {
-      setVerifying(false);
+      return;
     }
+
+    // Serveur indisponible : on affiche quand même un retour à partir du
+    // calcul local, l'exercice reste utilisable même si la progression de
+    // cette tentative est perdue.
+    if (!optimistic) applyVerdict(checkAnswer(exercise, userAnswer), revealed, userAnswer, null);
   }
 
   function applyVerdict(
     isCorrect: boolean,
     revealed: boolean,
     picked: string,
-    reason: string | null | undefined
+    reason: string | null | undefined,
   ) {
     if (!exercise) return;
     setFeedback({
@@ -357,10 +382,10 @@ export default function CaseDeclension({
   }
 
   // Pour quelqu'un qui ne sait vraiment pas — évite de taper n'importe quoi
-  // juste pour débloquer "Vérifier" et voir la réponse (ou, en QCM, de
+  // juste pour débloquer "Vérifier"et voir la réponse (ou, en QCM, de
   // cliquer une option au hasard). Compte comme un échec côté progression
-  // (même logique que "incorrect" : la maîtrise doit encore progresser sur
-  // ce déclencheur), mais affiché sans le ton "faute" du rouge.
+  // (même logique que "incorrect": la maîtrise doit encore progresser sur
+  // ce déclencheur), mais affiché sans le ton "faute"du rouge.
   function reveal() {
     if (!exercise || feedback || verifying) return;
     record("", { revealed: true });
@@ -372,62 +397,106 @@ export default function CaseDeclension({
 
   const isMcq = exercise?.kind === "trigger-mcq";
   const isSentenceLike =
-    exercise?.kind === "sentence-fixed" ||
-    exercise?.kind === "sentence-ai" ||
-    isMcq ||
-    exercise?.kind === "adjective-agreement";
+    exercise?.kind === "sentence-fixed" || exercise?.kind === "sentence-ai" || isMcq;
+
+  // Le mot à décliner, sous sa forme du dictionnaire — affiché entre
+  // parenthèses après la traduction. Sans lui, il fallait d'abord retrouver
+  // le mot russe derrière « le discours » avant de pouvoir travailler la
+  // désinence. « Déclinaison isolée » et « Chiffres » montrent déjà le mot
+  // en gros au dessus, eux n'en ont pas besoin.
+  //
+  // Montré MÊME quand la forme attendue est déjà celle du dictionnaire —
+  // 80% des tirages sur la page du nominatif, 64% sur celle de l'accusatif
+  // (inanimé masculin, neutre, féminin en -ь). L'indice donne alors la
+  // réponse, et c'est assumé : ces exercices n'ont jamais demandé de
+  // transformation, et voir « речь -> речь » est précisément ce que le
+  // syncrétisme de l'accusatif a à enseigner. Le masquer rendrait l'indice
+  // absent là où il manque le plus.
+  const lemmaHint = !exercise || !isSentenceLike ? null : exercise.noun.forms.singular[0];
+
+  if (!signedIn) return <VisitorCard caseInfo={caseInfo} />;
+
+  if (blocked) {
+    return <PaywallNotice quota={blocked.quota} message={blocked.message} what="les exercices de déclinaison" />;
+  }
 
   return (
-    <div className="overflow-hidden rounded-[20px] border border-border bg-bg2 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+    // LA COULEUR DU CAS EST POSÉE ICI, UNE FOIS. Elle descend par héritage
+    // jusqu'au champ, au bouton et à la pastille de mode, qui la lisent
+    // via `--case` (voir `.case-tint` dans globals.css). Passer
+    // `caseInfo.color` en prop à chacun aurait donné trois chemins à tenir
+    // à jour au lieu d'un, et surtout aucun moyen d'en dériver les nuances
+    // claires et sombres sans les recalculer en JavaScript.
+    <div
+      className="case-tint overflow-hidden rounded-[20px] surface shadow-float"
+      style={{ "--case": caseInfo.color } as React.CSSProperties}
+    >
       {/* En-tête */}
       <div
-        className="flex items-center justify-between px-6 py-3.5 text-white"
+        className="flex items-center justify-between gap-3 px-5 py-3 text-white sm:px-6 sm:py-3.5"
         style={{ background: caseInfo.color }}
       >
-        <span className="font-display text-sm font-semibold uppercase tracking-wide">
+        <span className="min-w-0 truncate font-display text-[13px] font-semibold uppercase tracking-wide sm:text-sm">
           {caseInfo.nameRu} · {caseInfo.question}
         </span>
-        <span className="font-display text-xs font-bold">Série : {streak}</span>
+        <span className="shrink-0 font-display text-xs font-bold">Série : {streak}</span>
       </div>
 
       {/* Sélecteur de mode */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-6 py-3.5">
-        <div className="inline-flex flex-wrap rounded-full border border-border bg-bg p-1">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-5 py-3 sm:px-6 sm:py-3.5">
+        {/* `rounded-2xl` en dessous de sm : si les pastilles finissent quand
+            même par passer à la ligne (écran de 320 px), un conteneur à coins
+            arrondis se lit comme un bloc de deux rangs, là où la gélule se
+            lisait comme un bouton cassé. */}
+        <div className="inline-flex flex-wrap rounded-2xl border border-border bg-bg p-1 sm:rounded-full">
           {tabs.map((t) => (
             <ModeButton key={t} active={tab === t} onClick={() => selectTab(t)}>
-              {TAB_LABEL[t]}
+              <span className="sm:hidden">{TAB_LABEL[t].short}</span>
+              <span className="hidden sm:inline">{TAB_LABEL[t].full}</span>
             </ModeButton>
           ))}
         </div>
         {exercise && accuracy !== undefined && (
-          <span className="ml-auto font-display text-xs text-muted">
+          <span className="ml-auto shrink-0 font-display text-xs text-muted">
             Précision ({GENDER_LABEL[exercise.noun.gender]}) : {accuracy}%
           </span>
         )}
       </div>
 
-      <div className="p-7">
+      <div className="p-5 sm:p-7">
         {!exercise ? (
           <ExerciseSkeleton aiSentence={tab === "sentence"} />
         ) : (
           <div key={`${tab}-${round}`} className="animate-fade-in">
             {exercise.trigger && (
-              <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-bg3 px-3 py-1 font-display text-xs font-semibold text-muted">
-                Déclencheur :
-                <span style={{ color: caseInfo.color }}>{exercise.trigger.ru}</span>
+              // `inline-flex` sans `flex-wrap` : la pastille prenait la
+              // largeur de son contenu, quelle qu'elle soit. Un déclencheur
+              // au sens long (« qui exprime l'absence de ») la poussait
+              // au-delà du cadre, où `overflow-hidden` la coupait net.
+              // Elle plie maintenant sur deux lignes — d'où `rounded-2xl`
+              // sous sm, une gélule à deux rangs n'ayant pas de sens.
+              <p className="mb-3 inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-2xl bg-bg3 px-3 py-1 font-display text-xs font-semibold text-muted sm:rounded-full">
+                Déclencheur :<span style={{ color: caseInfo.color }}>{exercise.trigger.ru}</span>
                 <span className="font-normal">— {exercise.trigger.meaningFr}</span>
-                {exercise.kind === "sentence-ai" && <span title="Phrase générée par IA">✨</span>}
+                {exercise.kind === "sentence-ai" && (
+                  <AiSpark className="h-3.5 w-3.5 text-accent2" title="Phrase générée par IA" />
+                )}
               </p>
             )}
 
             {exercise.kind === "isolated" && (
               <div className="mb-6">
                 <p className="font-display text-sm text-muted">
-                  {exercise.targetCase === "nominative" ? "Mets ce mot au pluriel :" : "Décline ce mot :"}
+                  {exercise.targetCase === "nominative"
+                    ? "Mets ce mot au pluriel :"
+                    : "Décline ce mot :"}
                 </p>
                 <p className="font-display text-3xl font-bold">
-                  {exercise.noun.forms.singular[0]}{" "}
-                  <span className="font-display text-lg font-normal text-muted">({exercise.noun.translation})</span>
+                  {exercise.noun.forms.singular[0]}
+                  {" "}
+                  <span className="font-display text-lg font-normal text-muted">
+                    ({exercise.noun.translation})
+                  </span>
                 </p>
               </div>
             )}
@@ -436,11 +505,16 @@ export default function CaseDeclension({
               <div className="mb-6">
                 <p className="font-display text-sm text-muted">Accorde le nom avec le chiffre :</p>
                 <p className="font-display text-3xl font-bold">
-                  {exercise.numeral} + {exercise.noun.forms.singular[0]}{" "}
-                  <span className="font-display text-lg font-normal text-muted">({exercise.noun.translation})</span>
+                  {exercise.numeral} + {exercise.noun.forms.singular[0]}
+                  {" "}
+                  <span className="font-display text-lg font-normal text-muted">
+                    ({exercise.noun.translation})
+                  </span>
                 </p>
                 {exercise.countForm && (
-                  <p className="mt-2 font-display text-xs text-muted">{COUNT_FORM_LABEL[exercise.countForm]}</p>
+                  <p className="mt-2 font-display text-xs text-muted">
+                    {COUNT_FORM_LABEL[exercise.countForm]}
+                  </p>
                 )}
               </div>
             )}
@@ -453,17 +527,11 @@ export default function CaseDeclension({
                   <span className="inline-block min-w-[80px] border-b-2 border-accent">&nbsp;</span>
                   {exercise.sentenceTemplate?.split("___")[1]}
                 </p>
-                {/* La traduction porte déjà l'adjectif accordé ; il ne reste
-                    qu'à donner sa forme du dictionnaire, juste à côté. Une
-                    ligne de consigne en plus disait ce que la phrase montre
-                    déjà. */}
+                {/* Forme du dictionnaire du mot à décliner, juste après la
+                    traduction — voir `lemmaHint`. */}
                 <p className="mt-1 font-display text-sm italic text-muted">
                   {exercise.sentenceFr}
-                  {exercise.kind === "adjective-agreement" && exercise.adjective && (
-                    <span className="ml-2 not-italic text-accent2">
-                      ({exercise.adjective.lemmaM})
-                    </span>
-                  )}
+                  {lemmaHint && <span className="ml-2 not-italic text-accent2">({lemmaHint})</span>}
                 </p>
               </div>
             )}
@@ -483,7 +551,7 @@ export default function CaseDeclension({
                           ? "border-success bg-success/10 text-success"
                           : isPicked
                             ? "border-danger bg-danger/10 text-danger"
-                            : "border-border bg-bg text-text hover:border-accent"
+                            : "border-border bg-bg text-text hover:bg-accent/10 hover:border-accent/35"
                       } disabled:cursor-default`}
                     >
                       {opt}
@@ -492,14 +560,19 @@ export default function CaseDeclension({
                 })}
               </div>
             ) : (
-              <div className="flex gap-2.5">
+              // 271 px de large sur un écran de 375 : le bouton « Vérifier »
+              // en prenait 105 et laissait au champ de quoi afficher six
+              // lettres. Empilés, le champ retrouve toute la largeur et le
+              // bouton devient une cible au pouce, comme « Je ne sais pas »
+              // juste en dessous.
+              <div className="flex flex-col gap-2.5 sm:flex-row">
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (feedback ? nextExercise() : submit())}
                   placeholder="Écris la réponse en russe…"
                   readOnly={verifying}
-                  className={`flex-1 rounded-[10px] border border-border bg-bg px-4 py-3 font-display text-lg text-text outline-none placeholder:text-muted/60 focus:border-accent ${
+                  className={`field-focus field-case flex-1 rounded-[10px] border bg-bg px-4 py-3 font-display text-lg text-text outline-none placeholder:text-muted/60 ${
                     verifying ? "opacity-60" : ""
                   }`}
                   autoFocus
@@ -507,7 +580,7 @@ export default function CaseDeclension({
                 {feedback ? (
                   <button
                     onClick={nextExercise}
-                    className="rounded-[10px] bg-bg3 px-6 font-display text-sm font-semibold text-text transition-colors hover:bg-accent"
+                    className="btn btn-primary btn-sheen rounded-[10px] bg-bg3 px-6 py-3 font-display text-sm text-text transition-colors"
                   >
                     Suivant →
                   </button>
@@ -515,7 +588,7 @@ export default function CaseDeclension({
                   <button
                     onClick={submit}
                     disabled={!input.trim() || verifying}
-                    className="rounded-[10px] bg-accent px-6 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="btn btn-primary btn-case btn-sheen rounded-[10px] px-6 py-3 font-display text-sm disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {verifying ? "Vérification…" : "Vérifier"}
                   </button>
@@ -527,16 +600,17 @@ export default function CaseDeclension({
               <button
                 onClick={reveal}
                 disabled={verifying}
-                className="mt-3 w-full rounded-[10px] border border-border py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:border-accent2 hover:text-accent2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-border py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:bg-accent2/10 hover:border-accent2/35 hover:text-accent2 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                💡 Je ne sais pas — voir la réponse
+                <BulbIcon className="h-4 w-4 shrink-0" />
+                Je ne sais pas — voir la réponse
               </button>
             )}
 
             {isMcq && feedback && (
               <button
                 onClick={nextExercise}
-                className="mt-4 rounded-[10px] bg-bg3 px-6 py-3 font-display text-sm font-semibold text-text transition-colors hover:bg-accent"
+                className="btn btn-primary btn-sheen mt-4 rounded-[10px] bg-bg3 px-6 py-3 font-display text-sm text-text transition-colors"
               >
                 Suivant →
               </button>
@@ -607,6 +681,66 @@ function ExerciseSkeleton({ aiSentence }: { aiSentence: boolean }) {
   );
 }
 
+/**
+ * Ce qu'un visiteur non connecté voit à la place de la carte d'entraînement.
+ *
+ * POURQUOI L'EXERCICE NE TOURNE PAS SANS COMPTE. Les six routes de
+ * correction refusent un appel anonyme, et le composant retombe alors sur sa
+ * correction locale — ce qui donnerait au visiteur un entraînement illimité
+ * là où un compte gratuit est plafonné à vingt par jour. Se déconnecter
+ * deviendrait la façon la plus simple de contourner le plafond.
+ *
+ * La page, elle, reste entièrement lisible : l'usage du cas, ses
+ * déclencheurs et la table des terminaisons sont juste en dessous. C'est
+ * cette matière-là qui répond à une recherche ; l'exercice est ce qu'on
+ * vient chercher ENSUITE, et c'est le bon moment pour demander un compte.
+ */
+function VisitorCard({ caseInfo }: { caseInfo: CaseInfo }) {
+  return (
+    <div
+      className="case-tint overflow-hidden rounded-[20px] surface shadow-float"
+      style={{ "--case": caseInfo.color } as React.CSSProperties}
+    >
+      <div
+        className="flex items-center justify-between gap-3 px-5 py-3 text-white sm:px-6 sm:py-3.5"
+        style={{ background: caseInfo.color }}
+      >
+        <span className="min-w-0 truncate font-display text-[13px] font-semibold uppercase tracking-wide sm:text-sm">
+          {caseInfo.nameRu} · {caseInfo.question}
+        </span>
+      </div>
+
+      <div className="p-5 sm:p-7">
+        <p className="font-display text-lg font-bold">
+          S&apos;entraîner au {caseInfo.nameFr.toLowerCase()}
+        </p>
+        <p className="mt-2 max-w-xl font-display text-sm leading-relaxed text-muted">
+          Décliner un mot, compléter une phrase, choisir la bonne forme — corrigé à chaque
+          réponse par le moteur de règles, pas par un modèle qui devine. Le compte est gratuit
+          et sert à retenir ce que vous ratez, pour vous le represser plus souvent.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href="/signup"
+            className="btn btn-primary btn-case btn-sheen rounded-[10px] px-6 py-3 font-display text-sm"
+          >
+            Créer un compte gratuit
+          </Link>
+          <Link
+            href="/login"
+            className="btn btn-outline rounded-[10px] px-6 py-3 font-display text-sm font-semibold text-text"
+          >
+            J&apos;ai déjà un compte
+          </Link>
+        </div>
+        <p className="mt-4 font-display text-xs text-muted">
+          Le cours, les tableaux et cette page restent lisibles sans compte.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ModeButton({
   active,
   onClick,
@@ -619,8 +753,8 @@ function ModeButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-full px-3.5 py-1.5 font-display text-xs font-semibold transition-colors ${
-        active ? "bg-accent text-white" : "text-muted hover:text-text"
+      className={`whitespace-nowrap rounded-full px-2.5 py-1.5 font-display text-xs font-semibold transition-colors sm:px-3.5 ${
+        active ? "mode-case" : "text-muted hover:text-text"
       }`}
     >
       {children}

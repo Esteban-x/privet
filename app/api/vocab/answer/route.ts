@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
+import { consumeQuota, recordTokens } from "@/lib/ai/quota";
 import { translationVerificationPrompt } from "@/lib/ai/prompts";
 import { matchesAnswer } from "@/lib/vocabulary/answer-check";
 import { recordVocabReview } from "@/lib/vocabulary/record-review";
+import { allowPractice } from "@/lib/practice/quota";
 import type { Quality } from "@/lib/srs/sm2";
 
 /**
@@ -60,6 +62,13 @@ export async function POST(req: Request) {
 
   if (!word) return NextResponse.json({ error: "Mot introuvable" }, { status: 404 });
 
+  // Le péage de révision : vingt cartes par jour au plan gratuit, tous modes
+  // confondus. Après la relecture du mot, pour qu'une carte introuvable ne
+  // grignote la journée de personne ; avant la seconde lecture IA et avant
+  // l'écriture, pour qu'un refus n'ait rien coûté ni rien modifié.
+  const gate = await allowPractice(supabase, "vocab_review");
+  if (!gate.ok) return gate.response;
+
   const expected = expectedLanguage === "ru" ? word.ru : word.fr;
 
   let correct = false;
@@ -72,7 +81,7 @@ export async function POST(req: Request) {
     // synonyme juste ou une variante orthographique. Ne coûte des tokens
     // que sur une réponse déjà jugée fausse.
     if (!correct && mode === "typing") {
-      aiAccepted = await secondOpinion(expected, userAnswer, expectedLanguage);
+      aiAccepted = await secondOpinion(supabase, expected, userAnswer, expectedLanguage);
       correct = aiAccepted;
     }
   }
@@ -97,14 +106,26 @@ export async function POST(req: Request) {
     aiAccepted,
     expected,
     card: result.card,
+    // Ce qu'il reste APRÈS celle-ci : la file sait donc qu'elle vient de
+    // servir la dernière carte, et propose l'abonnement plutôt qu'une carte
+    // de plus qu'il faudrait refuser une fois répondue.
+    quota: gate.allowance,
   });
 }
 
+type Db = Awaited<ReturnType<typeof createClient>>;
+
 async function secondOpinion(
+  supabase: Db,
   expected: string,
   userAnswer: string,
   expectedLanguage: "ru" | "fr"
 ): Promise<boolean> {
+  // Même règle que dans cases/attempt : hors quota, le verdict
+  // déterministe reste rendu. Jamais « correct » par défaut.
+  const quota = await consumeQuota(supabase, "verify");
+  if (!quota.allowed) return false;
+
   try {
     const msg = await getAnthropic().messages.create({
       model: MODEL_FAST,
@@ -112,6 +133,7 @@ async function secondOpinion(
       system: translationVerificationPrompt({ expected, userAnswer, expectedLanguage }),
       messages: [{ role: "user", content: "Vérifie cette réponse." }],
     });
+    await recordTokens(supabase, "verify", msg.usage);
     return parseJsonResponse<VerificationResult>(textFromMessage(msg)).acceptable === true;
   } catch (err) {
     console.error("vocab answer: échec de la seconde vérification", err);

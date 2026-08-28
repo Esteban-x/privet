@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { heuristicClassify } from "@/lib/vocabulary/grammar-classify";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
+import { consumeQuota, recordTokens } from "@/lib/ai/quota";
 import { vocabGrammarSystemPrompt } from "@/lib/ai/prompts";
 
 interface AiGrammar {
@@ -20,8 +21,27 @@ interface AiGrammar {
 // banque curée et vérifiée (lib/grammar/nouns-data.ts). Ne bloque JAMAIS
 // l'ajout du mot : un échec IA laisse simplement les colonnes
 // grammaticales à null.
-async function classifyWord(ru: string, fr: string) {
+type Db = Awaited<ReturnType<typeof createClient>>;
+
+async function classifyWord(supabase: Db, ru: string, fr: string) {
   const heuristic = heuristicClassify(ru);
+
+  // Hors quota, on garde l'heuristique locale : le mot est ajouté avec le
+  // genre et le type de radical qu'elle sait déduire, et seules l'animacité
+  // et le genre français restent nuls — exactement ce que fait déjà le
+  // `catch` ci-dessous quand l'IA est indisponible. L'ajout d'un mot n'est
+  // jamais bloqué par un quota.
+  const quota = await consumeQuota(supabase, "classify");
+  if (!quota.allowed) {
+    return {
+      gender: heuristic.gender,
+      animacy: null,
+      stem_type: heuristic.stemType,
+      indeclinable: false,
+      french_gender: null,
+    };
+  }
+
   try {
     const msg = await getAnthropic().messages.create({
       model: MODEL_FAST,
@@ -29,6 +49,7 @@ async function classifyWord(ru: string, fr: string) {
       system: vocabGrammarSystemPrompt(ru, fr),
       messages: [{ role: "user", content: "Classifie ce mot." }],
     });
+    await recordTokens(supabase, "classify", msg.usage);
     const ai = parseJsonResponse<AiGrammar>(textFromMessage(msg));
     return {
       gender: heuristic.gender ?? ai.gender,
@@ -81,7 +102,7 @@ export async function POST(req: Request) {
     .single();
   if (!list) return NextResponse.json({ error: "Liste introuvable" }, { status: 404 });
 
-  const grammar = await classifyWord(ru, fr);
+  const grammar = await classifyWord(supabase, ru, fr);
 
   const { data, error } = await supabase
     .from("vocab_words")
@@ -119,6 +140,9 @@ export async function POST(req: Request) {
       stemType: data.stem_type,
       indeclinable: data.indeclinable,
       frenchGender: data.french_gender,
+      // Un mot ajouté part « normal » : c'est l'apprenant qui le range
+      // ensuite, rien ne le fait pour lui.
+      focus: "normal" as const,
       srs: null,
     },
   });

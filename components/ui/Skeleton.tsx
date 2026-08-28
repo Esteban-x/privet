@@ -42,7 +42,7 @@ export function SkeletonLines({
 /** Une "carte mot" factice (clue + zone de réponse) pour les modes de révision vocabulaire. */
 export function ReviewCardSkeleton() {
   return (
-    <div className="animate-fade-in rounded-[20px] border border-border bg-bg2 p-8 text-center shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+    <div className="animate-fade-in rounded-[20px] surface p-8 text-center shadow-float">
       <div className="mb-3 flex justify-center">
         <LoadingDots label="Chargement du mot…" />
       </div>
@@ -58,7 +58,7 @@ export function ListCardsSkeleton({ cards = 4 }: { cards?: number }) {
   return (
     <div className="animate-fade-in grid grid-cols-1 gap-3 sm:grid-cols-2">
       {Array.from({ length: cards }).map((_, i) => (
-        <div key={i} className="rounded-2xl border border-border bg-bg2 p-5">
+        <div key={i} className="rounded-2xl surface p-5">
           <div className="skeleton h-5 w-2/3 rounded-lg" />
           <div className="skeleton mt-2.5 h-3.5 w-1/4 rounded-full" />
         </div>
@@ -74,7 +74,7 @@ export function ListRowsSkeleton({ rows = 5 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center justify-between gap-3 rounded-[14px] border border-border bg-bg2 px-4 py-3.5"
+          className="flex items-center justify-between gap-3 rounded-[14px] surface px-4 py-3.5"
         >
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="skeleton h-3.5 w-1/3 rounded-full" />

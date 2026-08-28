@@ -66,7 +66,7 @@ function TriggerGroup({ kind, items, color }: { kind: TriggerKind; items: CaseTr
   const hiddenCount = items.length - visible.length;
 
   return (
-    <div className="rounded-2xl border border-border bg-bg2 p-5">
+    <div className="rounded-2xl surface p-5">
       <p className="mb-3 flex items-baseline gap-1.5 font-display text-xs font-semibold uppercase tracking-wide text-muted">
         {KIND_LABEL[kind]}
         <span className="font-normal normal-case text-muted/60">({items.length})</span>

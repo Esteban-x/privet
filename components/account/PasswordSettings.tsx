@@ -51,14 +51,14 @@ export default function PasswordSettings({ hasPassword }: { hasPassword: boolean
   }
 
   return (
-    <section className="rounded-[20px] border border-border bg-bg2 p-6">
+    <section className="rounded-[20px] surface p-6">
       <h2 className="font-display text-lg font-bold">
         {hasPassword ? "Mot de passe" : "Définir un mot de passe"}
       </h2>
       {!hasPassword && (
         <p className="mt-1 font-display text-sm text-muted">
-          Ton compte utilise uniquement Google. Définis un mot de passe pour
-          pouvoir aussi te connecter avec ton email.
+          Ton compte utilise uniquement Google. Définis un mot de passe pour pouvoir aussi te
+          connecter avec ton email.
         </p>
       )}
 
@@ -76,7 +76,7 @@ export default function PasswordSettings({ hasPassword }: { hasPassword: boolean
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text focus:border-accent focus:outline-none"
+            className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text field-focus focus:outline-none"
           />
         </div>
         <div>
@@ -92,16 +92,20 @@ export default function PasswordSettings({ hasPassword }: { hasPassword: boolean
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text focus:border-accent focus:outline-none"
+            className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text field-focus focus:outline-none"
           />
         </div>
 
         <button
           type="submit"
           disabled={saving}
-          className="justify-self-start rounded-[10px] bg-accent px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-60 sm:col-span-2"
+          className="btn btn-primary btn-sheen justify-self-start rounded-[10px] px-5 py-2.5 font-display text-sm disabled:opacity-60 sm:col-span-2"
         >
-          {saving ? "Enregistrement…" : hasPassword ? "Changer le mot de passe" : "Définir le mot de passe"}
+          {saving
+            ? "Enregistrement…"
+            : hasPassword
+              ? "Changer le mot de passe"
+              : "Définir le mot de passe"}
         </button>
 
         {feedback && (

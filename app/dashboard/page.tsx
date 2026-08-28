@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -5,9 +6,25 @@ import { CASES } from "@/lib/grammar/cases";
 import { Profile } from "@/lib/supabase/types";
 import SectionLabel from "@/components/ui/SectionLabel";
 import StreakDots from "@/components/dashboard/StreakDots";
-import { MASTERY_THRESHOLD } from "@/lib/vocabulary/mastery";
+import { countFocus } from "@/lib/vocabulary/focus";
 import { loadLevelEstimate } from "@/lib/progress/level-estimate";
 import { CEFR_LEVELS } from "@/lib/supabase/types";
+
+/**
+ * Le titre de l'onglet.
+ *
+ * SANS LUI, LA PAGE PORTE CELUI DE L'ACCUEIL. Le layout racine définit un
+ * `title.default`, et Next le donne à toute page qui n'en déclare pas —
+ * cette page affichait donc « Apprendre le russe : cours, déclinaisons et
+ * exercices », comme l'accueil, comme un onglet sur deux. Quelqu'un qui
+ * travaille avec quatre onglets ouverts ne peut plus les distinguer, et un
+ * favori enregistré ici ne dit pas ce qu'il ouvre.
+ *
+ * Sans « — Privetik » : le gabarit du layout l'ajoute.
+ */
+export const metadata: Metadata = {
+  title: "Tableau de bord",
+};
 
 export default async function DashboardPage() {
   if (!isSupabaseConfigured()) redirect("/login");
@@ -38,7 +55,7 @@ export default async function DashboardPage() {
   const [
     { data: activity },
     { data: caseProg },
-    { count: totalWords },
+    { data: vocabWords },
     { data: srsRows },
   ] = await Promise.all([
     supabase
@@ -47,11 +64,11 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .gte("created_at", since),
     supabase.from("case_progress").select("case_id, attempts, correct").eq("user_id", user.id),
+    supabase.from("vocab_words").select("id, focus").eq("user_id", user.id),
     supabase
-      .from("vocab_words")
-      .select("id", { count: "exact", head: true })
+      .from("srs_cards")
+      .select("card_id, repetitions, ease_factor, due_at")
       .eq("user_id", user.id),
-    supabase.from("srs_cards").select("repetitions, due_at").eq("user_id", user.id),
   ]);
 
   // Niveau de PRATIQUE, à côté du niveau TESTÉ : l'un mesure ce que la
@@ -76,30 +93,41 @@ export default async function DashboardPage() {
     caseAccuracy[c.id] = att ? Math.round((cor / att) * 100) : 0;
   }
 
-  const vocabTotal = totalWords ?? 0;
-  const vocabMastered = (srsRows ?? []).filter(
-    (r) => r.repetitions >= MASTERY_THRESHOLD
-  ).length;
-  const vocabDue = (srsRows ?? []).filter((r) => new Date(r.due_at) <= new Date()).length;
-  const vocabPct = vocabTotal ? Math.round((vocabMastered / vocabTotal) * 100) : 0;
+  // Vocabulaire : ce que l'apprenant a lui-même rangé, pas ce que le SM-2
+  // aurait déduit de ses réussites. countFocus est la même fonction que celle
+  // de /vocabulary et de la file de révision — le tableau de bord ne peut
+  // donc pas annoncer un nombre que la page des listes contredit.
+  const cardByWord = new Map((srsRows ?? []).map((r) => [r.card_id, r]));
+  const vocab = countFocus(
+    (vocabWords ?? []).map((w) => {
+      const card = cardByWord.get(w.id);
+      return {
+        focus: w.focus,
+        srs: card
+          ? {
+              repetitions: card.repetitions,
+              easeFactor: card.ease_factor,
+              dueAt: new Date(card.due_at).getTime(),
+            }
+          : null,
+      };
+    }),
+    now
+  );
+  const vocabTotal = vocab.total;
+  const vocabKnown = vocab.known;
+  const vocabDue = vocab.due;
+  const vocabPct = vocabTotal ? Math.round((vocabKnown / vocabTotal) * 100) : 0;
 
   const name = profile?.display_name?.split(" ")[0] ?? "toi";
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12">
-      <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <SectionLabel>Tableau de bord</SectionLabel>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight">
-            Привет, {name} 👋
-          </h1>
-        </div>
-        <Link
-          href="/tutor"
-          className="rounded-[10px] bg-accent px-5 py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
-        >
-          Parler à ton professeur IA →
-        </Link>
+    <div className="mx-auto max-w-6xl px-6 py-8 sm:py-12">
+      <div className="mb-7 sm:mb-10">
+        <SectionLabel>Tableau de bord</SectionLabel>
+        <h1 className="font-display text-3xl font-extrabold sm:text-4xl tracking-tight">
+          Привет, {name}
+        </h1>
       </div>
 
       {/* Cartes de stats */}
@@ -112,7 +140,7 @@ export default async function DashboardPage() {
 
       {/* Niveau de pratique : la seule mesure qui bouge sans cérémonie */}
       {estimate.meaningful && (
-        <div className="mt-6 rounded-[20px] border border-border bg-bg2 p-6">
+        <div className="mt-6 rounded-[20px] surface p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-display text-sm font-semibold text-muted">Niveau de pratique</p>
@@ -163,7 +191,7 @@ export default async function DashboardPage() {
                       ? "border-success/50 bg-success/10 text-success"
                       : m.state === "started"
                         ? "border-accent/50 bg-accent/10 text-accent"
-                        : "border-border bg-bg3 text-muted hover:border-accent hover:text-accent"
+                        : "border-border bg-bg3 text-muted hover:bg-accent/10 hover:border-accent/35 hover:text-accent"
                   }`}
                 >
                   {m.label} · {m.solidSkills}/{m.totalSkills}
@@ -172,15 +200,8 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <p className="mt-4 font-display text-xs leading-relaxed text-muted">
-            {estimate.masteredTriggers} déclencheurs maîtrisés sur {estimate.totalTriggers}
-            {estimate.vocabKnown > 0 ? ` · ${estimate.vocabKnown} mots mémorisés` : ""}. Un
-            déclencheur compte comme maîtrisé après plusieurs réussites d&apos;affilée — c&apos;est
-            aussi à ce moment-là que les exercices cessent de te le proposer en priorité.
-          </p>
-
           {estimate.blockedBy && (
-            <p className="mt-2 font-display text-xs leading-relaxed text-muted">
+            <p className="mt-4 font-display text-xs leading-relaxed text-muted">
               Ta maîtrise des cas justifierait{" "}
               <span className="font-semibold text-text">{estimate.depthLevel}</span>, mais
               l&apos;estimation reste à {estimate.level} : les cas ne sont pas toute la grammaire, et{" "}
@@ -199,7 +220,7 @@ export default async function DashboardPage() {
               </p>
               <Link
                 href="/level-test"
-                className="shrink-0 rounded-[10px] bg-accent px-4 py-2 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+                className="btn btn-primary btn-sheen shrink-0 rounded-[10px] px-4 py-2 font-display text-sm"
               >
                 Repasser le test
               </Link>
@@ -209,7 +230,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Série */}
-      <div className="mt-6 rounded-[20px] border border-border bg-bg2 p-6">
+      <div className="mt-6 rounded-[20px] surface p-6">
         <p className="font-display text-sm font-semibold text-muted">Cette semaine</p>
         <div className="mt-3">
           <StreakDots activity={acts} now={now} />
@@ -217,7 +238,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Maîtrise par cas */}
-      <div className="mt-6 rounded-[20px] border border-border bg-bg2 p-6">
+      <div className="mt-6 rounded-[20px] surface p-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="font-display text-sm font-semibold text-muted">Maîtrise des cas</p>
           <Link href="/cases" className="font-display text-xs font-semibold text-accent hover:underline">
@@ -245,7 +266,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Progression du vocabulaire */}
-      <div className="mt-6 rounded-[20px] border border-border bg-bg2 p-6">
+      <div className="mt-6 rounded-[20px] surface p-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="font-display text-sm font-semibold text-muted">Progression du vocabulaire</p>
           <Link href="/vocabulary/review" className="font-display text-xs font-semibold text-accent hover:underline">
@@ -264,7 +285,7 @@ export default async function DashboardPage() {
           <>
             <div className="mb-2 flex items-center justify-between">
               <span className="font-display text-sm">
-                {vocabMastered} / {vocabTotal} mots maîtrisés
+                {vocabKnown} / {vocabTotal} mots acquis
               </span>
               <span className="font-display text-xs text-muted">
                 {vocabDue > 0 ? `${vocabDue} à revoir aujourd'hui` : "Rien à revoir aujourd'hui"}
@@ -272,7 +293,7 @@ export default async function DashboardPage() {
             </div>
             <div className="h-2.5 overflow-hidden rounded-full bg-border">
               <div
-                className="h-full rounded-full bg-accent transition-all"
+                className="h-full rounded-full bg-success transition-all"
                 style={{ width: `${vocabPct}%` }}
               />
             </div>
@@ -281,8 +302,9 @@ export default async function DashboardPage() {
       </div>
 
       {/* Accès rapides */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <QuickLink href="/cases" title="Cas" desc="Déclinaison guidée" />
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <QuickLink href="/cours" title="Cours" desc="La règle, expliquée" />
+        <QuickLink href="/exercices" title="Exercices" desc="Huit modules" />
         <QuickLink href="/vocabulary/review" title="Vocabulaire" desc="Révision espacée" />
         <QuickLink href="/reading" title="Lecture" desc="Textes gradués" />
       </div>
@@ -292,7 +314,7 @@ export default async function DashboardPage() {
 
 function StatCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-[20px] border border-border bg-bg2 p-5">
+    <div className="rounded-[20px] surface p-5">
       <p className="font-display text-xs font-semibold uppercase tracking-wide text-muted">
         {label}
       </p>
@@ -309,7 +331,7 @@ function QuickLink({ href, title, desc }: { href: string; title: string; desc: s
   return (
     <Link
       href={href}
-      className="rounded-[20px] border border-border bg-bg2 p-5 transition-all hover:-translate-y-1 hover:border-accent"
+      className="rounded-[20px] surface-interactive p-5 hover:-translate-y-1"
     >
       <p className="font-display text-lg font-bold">{title}</p>
       <p className="mt-0.5 font-display text-sm text-muted">{desc}</p>

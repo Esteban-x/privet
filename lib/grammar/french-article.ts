@@ -39,79 +39,28 @@ function pluralizeFirstWord(translation: string): string {
 }
 
 /**
- * Formes françaises d'un adjectif — voir `fr` dans lib/grammar/types.ts.
- * Reprise ici plutôt qu'importée pour garder ce module sans dépendance sur
- * la banque d'adjectifs.
- */
-export interface FrenchAdjectiveForms {
-  m: string;
-  f: string;
-  mVowel?: string;
-  position: "before" | "after";
-}
-
-/**
- * Pluriel d'un adjectif français. Les dix-huit adjectifs de la banque sont
- * tous réguliers de ce point de vue : -s/-x déjà invariants (vieux,
- * mauvais), -eau -> -eaux (beau, nouveau), sinon +s. Le féminin prend
- * toujours un -s.
- */
-function pluralizeAdjective(form: string, feminine: boolean): string {
-  if (feminine) return `${form}s`;
-  if (/[sx]$/i.test(form)) return form;
-  if (/eau$/i.test(form)) return `${form}x`;
-  return `${form}s`;
-}
-
-/**
  * Insère l'article français adapté devant une traduction, avec élision
  * (ce -> cet) et accord pluriel (ces/des + "s").
  *
- * `adjective` sert au mode « accord adjectif » : l'exercice a besoin d'une
- * traduction complète (« C'est une bague brillante ») pour que l'apprenant
- * sache quel adjectif accorder, sans ligne d'explication séparée. Le
- * français ne le place pas toujours du même côté que le russe, qui antépose
- * toujours, et ne l'accorde pas pareil : d'où des formes écrites.
+ * Un paramètre `adjective` insérait ici l'adjectif accordé et placé du bon
+ * côté, pour écrire la traduction des phrases d'accord assemblées. Ces
+ * phrases ne sont plus assemblées : le module d'accord écrit sa traduction
+ * à la main (lib/adjectives/exercises.ts), et ce module retrouve son seul
+ * travail — un article devant un nom.
  */
 export function frenchNounPhrase(
   translation: string,
   gender: FrenchGender,
   article: ArticleMode,
-  plural: boolean,
-  adjective?: FrenchAdjectiveForms
+  plural: boolean
 ): string {
-  const noun = plural ? pluralizeFirstWord(translation) : translation;
-
-  let core = noun;
-  if (adjective) {
-    const feminine = gender === "f";
-    // « un bel appartement » : la forme devant voyelle ne vaut que pour un
-    // masculin antéposé, et c'est le NOM qui suit, donc lui qu'on teste.
-    const base =
-      feminine
-        ? adjective.f
-        : adjective.position === "before" && adjective.mVowel && VOWEL_SOUND.test(noun)
-          ? adjective.mVowel
-          : adjective.m;
-    const form = plural ? pluralizeAdjective(base, feminine) : base;
-    core = adjective.position === "before" ? `${form} ${noun}` : `${noun} ${form}`;
-  }
+  const core = plural ? pluralizeFirstWord(translation) : translation;
 
   if (article === "none") return core;
+  if (plural) return `${article === "indefinite" ? "des" : "ces"} ${core}`;
+  if (article === "indefinite") return `${gender === "f" ? "une" : "un"} ${core}`;
 
-  if (plural) {
-    // « de beaux livres » : au pluriel, « des » devient « de » devant un
-    // adjectif antéposé.
-    const indefinite = adjective?.position === "before" ? "de" : "des";
-    return `${article === "indefinite" ? indefinite : "ces"} ${core}`;
-  }
-
-  if (article === "indefinite") {
-    return `${gender === "f" ? "une" : "un"} ${core}`;
-  }
-
-  // demonstrative — l'élision dépend du premier mot du groupe, adjectif
-  // antéposé compris, pas du nom.
+  // demonstrative — élision devant voyelle ou h muet.
   if (gender === "m" && VOWEL_SOUND.test(core)) return `cet ${core}`;
   return `${gender === "f" ? "cette" : "ce"} ${core}`;
 }

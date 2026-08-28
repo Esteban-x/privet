@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Compte confirmé — Privet",
+  title: "Compte confirmé",
 };
 
 // Écran affiché juste après qu'un lien de confirmation (inscription, email
@@ -19,7 +19,7 @@ export default async function ConfirmedPage({
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md flex-col justify-center px-6 py-10">
-      <div className="rounded-[20px] border border-border bg-bg2 p-8 text-center shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+      <div className="rounded-[20px] surface p-8 text-center shadow-float">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/15 text-2xl text-success">
           ✓
         </div>
@@ -31,7 +31,7 @@ export default async function ConfirmedPage({
 
         <Link
           href={continueHref}
-          className="mt-7 block w-full rounded-[10px] bg-accent px-4 py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+          className="btn btn-primary btn-sheen mt-7 block w-full rounded-[10px] px-4 py-3 font-display text-sm"
         >
           Continuer
         </Link>

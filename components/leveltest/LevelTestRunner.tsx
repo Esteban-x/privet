@@ -162,11 +162,11 @@ export default function LevelTestRunner({
       )}
 
       {step === "intro" && (
-        <div className="rounded-[20px] border border-border bg-bg2 p-8">
+        <div className="rounded-[20px] surface p-8">
           {intro}
           <button
             onClick={begin}
-            className="mt-6 w-full rounded-[10px] bg-accent py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+            className="btn btn-primary btn-sheen mt-6 w-full rounded-[10px] py-3 font-display text-sm"
           >
             Commencer le test
           </button>
@@ -174,7 +174,7 @@ export default function LevelTestRunner({
       )}
 
       {step === "test" && question && (
-        <div className="rounded-[20px] border border-border bg-bg2 p-8">
+        <div className="rounded-[20px] surface p-8">
           <p className="font-display text-sm text-muted">{question.prompt}</p>
           <p className="mt-2 font-display text-3xl font-bold">{question.question}</p>
 
@@ -194,7 +194,7 @@ export default function LevelTestRunner({
                         : isWrongPick
                           ? "border-danger bg-danger/10 text-text"
                           : "border-border bg-bg text-muted"
-                      : "border-border bg-bg hover:border-accent hover:bg-accent/10"
+                      : "border-border bg-bg hover:bg-accent/10 hover:border-accent/35"
                   }`}
                 >
                   {opt}
@@ -219,7 +219,7 @@ export default function LevelTestRunner({
               <p className="mt-1 font-display text-sm text-muted">{feedback.explain}</p>
               <button
                 onClick={advance}
-                className="mt-4 rounded-[10px] bg-accent px-4 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+                className="btn btn-primary btn-sheen mt-4 rounded-[10px] px-4 py-2.5 font-display text-sm"
               >
                 Continuer
               </button>
@@ -229,10 +229,10 @@ export default function LevelTestRunner({
       )}
 
       {step === "done" && localResult && (
-        <div className="rounded-[20px] border border-border bg-bg2 p-8">
+        <div className="rounded-[20px] surface p-8">
           <div className="rounded-xl border border-accent bg-accent/10 p-5 text-center">
             <p className="font-display text-sm text-muted">Ton niveau</p>
-            <p className="font-display text-4xl font-extrabold text-accent">{level}</p>
+            <p className="font-display text-3xl font-extrabold sm:text-4xl text-accent">{level}</p>
             <p className="mt-1 font-display text-xs text-muted">
               {localResult.score}/{localResult.total} bonnes réponses
             </p>
@@ -291,7 +291,7 @@ export default function LevelTestRunner({
           <button
             onClick={finish}
             disabled={saving}
-            className="mt-6 w-full rounded-[10px] bg-accent py-3 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-60"
+            className="btn btn-primary btn-sheen mt-6 w-full rounded-[10px] py-3 font-display text-sm disabled:opacity-60"
           >
             {saving ? "Enregistrement…" : finishLabel}
           </button>

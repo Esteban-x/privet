@@ -1,9 +1,23 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import LoginForm from "@/components/auth/LoginForm";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
-export const metadata = {
-  title: "Connexion — Privet",
+/**
+ * PAS DE « — Privetik » DANS LE TITRE : le gabarit du layout l'ajoute déjà, et
+ * l'écrire ici donnait « Connexion — Privetik — Privetik ».
+ *
+ * `noindex` PLUTÔT QU'UN `Disallow`. Cette page est liée depuis la barre de
+ * navigation de toutes les pages publiques : un moteur la découvre de toute
+ * façon. L'interdire d'exploration l'aurait fait publier en résultat nu, sans
+ * titre ni description, sans qu'on puisse jamais l'en retirer — puisqu'il
+ * aurait fallu qu'il lise la page pour apprendre qu'il ne doit pas la garder.
+ * On le laisse donc entrer, et on lui demande de ne rien garder. `follow`
+ * reste vrai : les liens de la page continuent de compter.
+ */
+export const metadata: Metadata = {
+  title: "Connexion",
+  robots: { index: false, follow: true },
 };
 
 export default async function LoginPage({

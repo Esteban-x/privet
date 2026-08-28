@@ -12,7 +12,7 @@ const CONFIRM_WORD = "SUPPRIMER";
 export default function DangerZone() {
   const [state, formAction, pending] = useActionState(
     deleteAccountAction,
-    INITIAL_DELETE_ACCOUNT_STATE
+    INITIAL_DELETE_ACCOUNT_STATE,
   );
   const [confirmText, setConfirmText] = useState("");
   const canDelete = confirmText.trim().toUpperCase() === CONFIRM_WORD;
@@ -21,8 +21,8 @@ export default function DangerZone() {
     <section className="rounded-[20px] border border-danger/40 bg-danger/5 p-6">
       <h2 className="font-display text-lg font-bold text-danger">Zone dangereuse</h2>
       <p className="mt-1 font-display text-sm text-muted">
-        Supprime définitivement ton compte : progression, statistiques,
-        vocabulaire et historique de chat inclus. Cette action est irréversible.
+        Supprime définitivement ton compte : progression, statistiques, vocabulaire et historique de
+        chat inclus. Cette action est irréversible.
       </p>
 
       <form action={formAction} className="mt-4">
@@ -38,7 +38,7 @@ export default function DangerZone() {
           onChange={(e) => setConfirmText(e.target.value)}
           autoComplete="off"
           spellCheck={false}
-          className="w-full max-w-xs rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm uppercase tracking-wide text-text focus:border-danger focus:outline-none"
+          className="w-full max-w-xs rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm uppercase tracking-wide text-text focus:border-danger field-focus focus:outline-none"
         />
 
         <button

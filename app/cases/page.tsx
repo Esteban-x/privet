@@ -1,7 +1,10 @@
 import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { CASES_BY_LEARNING_ORDER } from "@/lib/grammar/cases";
+import type { Metadata } from "next";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import JsonLd from "@/components/seo/JsonLd";
+import { breadcrumb, graph } from "@/lib/seo/structured-data";
 import { loadLevelEstimate, type CaseMastery } from "@/lib/progress/level-estimate";
 import { CEFR_LEVELS, type CefrLevel } from "@/lib/supabase/types";
 
@@ -30,6 +33,26 @@ function badgeFor(introducedAt: CefrLevel, level: CefrLevel | undefined, mastery
   return { label: `plus tard · ${introducedAt}`, className: "border-border bg-bg3 text-muted" };
 }
 
+/**
+ * « Les 6 cas russes » plutôt que « Cas » : c'est la requête, et c'est le
+ * seul titre qui dit à la fois de quelle langue et de quoi il s'agit. Le
+ * chiffre y est parce qu'il est ce que les gens cherchent d'abord à savoir.
+ */
+export const metadata: Metadata = {
+  title: "Les 6 cas russes : guide complet des déclinaisons + exercices",
+  description:
+    "Nominatif, génitif, datif, accusatif, instrumental, prépositionnel : ce que chaque cas " +
+    "exprime, ses déclencheurs et ses terminaisons. Avec exercices corrigés.",
+  alternates: { canonical: "/cases" },
+  openGraph: {
+    type: "website",
+    url: "/cases",
+    title: "Les 6 cas russes : guide complet des déclinaisons",
+    description:
+      "Ce que chaque cas exprime, ses déclencheurs, et les tableaux de terminaisons.",
+  },
+};
+
 export default async function CasesPage() {
   let level: CefrLevel | undefined;
   let masteryByCase = new Map<string, CaseMastery>();
@@ -50,14 +73,27 @@ export default async function CasesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-8 sm:py-16">
+      <JsonLd
+        data={graph(
+          breadcrumb([
+            { name: "Privetik", path: "/" },
+            { name: "Les cas russes", path: "/cases" },
+          ])
+        )}
+      />
       <SectionLabel color="accent2">Падежи</SectionLabel>
-      <h1 className="mb-3 font-display text-4xl font-extrabold tracking-tight">
-        Choisis un cas à travailler
+      {/* « 6 » EN CHIFFRES ET « RUSSES » EXPLICITE. On écrit « les six cas »
+          quand on est déjà dans une app de russe ; on tape « les 6 cas
+          russes » quand on les cherche. Le H1 doit être la seconde version —
+          c'est la seule que quelqu'un qui ne connaît pas encore le site
+          formule. */}
+      <h1 className="mb-3 font-display text-3xl font-extrabold sm:text-4xl tracking-tight">
+        Les 6 cas russes
       </h1>
       <p className="mb-12 max-w-2xl font-display leading-relaxed text-muted">
-        Les six cas sont dans l&apos;ordre où on les apprend — pas dans l&apos;ordre des grammaires
-        russes. Rien n&apos;est verrouillé : les pastilles indiquent seulement ce qui est de saison
+        Choisis celui que tu veux travailler : ils sont rangés dans l&apos;ordre où on les apprend,
+        pas dans celui des grammaires russes. Rien n&apos;est verrouillé : les pastilles indiquent seulement ce qui est de saison
         pour toi{level ? ` (niveau ${level})` : ""}.
       </p>
 
@@ -73,7 +109,7 @@ export default async function CasesPage() {
             <Link
               key={c.id}
               href={`/cases/${c.id}`}
-              className="group flex items-start gap-4 rounded-2xl border border-border bg-bg2 p-6 transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.5)]"
+              className="group flex items-start gap-4 rounded-2xl surface-interactive p-6 hover:-translate-y-1 hover:"
             >
               <div
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-display text-lg font-bold text-white"

@@ -44,7 +44,7 @@ export default function ReadingPassage({
   // Un nouveau texte (nouvel id, ou texte généré par IA remplacé) repart
   // sur un bouton "terminé" non coché plutôt que de garder l'état du
   // précédent — comparaison pendant le rendu plutôt qu'un effet (même
-  // pattern que `seenActiveId` dans app/tutor/page.tsx).
+  // pattern que `seenPathname` dans components/layout/NavBar.tsx).
   const [seenTextId, setSeenTextId] = useState(text.id);
   if (text.id !== seenTextId) {
     setSeenTextId(text.id);
@@ -68,7 +68,7 @@ export default function ReadingPassage({
   }
 
   return (
-    <div className="rounded-[20px] border border-border bg-bg2 p-8 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+    <div className="rounded-[20px] surface p-8 shadow-float">
       {casesPresent.length > 0 && (
         <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-5">
           <button
@@ -162,7 +162,7 @@ export default function ReadingPassage({
           <button
             onClick={markDone}
             disabled={completion === "saving"}
-            className="rounded-[10px] bg-accent px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-60"
+            className="btn btn-primary btn-sheen rounded-[10px] px-5 py-2.5 font-display text-sm disabled:opacity-60"
           >
             {completion === "saving" ? "…" : "J'ai terminé ce texte"}
           </button>

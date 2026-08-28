@@ -10,6 +10,14 @@ out/
 tsconfig.tsbuildinfo
 next-env.d.ts
 
+# Sauvegardes de la base — données personnelles, jamais versionnées
+backups/
+
+# Outils tiers installés par erreur à la racine du projet — 84 Mo de Scoop,
+# que `git add -A` embarquerait sans rien dire.
+\[-OtherParameters/
+install.ps1
+
 # Divers
 .DS_Store
 *.log

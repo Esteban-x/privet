@@ -6,7 +6,7 @@ import { ASPECT_PAIRS, FORMATION_LABEL, type PairFormation } from "@/lib/aspect/
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Aspect verbal — Privet",
+  title: "Aspect verbal",
 };
 
 const SKILL_COLOR: Record<string, string> = {
@@ -47,10 +47,10 @@ export default async function AspectHub() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-8 sm:py-16">
       <SectionLabel color="accent2">Вид глагола</SectionLabel>
-      <h1 className="mb-3 font-display text-4xl font-extrabold tracking-tight">Aspect verbal</h1>
-      <p className="mb-10 max-w-2xl font-display leading-relaxed text-muted">
+      <h1 className="mb-3 font-display text-3xl font-extrabold sm:text-4xl tracking-tight">Aspect verbal</h1>
+      <p className="mb-7 sm:mb-10 max-w-2xl font-display leading-relaxed text-muted">
         Le français n&apos;a pas cette catégorie, alors il la remplace par imparfait / passé
         composé — ce qui marche une fois sur deux, et installe donc une erreur au lieu d&apos;un
         doute. L&apos;aspect ne dit pas QUAND l&apos;action a lieu, mais quelle forme elle a dans le
@@ -58,7 +58,7 @@ export default async function AspectHub() {
       </p>
 
       {/* L'opposition fondatrice, montrée avant d'être expliquée. */}
-      <div className="mb-12 grid grid-cols-1 gap-4 rounded-[20px] border border-border bg-bg2 p-7 sm:grid-cols-2">
+      <div className="mb-12 grid grid-cols-1 gap-4 rounded-[20px] surface p-7 sm:grid-cols-2">
         <figure className="flex flex-col items-center">
           <TimelineDiagram schema="process" />
           <figcaption className="mt-2 text-center font-display text-sm">
@@ -88,7 +88,7 @@ export default async function AspectHub() {
             <Link
               key={skill.id}
               href={`/aspect/${skill.id}`}
-              className="group rounded-2xl border border-border bg-bg2 p-6 transition-all hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.5)]"
+              className="group rounded-2xl surface-interactive p-6 hover:-translate-y-1 hover:"
             >
               <div className="flex items-start gap-4">
                 <div
@@ -126,7 +126,7 @@ export default async function AspectHub() {
         })}
       </div>
 
-      <div className="mt-14">
+      <div className="mt-10 sm:mt-14">
         <SectionLabel color="accent">Les paires</SectionLabel>
         <p className="mb-4 max-w-2xl font-display text-sm leading-relaxed text-muted">
           Trois procédés, dont un qui n&apos;en est pas un : certaines paires n&apos;ont aucun
@@ -144,7 +144,7 @@ export default async function AspectHub() {
                   {pairs.map((p) => (
                     <div
                       key={p.id}
-                      className="flex items-baseline justify-between gap-2 rounded-xl border border-border bg-bg2 px-4 py-2.5"
+                      className="flex items-baseline justify-between gap-2 rounded-xl surface px-4 py-2.5"
                     >
                       <span className="font-display text-sm">
                         <span className="text-muted">{p.imperfective}</span>
