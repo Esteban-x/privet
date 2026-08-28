@@ -35,6 +35,42 @@ function checkName(value: string, label: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Les règles du mot de passe, à un seul endroit.
+ *
+ * ELLES ÉTAIENT ÉCRITES DEUX FOIS, ET DIFFÉREMMENT. L'inscription exigeait
+ * huit signes, une lettre et un chiffre ; le changement de mot de passe du
+ * compte (components/account/PasswordSettings.tsx) se contentait de la
+ * longueur. On pouvait donc contourner la règle du chiffre en s'inscrivant
+ * avec un mot de passe conforme puis en le remplaçant aussitôt par « aaaaaaaa ».
+ * La récupération de mot de passe ajoutait un troisième endroit où diverger :
+ * autant n'en avoir plus qu'un.
+ */
+export function checkPassword(password: string): string | undefined {
+  if (!password) return "Le mot de passe est obligatoire.";
+  if (password.length < PASSWORD_MIN) {
+    return `Le mot de passe doit faire au moins ${PASSWORD_MIN} caractères.`;
+  }
+  // bcrypt (GoTrue) compte des OCTETS, pas des unités UTF-16 : un mot de
+  // passe avec des caractères accentués/cyrilliques/emoji peut dépasser la
+  // limite réelle sans dépasser `.length`, et serait alors tronqué
+  // silencieusement côté serveur d'auth sans que cette validation le voie.
+  if (new TextEncoder().encode(password).length > PASSWORD_MAX) {
+    return `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX} octets (les caractères accentués ou non-latins en comptent plusieurs chacun).`;
+  }
+  if (!/[a-zA-Z\p{L}]/u.test(password) || !/[0-9]/.test(password)) {
+    return "Le mot de passe doit contenir au moins une lettre et un chiffre.";
+  }
+  return undefined;
+}
+
+/** La saisie de confirmation, séparée : elle a ses propres messages. */
+export function checkPasswordConfirm(password: string, confirm: string): string | undefined {
+  if (!confirm) return "Confirme ton mot de passe.";
+  if (password !== confirm) return "Les deux mots de passe ne correspondent pas.";
+  return undefined;
+}
+
 export function validateSignup(input: SignupInput): FieldErrors {
   const errors: FieldErrors = {};
 
@@ -50,25 +86,11 @@ export function validateSignup(input: SignupInput): FieldErrors {
     errors.email = "Cette adresse email n'a pas l'air valide.";
   }
 
-  if (!input.password) {
-    errors.password = "Le mot de passe est obligatoire.";
-  } else if (input.password.length < PASSWORD_MIN) {
-    errors.password = `Le mot de passe doit faire au moins ${PASSWORD_MIN} caractères.`;
-  } else if (new TextEncoder().encode(input.password).length > PASSWORD_MAX) {
-    // bcrypt (GoTrue) compte des OCTETS, pas des unités UTF-16 : un mot de
-    // passe avec des caractères accentués/cyrilliques/emoji peut dépasser
-    // la limite réelle sans dépasser `.length`, et serait alors tronqué
-    // silencieusement côté serveur d'auth sans que cette validation le voie.
-    errors.password = `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX} octets (les caractères accentués ou non-latins en comptent plusieurs chacun).`;
-  } else if (!/[a-zA-Z\p{L}]/u.test(input.password) || !/[0-9]/.test(input.password)) {
-    errors.password = "Le mot de passe doit contenir au moins une lettre et un chiffre.";
-  }
+  const passwordError = checkPassword(input.password);
+  if (passwordError) errors.password = passwordError;
 
-  if (!input.passwordConfirm) {
-    errors.passwordConfirm = "Confirme ton mot de passe.";
-  } else if (input.password !== input.passwordConfirm) {
-    errors.passwordConfirm = "Les deux mots de passe ne correspondent pas.";
-  }
+  const confirmError = checkPasswordConfirm(input.password, input.passwordConfirm);
+  if (confirmError) errors.passwordConfirm = confirmError;
 
   return errors;
 }

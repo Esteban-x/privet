@@ -24,8 +24,14 @@ declare global {
 }
 
 interface Props {
-  /** Étiquette de l'action, visible dans les stats Cloudflare. */
-  action: "signup" | "resend" | "login";
+  /**
+   * Étiquette de l'action, visible dans les stats Cloudflare.
+   *
+   * L'union est fermée exprès : c'est ce qui distingue les courbes dans
+   * le tableau de bord Cloudflare, et une faute de frappe y créerait une
+   * série muette qu'on ne remarquerait jamais.
+   */
+  action: "signup" | "resend" | "login" | "reset";
   /**
    * Incrémente cette valeur pour forcer un jeton neuf — nécessaire après
    * chaque échec de soumission, puisque le jeton consommé par Supabase ne

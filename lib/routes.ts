@@ -30,6 +30,7 @@ export const APP_SEGMENTS = [
   "cours",
   "dashboard",
   "exercices",
+  "forgot-password",
   "guides",
   "level-test",
   "login",
@@ -39,6 +40,7 @@ export const APP_SEGMENTS = [
   "participles",
   "premium",
   "reading",
+  "reset-password",
   "signup",
   "vocabulary",
 ] as const;

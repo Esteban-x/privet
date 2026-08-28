@@ -49,6 +49,7 @@ export default function robots(): MetadataRoute.Robots {
           "/dashboard",
           "/onboarding",
           "/level-test",
+          "/reset-password",
           "/vocabulary",
           "/reading",
           // Les modules d'entraînement. Tous protégés, donc tous en

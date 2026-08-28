@@ -22,11 +22,25 @@ const OTP_TYPES: EmailOtpType[] = [
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const next = safeNext(searchParams.get("next"));
-  const confirmedUrl = `${origin}/auth/confirmed?next=${encodeURIComponent(next)}`;
 
   const tokenHash = searchParams.get("token_hash");
   const rawType = searchParams.get("type");
   const code = searchParams.get("code");
+
+  /**
+   * UNE RÉINITIALISATION NE PASSE PAS PAR L'ÉCRAN « COMPTE CONFIRMÉ ».
+   *
+   * Cet écran existe pour rassurer après une inscription : il dit « ton
+   * adresse est validée, ton compte est actif » et propose de continuer.
+   * Servi à quelqu'un qui vient de cliquer sur un lien de mot de passe
+   * oublié, il ment sur ce qui vient de se passer, et il ajoute un clic
+   * entre la personne et le seul formulaire qu'elle cherche. On la dépose
+   * donc directement sur `next`.
+   */
+  const isRecovery = rawType === "recovery";
+  const successUrl = isRecovery
+    ? `${origin}${next}`
+    : `${origin}/auth/confirmed?next=${encodeURIComponent(next)}`;
 
   const supabase = await createClient();
 
@@ -35,10 +49,10 @@ export async function GET(request: Request) {
       type: rawType as EmailOtpType,
       token_hash: tokenHash,
     });
-    if (!error) return NextResponse.redirect(confirmedUrl);
+    if (!error) return NextResponse.redirect(successUrl);
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(confirmedUrl);
+    if (!error) return NextResponse.redirect(successUrl);
   }
 
   // Le type du lien est renvoyé dans l'URL d'erreur : /login affiche un

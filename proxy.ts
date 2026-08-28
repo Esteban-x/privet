@@ -40,6 +40,11 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/signup",
+  // Demander un lien de réinitialisation se fait forcément déconnecté :
+  // c'est tout l'objet de la page. /reset-password, en revanche, N'EST PAS
+  // ici — le lien reçu par email ouvre une session avant d'y mener, et
+  // exiger cette session est précisément ce qui protège la page.
+  "/forgot-password",
   "/auth",
   "/premium",
   "/api/billing/webhook",
@@ -79,6 +84,12 @@ const ONBOARDING_EXEMPT_PATHS = [
   "/onboarding",
   "/level-test",
   "/account",
+  // SANS CETTE LIGNE, UN COMPTE NON FINALISÉ NE POURRAIT JAMAIS ÊTRE
+  // RÉCUPÉRÉ. Quelqu'un qui s'inscrit, abandonne avant la fin de
+  // l'onboarding, puis oublie son mot de passe, suit son lien de
+  // réinitialisation et se fait renvoyer vers /onboarding — où l'on ne
+  // choisit pas de mot de passe. Il tourne alors en rond indéfiniment.
+  "/reset-password",
   "/api/profile",
   "/api/level-test/evaluate",
 ];

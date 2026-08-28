@@ -163,12 +163,21 @@ function LoginCard() {
             className="w-full rounded-[10px] border border-border bg-bg px-3.5 py-2.5 font-display text-sm text-text placeholder:text-muted/60 field-focus focus:outline-none"
           />
 
-          <label
-            htmlFor="password"
-            className="mb-1.5 mt-4 block font-display text-sm font-medium text-muted"
-          >
-            Mot de passe
-          </label>
+          {/* Le lien vit SUR LA LIGNE DU CHAMP, pas en bas de carte : on le
+              cherche au moment précis où le mot de passe ne revient pas, et
+              c'est là que l'œil se trouve. Relégué sous le bouton, il se lit
+              après trois tentatives ratées. */}
+          <div className="mb-1.5 mt-4 flex items-baseline justify-between gap-3">
+            <label htmlFor="password" className="block font-display text-sm font-medium text-muted">
+              Mot de passe
+            </label>
+            <Link
+              href="/forgot-password"
+              className="font-display text-xs font-semibold text-muted transition-colors hover:text-accent"
+            >
+              Oublié ?
+            </Link>
+          </div>
           <input
             id="password"
             name="password"
