@@ -98,6 +98,38 @@ export async function signUpAction(
     if (error.code === "email_address_invalid") {
       return fail({ email: "Cette adresse email est refusée par le serveur." });
     }
+    // L'ENVOI DE L'EMAIL A ÉCHOUÉ, ET CE N'EST PAS LA FAUTE DU VISITEUR.
+    //
+    // GoTrue répond une 500 quand le serveur SMTP refuse le message : clé
+    // Resend invalide, domaine d'envoi non vérifié, expéditeur hors du
+    // domaine autorisé. Le code renvoyé est `unexpected_failure`, qui
+    // tomberait sans ça dans la branche générique — laquelle dit « réessaie
+    // dans un instant ». C'est un mauvais conseil : réessayer ne répare pas
+    // une configuration SMTP, et le visiteur recommence en boucle en croyant
+    // que ça vient de lui.
+    //
+    // On le distingue donc, et on le dit franchement. Le compte, lui, a pu
+    // être créé côté Supabase malgré l'échec de l'email : renvoyer le
+    // visiteur vers l'inscription le ferait buter sur « adresse déjà
+    // utilisée », d'où la mention de la page de renvoi de confirmation.
+    const smtpFailed =
+      error.code === "error_sending_confirmation_email" ||
+      (error.status === 500 && /sending.*email/i.test(error.message ?? ""));
+
+    if (smtpFailed) {
+      console.error("[signup] envoi de l'email de confirmation refusé par le SMTP :", {
+        code: error.code,
+        status: error.status,
+        message: error.message,
+      });
+      return fail(
+        {},
+        "Ton compte a peut-être été créé, mais l'email de confirmation n'a pas pu partir — " +
+          "c'est un problème de notre côté, pas du tien. Réessaie plus tard, ou demande un " +
+          "nouvel envoi depuis la page de renvoi de confirmation."
+      );
+    }
+
     // Code non prévu ci-dessus : on logue le détail côté serveur (jamais
     // exposé au client) pour pouvoir diagnostiquer, et on affiche un message
     // générique.
@@ -155,6 +187,25 @@ export async function resendConfirmationAction(
     }
     if (error.code === "over_email_send_rate_limit") {
       return { status: "error", message: "Trop de renvois. Attends une minute." };
+    }
+    // Même distinction qu'à l'inscription : un refus du serveur SMTP n'est pas
+    // un incident passager, et inviter à réessayer fait tourner le visiteur
+    // en rond. Voir la note dans signUpAction.
+    if (
+      error.code === "error_sending_confirmation_email" ||
+      (error.status === 500 && /sending.*email/i.test(error.message ?? ""))
+    ) {
+      console.error("[resend] envoi refusé par le SMTP :", {
+        code: error.code,
+        status: error.status,
+        message: error.message,
+      });
+      return {
+        status: "error",
+        message:
+          "L'email n'a pas pu partir — c'est un problème de notre côté. " +
+          "Réessaie plus tard, le compte est intact.",
+      };
     }
     console.error("[resend] échec Supabase non géré :", {
       code: error.code,
