@@ -22,12 +22,28 @@ export default function FocusControl({
   word,
   onChange,
   disabled = false,
+  compact = false,
 }: {
   value: Focus;
   /** Le mot, pour que le lecteur d'écran sache de quoi ce groupe règle la priorité. */
   word: string;
   onChange: (focus: Focus) => void;
   disabled?: boolean;
+  /**
+   * SEUL LE SEGMENT ACTIF PORTE SON LIBELLÉ ; les deux autres se réduisent à
+   * leur signe.
+   *
+   * POUR LA LIGNE DE COMMANDES D'UNE CARTE MOT, où il doit tenir à côté du
+   * bouton d'explication et de la corbeille. Les trois libellés en entier
+   * font 230 px : sur un téléphone, ils repoussaient les deux autres
+   * commandes sur une ligne supplémentaire, c'est-à-dire ajoutaient une
+   * rangée à chacun des mots de la liste.
+   *
+   * Ce qu'on garde est ce qui compte : l'état COURANT reste lisible en
+   * toutes lettres. Un jeu de trois signes nus aurait demandé d'apprendre
+   * que « ✓ » veut dire « je le sais ».
+   */
+  compact?: boolean;
 }) {
   return (
     <div
@@ -50,12 +66,13 @@ export default function FocusControl({
             // d'état « aucun des trois », et une bascule silencieuse vers
             // « normal » se déclencherait au double-clic.
             onClick={() => !active && onChange(focus)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-display text-[11px] font-semibold transition-colors duration-200 disabled:cursor-not-allowed ${
-              active ? meta.active : "text-muted hover:text-text"
-            }`}
+            aria-label={compact && !active ? meta.label : undefined}
+            className={`inline-flex items-center gap-1.5 rounded-full font-display text-[11px] font-semibold transition-colors duration-200 disabled:cursor-not-allowed ${
+              compact ? "px-2 py-1" : "px-2.5 py-1"
+            } ${active ? meta.active : "text-muted hover:text-text"}`}
           >
             <span aria-hidden>{meta.icon}</span>
-            {meta.label}
+            {(!compact || active) && meta.label}
           </button>
         );
       })}
