@@ -641,9 +641,23 @@ export default function AddWordForm({
       )}
 
       {/* Le bouton ne se réécrit pas en « Ajout… » : le libellé et les points
-         occupent la même case de grille et se croisent en fondu, sans que la
-         largeur du texte ni la hauteur de la ligne ne bougent. Remplacer le
-         mot faisait clignoter le bouton à chaque ajout. */}
+         se croisent en fondu au même endroit, sans que la largeur du texte
+         ni la hauteur de la ligne ne bougent. Remplacer le mot faisait
+         clignoter le bouton à chaque ajout.
+
+         LES POINTS SONT EN POSITION ABSOLUE, PAS DANS UNE CASE DE GRILLE.
+         La version précédente empilait les deux dans la même cellule d'un
+         `grid place-items-center` — sauf que `grid` n'a jamais pris effet :
+         `.btn` déclare `display: inline-flex` dans une règle HORS COUCHE,
+         et une règle non layerisée l'emporte sur n'importe quel utilitaire
+         Tailwind, qui vit dans `@layer utilities`. Le bouton était donc une
+         rangée flex, les points invisibles y occupaient leur largeur plus le
+         `gap` de 8 px, et le libellé s'en trouvait décalé d'une dizaine de
+         pixels vers la gauche — visible, et inexplicable tant qu'on lisait
+         les classes plutôt que la cascade.
+
+         Sorti du flux, il ne reste qu'un seul enfant à centrer, et c'est
+         `.btn` lui-même qui s'en charge. */}
       {/* `mt-auto` colle le bouton en bas ; cet espaceur garantit l'écart
           minimal avec ce qui précède quand le formulaire est court. */}
       {bare && <div aria-hidden className="h-6 shrink-0" />}
@@ -652,14 +666,14 @@ export default function AddWordForm({
         type="submit"
         disabled={submitting || !ru.trim() || !fr.trim()}
         aria-busy={submitting}
-        className={`btn btn-primary btn-sheen grid h-12 w-full place-items-center rounded-xl px-4 font-display text-sm ${
+        className={`btn btn-primary btn-sheen h-12 w-full rounded-xl px-4 font-display text-sm ${
           bare ? "mt-auto" : "mt-5"
         } ${
           submitting ? "cursor-wait" : "disabled:cursor-not-allowed disabled:opacity-40"
         }`}
       >
         <span
-          className={`col-start-1 row-start-1 w-full text-center transition-[opacity,transform] duration-200 ${
+          className={`transition-[opacity,transform] duration-200 ${
             submitting ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100"
           }`}
         >
@@ -667,7 +681,7 @@ export default function AddWordForm({
         </span>
         <span
           aria-hidden
-          className={`col-start-1 row-start-1 flex gap-1.5 transition-[opacity,transform] duration-200 ${
+          className={`absolute inset-0 flex items-center justify-center gap-1.5 transition-[opacity,transform] duration-200 ${
             submitting ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
           }`}
         >
