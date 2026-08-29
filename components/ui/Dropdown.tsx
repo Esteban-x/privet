@@ -57,6 +57,16 @@ export default function Dropdown({
    * pas le rattraper, puisqu'il ignore où commence le bouton.
    */
   const [shift, setShift] = useState(0);
+  /**
+   * Hauteur restante sous le bouton, quand le menu est plus long qu'elle.
+   *
+   * Le menu « ⋯ » du vocabulaire fait près de 500 px : listes, filtres,
+   * renommer, supprimer. Sur un téléphone il dépasse le bas de la fenêtre,
+   * et ses dernières entrées deviennent inatteignables — on ne peut pas
+   * faire défiler la page pour aller les chercher, puisqu'il se referme au
+   * premier geste ailleurs.
+   */
+  const [maxHeight, setMaxHeight] = useState<number | null>(null);
 
   /**
    * La mesure se fait dans une RÉFÉRENCE-FONCTION, pas dans un effet.
@@ -70,6 +80,7 @@ export default function Dropdown({
   const measure = useCallback((el: HTMLDivElement | null) => {
     if (!el) {
       setShift(0);
+      setMaxHeight(null);
       return;
     }
     const margin = 8;
@@ -86,6 +97,13 @@ export default function Dropdown({
     else if (right > window.innerWidth - margin) {
       setShift(window.innerWidth - margin - right);
     }
+
+    // La fenêtre ENTIÈRE, bandeau de navigation du bas compris : un menu qui
+    // s'arrêterait au-dessus de lui perdrait 60 px sur les 670 d'un
+    // téléphone, alors qu'il le recouvre sans gêner — on ne navigue pas
+    // pendant qu'on choisit dans un menu.
+    const room = window.innerHeight - box.top - margin;
+    setMaxHeight(el.offsetHeight > room ? room : null);
   }, []);
 
   // Un menu déplié doit se refermer sur un clic ailleurs et sur Échap : sans
@@ -128,14 +146,15 @@ export default function Dropdown({
           // `animate-pop-in` anime justement `transform` en `fill-mode: both`,
           // et une animation l'emporte sur un style en ligne — le décalage
           // aurait été effacé au premier rendu.
-          style={
-            shift
+          style={{
+            ...(shift
               ? align === "right"
                 ? { marginRight: -shift }
                 : { marginLeft: shift }
-              : undefined
-          }
-          className={`modal-panel animate-pop-in absolute top-full z-50 mt-2 ${width} max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[14px] p-1.5 ${
+              : null),
+            ...(maxHeight ? { maxHeight } : null),
+          }}
+          className={`modal-panel animate-pop-in absolute top-full z-50 mt-2 ${width} max-w-[calc(100vw-1.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain rounded-[14px] p-1.5 ${
             align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right"
           }`}
         >

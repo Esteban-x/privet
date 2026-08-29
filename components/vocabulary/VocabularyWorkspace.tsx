@@ -445,23 +445,17 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                   </form>
                 </div>
               ) : (
-                <div className="sticky top-[calc(var(--nav-h)+0.5rem)] z-30 mb-4 flex flex-col gap-1.5 rounded-2xl surface px-2.5 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg2/85 sm:flex-row sm:items-center sm:gap-2 sm:px-3 sm:py-2.5">
-                  {/* LE RETOUR N'EXISTE QUE LÀ OÙ IL Y A QUELQUE CHOSE À
-                      QUITTER. Au-delà de 1024 px les listes sont déjà à
-                      gauche, en permanence : une flèche qui « remonte » vers
-                      une colonne visible ne veut rien dire. Elle vide la
-                      sélection, donc l'adresse perd son `?list=` et un
-                      rechargement rouvre bien les listes. */}
-                  <button
-                    type="button"
-                    onClick={() => setActiveId(null)}
-                    aria-label="Revenir à mes listes"
-                    title="Mes listes"
-                    className="hover-surface flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-muted sm:h-9 sm:w-9 lg:hidden"
-                  >
-                    <BackGlyph />
-                  </button>
-
+                <div // `z-50` ET PAS `z-30` : cette barre est `sticky`, donc elle OUVRE UN
+                  // CONTEXTE D'EMPILEMENT. Le `z-50` que portent ses menus déroulants
+                  // ne les classe qu'entre eux, à l'intérieur ; vis-à-vis du reste de
+                  // la page, ils valent le z-index de la barre. À 30, ils passaient
+                  // donc sous le bandeau de navigation du bas, qui est en z-40 — et le
+                  // menu « ⋯ » se retrouvait coupé par lui.
+                  //
+                  // Monter la barre est sans effet de bord : elle se fige à 72 px du
+                  // haut, la barre de navigation occupe les 64 premiers, et le bandeau
+                  // du bas est ailleurs. Elle ne recouvre rien.
+                  className="sticky top-[calc(var(--nav-h)+0.5rem)] z-50 mb-4 flex flex-col gap-1.5 rounded-2xl surface px-2.5 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg2/85 sm:flex-row sm:items-center sm:gap-2 sm:px-3 sm:py-2.5">
                   <div className="relative min-w-0 flex-1">
                     <SearchGlyph className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                     <input
@@ -495,6 +489,28 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                       Calés à droite, ils se retrouvent sous le pouce et le
                       vide passe du côté où il ne gêne pas. */}
                   <div className="flex shrink-0 items-center justify-end gap-2">
+                    {/* LE RETOUR OCCUPE LE VIDE À GAUCHE DE CETTE RANGÉE.
+                        Il était au-dessus, avant le champ de recherche : en
+                        colonne, chaque enfant prend sa propre ligne, il s'est
+                        donc retrouvé seul sur une rangée à lui, pour une
+                        flèche de 32 px. Ici il ne coûte rien — cette place
+                        était perdue depuis que les trois boutons sont calés à
+                        droite.
+
+                        Il n'existe que là où il y a quelque chose à quitter :
+                        au-delà de 1024 px les listes sont déjà à gauche en
+                        permanence, et une flèche qui « remonte » vers une
+                        colonne visible ne veut rien dire. */}
+                    <button
+                      type="button"
+                      onClick={() => setActiveId(null)}
+                      aria-label="Revenir à mes listes"
+                      title="Mes listes"
+                      className="hover-surface mr-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-muted sm:h-9 sm:w-9 lg:hidden"
+                    >
+                      <BackGlyph />
+                    </button>
+
                     {/* AJOUTER EST LE BOUTON PLEIN. C'est par lui que la
                         liste existe : sans mot ajouté, ni la révision ni la
                         recherche n'ont de matière. « Réviser » garde son
