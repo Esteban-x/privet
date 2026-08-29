@@ -60,6 +60,18 @@ const PUBLIC_PATHS = [
   "/alphabet",
   "/conjugation",
   "/numbers",
+  // LE CATALOGUE DES EXERCICES, MAIS PAS LES EXERCICES. /exercices ne
+  // contient aucun entraînement : c'est la liste des huit modules, leurs
+  // descriptions et leurs niveaux. `loadAllProgress` renvoyait déjà un
+  // objet vide sans session — la page était donc écrite pour un visiteur,
+  // et seule cette liste l'en empêchait.
+  //
+  // POURQUOI ÇA COMPTE PLUS QU'UNE PAGE DE PLUS. C'était la seule page qui
+  // dit ce que l'app SAIT FAIRE. Sans elle, un visiteur voyait « Les cas »
+  // et en déduisait que l'app entière tenait dans les déclinaisons. Les
+  // sous-routes (/cases/…, /aspect/…, /adjectives/…) restent fermées : ce
+  // sont elles qui écrivent sur un compte et portent les plafonds.
+  "/exercices",
   // Les guides de référencement. Hors navigation par choix — ils ne
   // font pas partie du produit, ils y mènent — mais publics par nécessité :
   // une page destinée à être trouvée par un moteur ne peut pas exiger une

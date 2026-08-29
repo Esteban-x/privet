@@ -234,7 +234,7 @@ export default function CourseExplorer({
         <div className="mb-8 animate-fade-in rounded-2xl surface px-5 py-4">
           <div className="mb-2 flex items-baseline justify-between gap-3">
             <p className="font-display text-sm font-semibold">
-              {readCount} leçon{readCount === 1 ? "" : "s"} lue{readCount === 1 ? "" : "s"} sur{""}
+              {readCount} leçon{readCount === 1 ? "" : "s"} lue{readCount === 1 ? "" : "s"} sur{" "}
               {index.length}
             </p>
             <p className="font-display text-sm font-bold text-success">{readPct}%</p>

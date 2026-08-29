@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import ResendConfirmationForm from "@/components/auth/ResendConfirmationForm";
 import TurnstileWidget from "@/components/auth/TurnstileWidget";
+import GoogleButton, { AuthDivider } from "@/components/auth/GoogleButton";
 import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/layout/Logo";
 
@@ -19,6 +20,45 @@ function confirmErrorMessage(type: string | null): string {
     return "Ce lien de confirmation de changement d'email est invalide ou a expiré. Ton adresse email n'a pas été modifiée.";
   }
   return "Ce lien de confirmation est invalide ou a expiré. Demande-en un nouveau ci-dessous.";
+}
+
+/**
+ * Ce qui attend derrière la porte, quand on arrive ici depuis une section
+ * fermée.
+ *
+ * POURQUOI. La barre de navigation annonce le produit entier — vocabulaire
+ * et lecture compris — et deux de ses entrées mènent donc ici. Un visiteur
+ * qui clique « Vocabulaire » et tombe sur « Connecte-toi pour sauvegarder ta
+ * progression » a appris qu'il fallait un compte, mais toujours pas ce
+ * qu'il y a dedans : c'est une porte fermée sans écriteau, et c'est
+ * exactement le moment où il repart.
+ *
+ * Le `next` est déjà là — proxy.ts le pose en redirigeant — il ne restait
+ * qu'à s'en servir. Chaque phrase décrit CE QUI EST DERRIÈRE, pas la
+ * mécanique du compte.
+ */
+function promiseFor(next: string | null): string | null {
+  // SANS `?next=`, ON N'EST VENU DE NULLE PART : /login ouvert depuis la
+  // barre, un favori, un lien partagé. Il n'y a pas de porte à décrire, et
+  // le repli générique est le bon texte. C'est aussi pour ça que ce
+  // paramètre est lu BRUT ici, et non après le `?? "/dashboard"` : ce repli
+  // rendrait toute arrivée directe indiscernable d'une redirection.
+  if (!next) return null;
+  if (next.startsWith("/vocabulary")) {
+    return "Tes mots, révisés au bon moment : cartes, QCM, frappe et prononciation, avec une répétition espacée qui décide seule quoi te remontrer et quand.";
+  }
+  if (next.startsWith("/reading")) {
+    return "Des textes courts à ton niveau, générés à la demande — clique sur n'importe quel mot pour sa traduction, sans quitter la page.";
+  }
+  if (next.startsWith("/dashboard")) {
+    return "Ta série, ton niveau et ta précision par compétence, mis à jour à chaque exercice.";
+  }
+  // Toutes les sous-routes d'exercices : /cases/…, /aspect/…, /adjectives/…
+  // Le catalogue /exercices, lui, est public et ne mène jamais ici.
+  if (next !== "/") {
+    return "Les exercices corrigent, expliquent l'erreur et retiennent ta précision — ça demande un compte, parce que ça s'enregistre.";
+  }
+  return null;
 }
 
 export default function LoginForm() {
@@ -109,24 +149,6 @@ function LoginCard() {
     }
   }
 
-  async function signInWithGoogle() {
-    setError(null);
-    setLoading("google");
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-        },
-      });
-      if (error) throw error;
-    } catch {
-      setError("La connexion avec Google a échoué. Réessaie, ou utilise ton adresse e-mail.");
-      setLoading(null);
-    }
-  }
-
   return (
     <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md flex-col justify-center px-6 py-10">
       <div className="rounded-[20px] surface p-8 shadow-float">
@@ -140,7 +162,8 @@ function LoginCard() {
           </div>
           <h1 className="font-display text-2xl font-bold">Bienvenue sur Privetik</h1>
           <p className="mt-2 font-display text-sm text-muted">
-            Connecte-toi pour sauvegarder ta progression et retrouver tes modules.
+            {promiseFor(searchParams.get("next")) ??
+              "Connecte-toi pour sauvegarder ta progression et retrouver tes modules."}
           </p>
         </div>
 
@@ -222,51 +245,22 @@ function LoginCard() {
           </div>
         )}
 
-        <div className="my-6 flex items-center gap-3">
-          <span className="h-px flex-1 bg-border" />
-          <span className="font-display text-xs text-muted">ou</span>
-          <span className="h-px flex-1 bg-border" />
-        </div>
+        <AuthDivider />
 
-        <button
-          onClick={signInWithGoogle}
+        <GoogleButton
+          next={next}
           disabled={loading !== null}
-          className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-border bg-bg px-4 font-display text-sm font-semibold text-text transition-colors hover:bg-accent/10 disabled:opacity-60"
-        >
-          <GoogleIcon />
-          {loading === "google" ? "Redirection…" : "Continuer avec Google"}
-        </button>
+          onError={(message) => setError(message || null)}
+          onPending={(pending) => setLoading(pending ? "google" : null)}
+        />
 
         <p className="mt-6 text-center font-display text-sm text-muted">
-          Pas encore de compte ?{""}
+          Pas encore de compte ?{" "}
           <Link href="/signup" className="font-semibold text-text hover:text-accent">
             Créer un compte
           </Link>
         </p>
       </div>
     </div>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"
-      />
-      <path
-        fill="#EA4335"
-        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"
-      />
-    </svg>
   );
 }

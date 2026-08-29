@@ -136,7 +136,19 @@ export function quotaDeniedResponse(verdict: QuotaVerdict): NextResponse {
         feature: verdict.feature,
         cap: verdict.cap,
         used: verdict.used,
-        upgrade: verdict.plan === "free" && verdict.reason !== "burst",
+        // L'ABONNEMENT LÈVE-T-IL VRAIMENT CETTE LIMITE ? C'est la seule
+        // question, et « plan gratuit » n'y répond pas à lui seul. Une
+        // rafale retombe en une minute, et `unavailable` est une PANNE de
+        // la base — y proposer de payer serait malhonnête, et c'est
+        // pourtant ce qui arrivait : `plan` n'est pas renseigné sur ce
+        // chemin, donc le `?? "free"` ci-dessus le faisait passer pour un
+        // compte gratuit et le bouton s'affichait sur une panne serveur.
+        upgrade:
+          (verdict.plan ?? "free") === "free" &&
+          (verdict.reason === "not_included" ||
+            verdict.reason === "daily" ||
+            verdict.reason === "monthly" ||
+            verdict.reason === "lifetime"),
       },
     },
     {

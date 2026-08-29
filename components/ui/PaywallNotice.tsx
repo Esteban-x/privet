@@ -71,27 +71,43 @@ export default function PaywallNotice({
         )}
 
         {quota.upgrade && (
-          <>
-            <p className="mt-4 font-display text-sm leading-relaxed text-muted">
-              L&apos;abonnement ouvre {what ?? "cette fonctionnalité"} sans compter,
-              avec les explications de mots et les exercices rédigés sur mesure.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link
-                href="/premium"
-                className="btn btn-primary btn-sheen rounded-xl px-6 py-3 font-display text-sm font-bold"
-              >
-                Voir l&apos;abonnement
-              </Link>
-              <Link
-                href="/cours"
-                className="btn btn-outline rounded-xl px-6 py-3 font-display text-sm font-semibold text-text"
-              >
-                Continuer le cours
-              </Link>
-            </div>
-          </>
+          <p className="mt-4 font-display text-sm leading-relaxed text-muted">
+            L&apos;abonnement ouvre {what ?? "cette fonctionnalité"} sans compter,
+            avec les explications de mots et les exercices rédigés sur mesure.
+          </p>
         )}
+
+        {/* JAMAIS DE CUL-DE-SAC. Ce bloc n'avait AUCUN bouton dès que
+            `upgrade` était faux : l'apprenant lisait une phrase et se
+            retrouvait devant un écran mort, sans même de quoi revenir au
+            cours. C'est l'écran qu'on a vu en production sur un compte
+            payant — le pire cas possible, puisque la phrase parlait
+            d'abonnement à quelqu'un qui en avait un.
+
+            Il y a donc toujours une sortie, et c'est `upgrade` qui décide
+            LAQUELLE est mise en avant : l'abonnement quand il lève
+            réellement la limite, le retour au cours sinon. Un plafond de
+            rafale ou une panne ne doivent pas vendre quoi que ce soit. */}
+        <div className="mt-5 flex flex-wrap gap-3">
+          {quota.upgrade && (
+            <Link
+              href="/premium"
+              className="btn btn-primary btn-sheen rounded-xl px-6 py-3 font-display text-sm font-bold"
+            >
+              Voir l&apos;abonnement
+            </Link>
+          )}
+          <Link
+            href="/cours"
+            className={
+              quota.upgrade
+                ? "btn btn-outline rounded-xl px-6 py-3 font-display text-sm font-semibold text-text"
+                : "btn btn-primary btn-sheen rounded-xl px-6 py-3 font-display text-sm font-bold"
+            }
+          >
+            Continuer le cours
+          </Link>
+        </div>
       </div>
     </div>
   );

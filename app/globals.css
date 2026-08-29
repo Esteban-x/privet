@@ -1030,6 +1030,64 @@ button:disabled,
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
+/* ─── La barre de chargement de navigation ───────────────────────
+   Voir components/layout/NavProgress.tsx pour le pourquoi. Trois règles
+   la rendent utile plutôt qu'agaçante :
+
+   1. ELLE N'APPARAÎT QU'APRÈS 140 ms (le `animation-delay`, sur une barre
+      dont l'état de repos est `opacity: 0`). Une navigation instantanée —
+      celle d'une route pourvue d'un loading.tsx — ne la montre donc jamais,
+      et l'écran ne clignote pas à chaque clic.
+   2. ELLE N'ATTEINT JAMAIS 100 %. La fin d'une navigation, c'est la page
+      qui arrive ; une barre qui se remplit toute seule promettrait une
+      échéance qu'elle ne connaît pas.
+   3. ELLE RALENTIT EN AVANÇANT (la courbe de Bézier), ce qui la garde en
+      mouvement pendant une longue attente sans jamais donner l'impression
+      d'être bloquée. */
+.nav-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100; /* au-dessus de la barre de navigation, qui est en z-50 */
+  height: 2px;
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 0 2px 2px 0;
+  background-image: linear-gradient(90deg, var(--color-accent2), var(--color-accent));
+  box-shadow: 0 0 10px -1px color-mix(in oklab, var(--color-accent) 70%, transparent);
+}
+
+.nav-progress.is-pending {
+  animation: navProgress 12s cubic-bezier(0.05, 0.82, 0.2, 1) 140ms forwards;
+}
+
+@keyframes navProgress {
+  0% {
+    width: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 94%;
+    opacity: 1;
+  }
+}
+
+/* Le retard est conservé, pas l'animation : c'est lui qui empêche le
+   clignotement, et il n'a rien d'un effet décoratif. */
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress.is-pending {
+    animation: navProgressStill 1ms linear 140ms forwards;
+  }
+
+  @keyframes navProgressStill {
+    to {
+      width: 100%;
+      opacity: 1;
+    }
+  }
+}
+
 /* Petits points qui pulsent en cascade, façon "en train d'écrire". */
 @keyframes dotPulse {
   0%,

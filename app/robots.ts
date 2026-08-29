@@ -55,7 +55,12 @@ export default function robots(): MetadataRoute.Robots {
           // Les modules d'entraînement. Tous protégés, donc tous en
           // redirection pour un robot — et sans contenu à indexer de toute
           // façon : un exercice est un formulaire, pas un texte.
-          "/exercices",
+          //
+          // /exercices N'EN FAIT PLUS PARTIE : le catalogue est public
+          // (voir proxy.ts) et c'est du vrai texte — huit modules décrits,
+          // leurs niveaux, les compétences de chacun. C'est aussi la page
+          // qui distribue les liens internes vers /cases, /alphabet et les
+          // leçons correspondantes.
           "/adjectives",
           "/aspect",
           "/motion",

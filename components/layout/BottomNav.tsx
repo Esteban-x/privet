@@ -45,11 +45,20 @@ const MEMBER_TABS = [
   { href: "/dashboard", label: "Progrès", Icon: ChartIcon },
 ] as const;
 
-/** Quatre onglets, tous ouverts sans compte. */
+/**
+ * Le même produit que pour un membre, et non « ce qui se trouve être
+ * public » — voir le long commentaire de PUBLIC_NAV dans NavBar.tsx, qui
+ * porte le raisonnement. Les deux listes doivent bouger ensemble : elles
+ * sont la même navigation à deux largeurs d'écran.
+ *
+ * /cours et /exercices s'ouvrent sans compte ; /vocabulary et /reading
+ * mènent à /login, qui dit alors ce qui attend derrière.
+ */
 const VISITOR_TABS = [
   { href: "/cours", label: "Cours", Icon: BookIcon },
-  { href: "/cases", label: "Les cas", Icon: TargetIcon },
-  { href: "/alphabet", label: "Alphabet", Icon: TextIcon },
+  { href: "/exercices", label: "Exercices", Icon: TargetIcon },
+  { href: "/vocabulary", label: "Vocabulaire", Icon: CardsIcon },
+  { href: "/reading", label: "Lecture", Icon: TextIcon },
   { href: "/premium", label: "Tarifs", Icon: ChartIcon },
 ] as const;
 

@@ -30,7 +30,15 @@ export function quotaMessage(verdict: {
 
   switch (verdict.reason) {
     case "not_included":
-      return "Cette fonctionnalité fait partie de l'abonnement.";
+      // À UN ABONNÉ, CETTE PHRASE EST UN MENSONGE. `not_included` ne peut
+      // lui arriver que si `plan_limits` n'a pas de ligne pour ce couple
+      // (plan, fonctionnalité) — c'est-à-dire une migration non appliquée,
+      // pas une limite commerciale. C'est arrivé en production : le compte
+      // premier de cordée lisait « fait partie de l'abonnement » alors
+      // qu'il payait, sur des exercices que rien n'a jamais restreints.
+      return verdict.plan === "premium"
+        ? "Cette fonctionnalité est momentanément indisponible."
+        : "Cette fonctionnalité fait partie de l'abonnement.";
     case "burst":
       return "Trop de demandes d'affilée. Réessaie dans une minute.";
     case "daily":

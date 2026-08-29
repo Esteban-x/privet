@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import NavBar from "@/components/layout/NavBar";
 import BottomNav from "@/components/layout/BottomNav";
+import NavProgress from "@/components/layout/NavProgress";
 import { THEME_SCRIPT } from "@/lib/theme";
 import { resolvePlan } from "@/lib/billing/plans";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -167,6 +168,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="antialiased">
+        {/* AVANT LA BARRE DE NAVIGATION, et posé en `fixed` : c'est le seul
+            élément qui doit pouvoir peindre par-dessus tout le reste, y
+            compris pendant qu'une page l'occupe entièrement. */}
+        <NavProgress />
         <NavBar initialUser={initialUser} initialPro={initialPro} />
         <main className="min-h-[calc(100vh-64px)]">{children}</main>
         {/* APRÈS <main>, pas avant : le bandeau pose dans le flux un jumeau

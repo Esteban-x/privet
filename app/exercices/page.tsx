@@ -3,10 +3,29 @@ import ExerciseExplorer, { type ModuleCard } from "@/components/exercises/Exerci
 import { EXERCISE_MODULES, FAMILY_ORDER, moduleLevels, TOTAL_SKILLS } from "@/lib/exercises/catalog";
 import { loadAllProgress } from "@/lib/exercises/progress";
 
+/**
+ * DEPUIS QUE LA PAGE EST PUBLIQUE (voir proxy.ts), elle est indexable — et
+ * une page indexable sans adresse canonique hérite de celle du layout, donc
+ * se déclare comme un double de l'accueil. `npm run check:seo` refuse ce
+ * cas, à raison.
+ *
+ * Le titre porte les chiffres parce que c'est ce que la page prouve : huit
+ * modules, du déchiffrage au participe. C'est aussi ce qu'un visiteur venu
+ * de la barre de navigation vient vérifier.
+ */
 export const metadata = {
-  title: "Exercices",
+  title: "Exercices de russe : 8 modules corrigés, de A0 à C1",
   description:
-    "Tous les modules d'entraînement : lecture, déclinaison, conjugaison, aspect, verbes de mouvement, participes, nombres et temps.",
+    "Tous les modules d'entraînement : lecture, déclinaison, conjugaison, aspect, verbes de mouvement, participes, nombres et temps. Corrigés par un moteur de règles.",
+  alternates: { canonical: "/exercices" },
+  openGraph: {
+    type: "website",
+    url: "/exercices",
+    title: "Exercices de russe : 8 modules corrigés, de A0 à C1",
+    description:
+      "Déclinaison, aspect, verbes de mouvement, participes, alphabet, nombres, conjugaison : " +
+      "chaque exercice corrige, explique l'erreur et renvoie à la leçon.",
+  },
 };
 
 /**

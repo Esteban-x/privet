@@ -459,7 +459,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                       <h3 className="font-display text-sm font-bold">Réviser cette liste</h3>
                       <span className="font-display text-xs text-muted">
                         {activeList.wordCount}
-                        {""}
+                        {" "}
                         {activeList.wordCount > 1 ? "mots" : "mot"} · quatre façons
                       </span>
                     </div>

@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Artefacts locaux de `supabase start` : du code minifié, non versionné
+    // (.gitignore), et qui produisait à lui seul 183 erreurs — assez pour
+    // rendre `npm run lint` inexploitable et faire ignorer les vraies.
+    "supabase/.temp/**",
   ]),
 ]);
 

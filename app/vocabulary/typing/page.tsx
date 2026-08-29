@@ -326,11 +326,11 @@ function EmptyState() {
     <div className="mx-auto max-w-md px-6 py-14 sm:py-24 text-center">
       <p className="font-display text-lg font-semibold">Aucun mot à réviser pour l&apos;instant</p>
       <p className="mt-2 font-display text-sm text-muted">
-        Choisis des thèmes dans ton{""}
+        Choisis des thèmes dans ton{" "}
         <Link href="/account" className="text-accent hover:underline">
           profil
         </Link>
-        {""}
+        {" "}
         pour obtenir des mots tout faits, ou crée ta propre liste.
       </p>
       <Link

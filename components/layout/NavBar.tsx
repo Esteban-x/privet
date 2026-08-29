@@ -77,21 +77,39 @@ const MAIN: NavItem[] = [
 /**
  * Ce qu'un visiteur voit à la place.
  *
- * LA LISTE CI-DESSUS NE LUI SERT À RIEN : trois de ses quatre entrées
- * renvoient à /login. Elle lui montrait donc trois portes fermées et une
- * ouverte, sans le dire — et un robot d'indexation, qui est toujours un
- * visiteur, y dépensait son budget d'exploration en redirections.
+ * PREMIÈRE VERSION : NE MONTRER QUE DU LISIBLE SANS COMPTE — le cours, les
+ * six cas, l'alphabet et les tarifs. La logique était défendable : la liste
+ * des membres renvoie trois fois sur quatre à /login, et montrer des portes
+ * fermées est désagréable.
  *
- * Celle-ci ne contient que du lisible sans compte : le cours, les six cas,
- * l'alphabet et les tarifs. C'est aussi, et ce n'est pas un hasard, la liste
- * des pages qui répondent à une recherche — les liens de la barre sont
- * présents sur chaque page du site, ce qui en fait le maillage interne le
- * plus solide dont on dispose.
+ * ELLE AVAIT UN DÉFAUT PLUS GRAVE QUE CELUI QU'ELLE CORRIGEAIT. Cette liste
+ * ne décrit pas le produit, elle décrit ce qui se trouve être public. Un
+ * visiteur y lisait « Cours, Les cas, Alphabet » et en concluait que l'app
+ * enseigne les déclinaisons — pas qu'elle a huit modules d'exercices, un
+ * vocabulaire avec quatre modes de révision et des textes de lecture
+ * générés à son niveau. On lui cachait les trois quarts du produit AU
+ * MOMENT PRÉCIS où il décide s'il vaut un compte.
+ *
+ * ELLE EST DONC L'IMAGE DE LA LISTE DES MEMBRES, et c'est voulu : la barre
+ * doit annoncer l'app, pas l'état de session. /cours et /exercices sont
+ * ouverts et se lisent en entier ; /vocabulary et /reading demandent un
+ * compte, et le disent — voir le message contextuel de app/login.
+ *
+ * LE COÛT SEO EST NUL, contrairement à ce que la première version
+ * supposait : /vocabulary et /reading sont en `Disallow` dans robots.ts, un
+ * robot ne les suit donc pas et n'y dépense aucun budget d'exploration.
+ * L'argument ne valait que pour les humains — et pour eux, sous-vendre
+ * l'app coûte plus cher qu'un détour par /login.
+ *
+ * CE QUE ÇA DÉPLACE. « Les cas » et « Alphabet » quittent la barre : ce sont
+ * deux pages parmi d'autres du catalogue, pas deux sections du produit, et
+ * /exercices les liste toutes les deux avec les six autres modules.
  */
 const PUBLIC_NAV: NavItem[] = [
   { href: "/cours", label: "Cours" },
-  { href: "/cases", label: "Les cas" },
-  { href: "/alphabet", label: "Alphabet" },
+  { href: "/exercices", label: "Exercices" },
+  { href: "/vocabulary", label: "Vocabulaire" },
+  { href: "/reading", label: "Lecture" },
   { href: "/premium", label: "Tarifs" },
 ];
 
