@@ -24,6 +24,18 @@ export default function Modal({
   description,
   /** Pictogramme du panneau : donne au dialogue un sujet avant sa première ligne. */
   icon,
+  /**
+   * « sheet » : plein écran sous 640 px, panneau centré au-delà.
+   *
+   * POUR LES DIALOGUES QUI CONTIENNENT UN FORMULAIRE, pas une question. Un
+   * panneau centré de 512 px marche pour « supprimer cette liste ? » ; pour
+   * le formulaire d'ajout de mot, qui a deux champs, un sélecteur de sens,
+   * une ligne de suggestion et un bouton, il laissait sur un téléphone une
+   * boîte étriquée flottant sur un fond noir, avec le clavier virtuel qui en
+   * mangeait la moitié. Plein écran, le formulaire a la place qu'il demande
+   * et le clavier pousse simplement le contenu.
+   */
+  variant = "dialog",
   children,
 }: {
   open: boolean;
@@ -31,6 +43,7 @@ export default function Modal({
   title: string;
   description?: string;
   icon?: React.ReactNode;
+  variant?: "dialog" | "sheet";
   children: React.ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -102,9 +115,13 @@ export default function Modal({
   // React signalerait la divergence d'hydratation.
   if (!open || typeof document === "undefined") return null;
 
+  const sheet = variant === "sheet";
+
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className={`fixed inset-0 z-50 flex justify-center ${
+        sheet ? "items-stretch sm:items-center sm:p-4" : "items-center p-4"
+      }`}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -122,7 +139,11 @@ export default function Modal({
       />
       <div
         ref={panelRef}
-        className="modal-panel animate-modal-in relative w-full max-w-lg overflow-hidden rounded-3xl"
+        className={`modal-panel animate-modal-in relative w-full overflow-hidden ${
+          sheet
+            ? "flex max-h-full flex-col rounded-none sm:max-h-[calc(100vh-2rem)] sm:max-w-lg sm:rounded-3xl"
+            : "max-w-lg rounded-3xl"
+        }`}
       >
         {/* Un liseré d'accent en haut du panneau, et une lueur diffuse
             derrière le pictogramme : de quoi donner un haut au dialogue sans
@@ -153,7 +174,7 @@ export default function Modal({
           </svg>
         </button>
 
-        <div className="relative px-7 pb-2 pt-7">
+        <div className={`relative shrink-0 pb-2 ${sheet ? "px-5 pt-6 sm:px-7 sm:pt-7" : "px-7 pt-7"}`}>
           {icon && <div className="mb-4">{icon}</div>}
           <h2 className="pr-10 font-display text-2xl font-extrabold tracking-tight">{title}</h2>
           {description && (
@@ -162,7 +183,13 @@ export default function Modal({
             </p>
           )}
         </div>
-        <div className="relative px-7 pb-7 pt-5">{children}</div>
+        <div
+          className={`relative pt-5 ${
+            sheet ? "flex-1 overflow-y-auto px-5 pb-8 sm:px-7 sm:pb-7" : "px-7 pb-7"
+          }`}
+        >
+          {children}
+        </div>
       </div>
     </div>,
     document.body

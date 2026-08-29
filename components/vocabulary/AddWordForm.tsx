@@ -42,12 +42,22 @@ const NOUN_COUNT = NOUNS.length;
 
 export default function AddWordForm({
   onAdd,
+  /**
+   * Retire la carte et l'en-tête du formulaire.
+   *
+   * QUAND IL EST DANS UN DIALOGUE, celui-ci porte déjà un fond, un
+   * rembourrage et un titre : les laisser ici donnait une carte dans une
+   * carte, deux rembourrages empilés et « Ajouter un mot » écrit deux fois
+   * à trois centimètres d'intervalle.
+   */
+  bare = false,
 }: {
   onAdd: (word: {
     ru: string;
     fr: string;
     transliteration?: string;
   }) => Promise<CustomVocabWord | null>;
+  bare?: boolean;
 }) {
   const [ru, setRu] = useState("");
   const [fr, setFr] = useState("");
@@ -436,23 +446,34 @@ export default function AddWordForm({
   );
 
   return (
-    <form onSubmit={submit} className="surface rounded-2xl p-6">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent-ink"
-          >
-            <PlusIcon className="h-[18px] w-[18px]" />
-          </span>
-          <h2 className="font-display text-base font-bold">Ajouter un mot</h2>
-        </div>
-        {justAdded && (
-          <p className="animate-fade-in font-display text-xs text-success">
+    <form onSubmit={submit} className={bare ? "" : "surface rounded-2xl p-6"}>
+      {bare ? (
+        // Le dialogue porte le titre ; il ne reste à annoncer que le
+        // résultat du dernier ajout, qui est ce qui dit qu'on peut
+        // enchaîner sans refermer.
+        justAdded && (
+          <p className="animate-fade-in mb-4 font-display text-sm text-success">
             ✓ « {justAdded} » ajouté
           </p>
-        )}
-      </div>
+        )
+      ) : (
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent-ink"
+            >
+              <PlusIcon className="h-[18px] w-[18px]" />
+            </span>
+            <h2 className="font-display text-base font-bold">Ajouter un mot</h2>
+          </div>
+          {justAdded && (
+            <p className="animate-fade-in font-display text-xs text-success">
+              ✓ « {justAdded} » ajouté
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Les deux champs à égalité : commencer par l'un ou par l'autre est
          le même geste, et le bouton central décide seulement lequel tombe

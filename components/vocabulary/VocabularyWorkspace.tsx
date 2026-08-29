@@ -593,23 +593,6 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
               )}
 
               <div className="space-y-2.5">
-                {/* AJOUTER UN MOT NE VIT PLUS DANS LE FLUX. La ligne
-                    pointillée permanente coûtait 48 px sur chaque écran pour
-                    un geste qu'on fait une fois par mot ; elle s'ouvre depuis
-                    le « ⋯ », et depuis l'écran vide, qui est le seul moment où
-                    elle est le sujet. */}
-                {showAdd && (
-                  <div className="animate-fade-in rounded-2xl surface p-4">
-                    <AddWordForm onAdd={handleAdd} />
-                    <button
-                      onClick={() => setShowAdd(false)}
-                      className="mt-2 font-display text-xs font-semibold text-muted hover:text-text"
-                    >
-                      Fermer
-                    </button>
-                  </div>
-                )}
-
                 {words === null ? (
                   <ListRowsSkeleton />
                 ) : words.length === 0 ? (
@@ -648,6 +631,25 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
           )}
         </section>
       </div>
+
+      {/* AJOUTER UN MOT PASSE PAR UN DIALOGUE, PLEIN ÉCRAN SUR TÉLÉPHONE.
+          Le formulaire s'ouvrait en ligne, en tête de liste : il repoussait
+          les mots vers le bas au moment précis où on venait en consulter un
+          pour savoir s'il y était déjà, et sur un téléphone le clavier
+          virtuel en cachait la moitié. En feuille, il a l'écran entier et
+          le clavier ne fait que pousser son contenu.
+
+          Il reste ouvert après chaque ajout — le formulaire annonce « ✓ mot
+          ajouté » et se vide — parce qu'on ajoute rarement un seul mot. */}
+      <Modal
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        variant="sheet"
+        title="Ajouter un mot"
+        description="Tape en russe ou en français — la traduction, l'accent tonique et la prononciation suivent."
+      >
+        <AddWordForm bare onAdd={handleAdd} />
+      </Modal>
 
       {/* LA SUPPRESSION D'UNE LISTE PASSE PAR UN DIALOGUE, depuis qu'elle est
           entrée dans un menu : une confirmation en ligne dans la barre
