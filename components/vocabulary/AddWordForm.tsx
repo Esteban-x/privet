@@ -176,8 +176,6 @@ export default function AddWordForm({
 
   const [submitting, setSubmitting] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
-  /** La langue reconnue au dernier basculement automatique, pour le dire. */
-  const [detected, setDetected] = useState<"ru" | "fr" | null>(null);
   /**
    * LA DÉTECTION S'ARRÊTE DÈS QUE L'APPRENANT A TRANCHÉ LUI-MÊME.
    *
@@ -218,7 +216,6 @@ export default function AddWordForm({
   function toggleFirstSide() {
     const next = !frFirst;
     autoDetect.current = false;
-    setDetected(null);
     setFrFirst(next);
     saveAddWordFirstSide(next ? "fr" : "ru");
     // LE FOCUS APRÈS LE RENDU, pas pendant. `firstInput` ne désignera le
@@ -335,7 +332,6 @@ export default function AddWordForm({
     frTouched.current = false;
     translitTouched.current = false;
     autoDetect.current = true;
-    setDetected(null);
     lastQuery.current = "";
     firstInput.current?.focus();
   }
@@ -367,13 +363,17 @@ export default function AddWordForm({
       // On NE MÉMORISE PAS ce sens comme préférence (`saveAddWordFirstSide`) :
       // c'est une correction sur ce mot-ci, pas un choix sur les suivants.
       setFrFirst(moved === "fr");
-      setDetected(moved);
       setFilled(null);
       setDriver(moved);
       setSuggestion(null);
       setPickedPair(null);
       setOpenList(moved);
       setActiveIndex(0);
+      // RIEN NE L'ANNONCE PAR ÉCRIT, ET C'EST SUFFISANT : les deux libellés
+      // de l'en-tête échangent leur place sous les yeux, au même instant que
+      // le texte, et le bouton d'inversion est à côté pour contredire. Une
+      // ligne « français reconnu » disait ce qui se voyait déjà.
+      //
       // Après le rendu, comme pour l'inversion manuelle : `firstInput` ne
       // désigne le nouveau premier champ qu'une fois React repassé.
       requestAnimationFrame(() => {
@@ -588,21 +588,6 @@ export default function AddWordForm({
         <div className="h-px bg-border" />
         {frFirst ? ruField : frField}
       </div>
-
-      {/* UN BASCULEMENT SILENCIEUX PASSE POUR UN BUG. Le texte change de
-          champ tout seul : sans cette ligne, on croit avoir cliqué à côté.
-          Elle dit ce qui a été reconnu et laisse le bouton d'inversion à
-          portée pour contredire — et le contredire coupe la détection pour
-          ce mot. */}
-      {detected && (
-        <p
-          role="status"
-          className="animate-fade-in mt-2 font-display text-xs text-muted"
-        >
-          {detected === "fr" ? "Français" : "Russe"} reconnu — les champs ont été
-          inversés.
-        </p>
-      )}
 
       {/* Une ligne, pas un bloc : c'est une information de contexte pendant
           la saisie, pas un mur. Le formulaire reste entièrement utilisable —
