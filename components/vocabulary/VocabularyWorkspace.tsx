@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   addWord,
   createList,
@@ -22,6 +22,7 @@ import { ModeIcon, REVIEW_MODES } from "@/components/vocabulary/ReviewModeGrid";
 import { PlusIcon, TrashIcon } from "@/components/ui/icons";
 import { ListRowsSkeleton } from "@/components/ui/Skeleton";
 import Modal from "@/components/ui/Modal";
+import Dropdown from "@/components/ui/Dropdown";
 
 /**
    * Le module vocabulaire, en deux panneaux.
@@ -41,14 +42,6 @@ type Filter = "all" | Focus;
 
 /** Amorces de nom : une liste vide devant soi ne donne pas d'idée. */
 const LIST_IDEAS = ["Voyage", "Nourriture", "Verbes courants", "Famille"];
-
-/** Le rangement affiché quand un filtre est actif — sinon rien ne le dit. */
-const FILTER_LABEL: Record<Filter, string> = {
-  all: "tous",
-  priority: FOCUS_META.priority.short,
-  normal: FOCUS_META.normal.short,
-  known: FOCUS_META.known.short,
-};
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "Tous" },
@@ -71,18 +64,6 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
   const [nameDraft, setNameDraft] = useState("");
 
   const [query, setQuery] = useState("");
-  /**
-   * LA RECHERCHE EST UN PICTOGRAMME TANT QU'ON NE CHERCHE PAS, et prend
-   * toute la barre quand on cherche.
-   *
-   * Un champ résident coûte sa largeur sur chaque écran, à longueur de
-   * session, pour un geste qu'on fait une fois de temps en temps — et sur
-   * un téléphone cette largeur se prend au nom de la liste, qui devient
-   * illisible. Ouverte, elle remplace le titre plutôt que de s'ajouter
-   * dessous : c'est ce qui garde la hauteur de l'en-tête constante, donc
-   * la liste immobile.
-   */
-  const [searching, setSearching] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -118,7 +99,6 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
     setSeenId(activeId);
     setWords(null);
     setQuery("");
-    setSearching(false);
     setFilter("all");
     setEditingName(false);
     setConfirmingDelete(false);
@@ -372,272 +352,238 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
             </div>
           ) : (
             <>
-              {/* ── L'EN-TÊTE, RÉDUIT À CE QU'ON REGARDE ────────────────────────
-                  Il portait un nom de liste, un compteur, un champ de recherche
-                  résident, une rangée de puces de filtre et une ligne d'ajout : cinq
-                  objets permanents devant une liste qu'on vient lire. Sur téléphone,
-                  où la colonne des listes s'empilait EN PLUS au-dessus, les mots
-                  commençaient hors écran.
+              {/* ── LA BARRE : CHERCHER, AJOUTER, LE RESTE DERRIÈRE ────────
+                  Le nom de la liste occupait le tiers gauche pour ne rien
+                  apprendre : sur grand écran la colonne de gauche le montre
+                  déjà en surbrillance, et sur téléphone il se tronquait en
+                  « Mots du … », ce qui est pire que de ne rien afficher. Il
+                  vit maintenant dans l'invite du champ de recherche, où il
+                  donne le contexte sans coûter une ligne, et dans le menu
+                  « ⋯ », qui sert aussi à changer de liste.
 
-                  Il ne reste que le titre, le compte, et deux pictogrammes. Le
-                  filtre, l'ajout, le renommage et la suppression sont derrière le
-                  « ⋯ » : ce sont des gestes qu'on fait une fois par session, pas une
-                  fois par mot. Seul « Réviser » reste à découvert — c'est ce pour
-                  quoi la liste existe. */}
-              {activeList && (
+                  DEUX COMMANDES SEULEMENT SONT À DÉCOUVERT, et ce sont les
+                  deux qu'on emploie à chaque session : chercher un mot, en
+                  ajouter un. Le reste — filtrer, renommer, supprimer,
+                  changer de liste — est derrière le « ⋯ » : ce sont des
+                  gestes qu'on fait une fois, pas une fois par mot.
+
+                  Sous 640 px, la recherche prend sa propre ligne : à trois
+                  boutons sur la même, il ne lui serait resté que la place
+                  d'une icône, c'est-à-dire pas celle d'un champ. */}
+              {editingName ? (
                 <div className="sticky top-[calc(var(--nav-h)+0.5rem)] z-30 mb-4 rounded-2xl surface px-3 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-bg2/85">
-                  {searching ? (
-                    <div className="flex items-center gap-2">
-                      <div className="relative min-w-0 flex-1">
-                        <SearchGlyph className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-                        <input
-                          value={query}
-                          onChange={(e) => setQuery(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") {
-                              setQuery("");
-                              setSearching(false);
-                            }
-                          }}
-                          autoFocus
-                          type="text"
-                          placeholder="Trouver dans la liste"
-                          aria-label="Chercher un mot"
-                          className="w-full rounded-xl border border-border bg-bg py-2.5 pl-10 pr-3 font-display text-sm text-text placeholder:text-muted/60 field-focus focus:outline-none"
-                        />
-                      </div>
+                  <form onSubmit={saveName}>
+                    <input
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      autoFocus
+                      maxLength={80}
+                      onBlur={saveName}
+                      aria-label="Nom de la liste"
+                      className="w-full rounded-xl border border-accent bg-bg px-3 py-2 font-display text-base font-bold text-text field-focus focus:outline-none"
+                    />
+                  </form>
+                </div>
+              ) : (
+                <div className="sticky top-[calc(var(--nav-h)+0.5rem)] z-30 mb-4 flex flex-col gap-2 rounded-2xl surface px-3 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-bg2/85 sm:flex-row sm:items-center">
+                  <div className="relative min-w-0 flex-1">
+                    <SearchGlyph className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === "Escape" && setQuery("")}
+                      type="text"
+                      // L'INVITE PORTE LE NOM DE LA LISTE. C'est le seul
+                      // endroit où il ne coûte rien : il disparaît dès qu'on
+                      // tape, c'est-à-dire au moment exact où il cesse d'être
+                      // utile.
+                      placeholder={`Chercher dans « ${activeList.name} »`}
+                      aria-label={`Chercher un mot dans ${activeList.name}`}
+                      className="w-full rounded-xl border border-border bg-bg py-2.5 pl-10 pr-9 font-display text-sm text-text placeholder:text-muted/60 field-focus focus:outline-none"
+                    />
+                    {query && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setQuery("");
-                          setSearching(false);
-                        }}
-                        aria-label="Fermer la recherche"
-                        className="hover-surface flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted"
+                        onClick={() => setQuery("")}
+                        aria-label="Effacer la recherche"
+                        className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition-colors hover:text-text"
                       >
                         <CloseGlyph />
                       </button>
-                    </div>
-                  ) : editingName ? (
-                    <form onSubmit={saveName} className="flex min-w-0 items-center gap-2.5">
-                      <input
-                        value={nameDraft}
-                        onChange={(e) => setNameDraft(e.target.value)}
-                        autoFocus
-                        maxLength={80}
-                        onBlur={saveName}
-                        aria-label="Nom de la liste"
-                        className="min-w-0 flex-1 rounded-lg border border-accent bg-bg px-2.5 py-1.5 font-display text-lg font-extrabold text-text field-focus focus:outline-none"
-                      />
-                    </form>
-                  ) : (
-                    <div className="flex items-center gap-2">
+                    )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    {/* AJOUTER EST LE BOUTON PLEIN. C'est par lui que la
+                        liste existe : sans mot ajouté, ni la révision ni la
+                        recherche n'ont de matière. « Réviser » garde son
+                        contour et son compteur — il est la destination, pas
+                        le point de départ. */}
+                    <button
+                      type="button"
+                      onClick={() => setShowAdd(true)}
+                      className="btn btn-primary btn-sheen flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 font-display text-sm font-bold"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      Ajouter
+                    </button>
+
+                    {activeList.wordCount > 0 && (
                       <Dropdown
-                        align="left"
                         button={
                           <>
-                            <span className="min-w-0 text-left">
-                              <span className="block truncate font-display text-lg font-extrabold leading-tight">
-                                {activeList.name}
+                            <PlayGlyph />
+                            <span className="hidden lg:inline">Réviser</span>
+                            {dueCount > 0 && (
+                              <span className="rounded-full bg-accent/15 px-1.5 font-display text-[11px] font-bold text-accent-ink">
+                                {dueCount}
                               </span>
-                              <span className="block font-display text-[11px] leading-tight text-muted">
-                                {activeList.wordCount} mot{activeList.wordCount === 1 ? "" : "s"}
-                                {dueCount > 0 && ` · ${dueCount} à réviser`}
-                                {filter !== "all" && ` · ${FILTER_LABEL[filter]}`}
-                              </span>
-                            </span>
-                            <Chevron />
+                            )}
                           </>
                         }
-                        className="flex-1"
-                        buttonClassName="hover-surface flex w-full min-w-0 items-center gap-1.5 rounded-xl px-2 py-1"
-                        label="Changer de liste"
-                        width="w-[260px]"
+                        buttonClassName="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 font-display text-sm font-bold text-accent-ink transition-colors hover:border-accent/60 hover:bg-accent/15"
+                        label="Choisir un mode de révision"
+                        width="w-[290px]"
                       >
                         {(close) => (
                           <>
-                            {(lists ?? []).map((l) => (
-                              <button
-                                key={l.id}
-                                onClick={() => {
-                                  setActiveId(l.id);
-                                  close();
-                                }}
-                                className={`menu-item flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-display text-sm ${
-                                  l.id === activeId ? "font-bold text-accent-ink" : "text-text"
-                                }`}
+                            {REVIEW_MODES.map((m) => (
+                              <Link
+                                key={m.mode}
+                                href={`/vocabulary/${m.mode}?list=${activeList.id}`}
+                                onClick={close}
+                                className="menu-item flex items-start gap-3 rounded-[10px] p-2.5"
                               >
-                                <ListTile name={l.name} className="h-7 w-7 shrink-0 text-[11px]" />
-                                <span className="min-w-0 flex-1 truncate">{l.name}</span>
-                                <span className="shrink-0 font-display text-xs text-muted">
-                                  {l.wordCount}
+                                <span
+                                  aria-hidden
+                                  className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bg3 text-muted"
+                                >
+                                  <ModeIcon name={m.icon} />
                                 </span>
-                              </button>
+                                <span className="min-w-0">
+                                  <span className="block font-display text-sm font-bold text-text">
+                                    {m.label}
+                                  </span>
+                                  <span className="block font-display text-[12px] leading-snug text-muted">
+                                    {m.desc}
+                                  </span>
+                                </span>
+                              </Link>
                             ))}
-                            <div className="my-1 h-px bg-border" />
-                            <button
-                              onClick={() => {
-                                setShowCreate(true);
-                                close();
-                              }}
-                              className="menu-item flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-display text-sm font-semibold text-text"
-                            >
-                              <PlusIcon className="h-4 w-4 shrink-0" />
-                              Nouvelle liste
-                            </button>
+
+                            {totals && totals.due > 0 && (
+                              <>
+                                <div className="my-1 h-px bg-border" />
+                                <Link
+                                  href="/vocabulary/review"
+                                  onClick={close}
+                                  className="menu-item flex items-center gap-2 rounded-[10px] px-2.5 py-2 font-display text-sm font-semibold text-text"
+                                >
+                                  <span className="flex-1">Réviser toutes les listes</span>
+                                  <span className="font-display text-xs text-muted">
+                                    {totals.due}
+                                  </span>
+                                </Link>
+                              </>
+                            )}
                           </>
                         )}
                       </Dropdown>
+                    )}
 
-                      <div className="flex shrink-0 items-center gap-1 pl-2">
-                        <button
-                          type="button"
-                          onClick={() => setSearching(true)}
-                          aria-label="Chercher un mot"
-                          title="Chercher un mot"
-                          className="hover-surface flex h-9 w-9 items-center justify-center rounded-xl text-muted"
-                        >
-                          <SearchGlyph className="h-4 w-4" />
-                        </button>
-
-                        {activeList.wordCount > 0 && (
-                          <Dropdown
-                            button={
-                              <>
-                                <PlayGlyph />
-                                {/* Le libellé disparaît sous 640 px : sur un
-                                    téléphone, il prenait la place du nom de la
-                                    liste, que le pictogramme ne remplace pas. */}
-                                <span className="hidden sm:inline">Réviser</span>
-                                {dueCount > 0 && (
-                                  <span className="rounded-full bg-on-tint/20 px-1.5 font-display text-[11px] font-bold">
-                                    {dueCount}
-                                  </span>
-                                )}
-                              </>
-                            }
-                            buttonClassName="btn btn-primary btn-sheen flex h-9 items-center gap-1.5 rounded-xl px-3 font-display text-sm font-bold"
-                            label="Choisir un mode de révision"
-                            width="w-[290px]"
+                    <Dropdown
+                      button={<MoreDots />}
+                      buttonClassName="hover-surface flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted"
+                      label="Listes et réglages"
+                      width="w-[250px]"
+                    >
+                      {(close) => (
+                        <>
+                          <p className="px-3 pb-1 pt-1.5 font-display text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
+                            Listes
+                          </p>
+                          {(lists ?? []).map((l) => (
+                            <button
+                              key={l.id}
+                              onClick={() => {
+                                setActiveId(l.id);
+                                close();
+                              }}
+                              className={`menu-item flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-display text-sm ${
+                                l.id === activeId ? "font-bold text-accent-ink" : "text-text"
+                              }`}
+                            >
+                              <ListTile name={l.name} className="h-7 w-7 shrink-0 text-[11px]" />
+                              <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                              <span className="shrink-0 font-display text-xs text-muted">
+                                {l.wordCount}
+                              </span>
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => {
+                              setShowCreate(true);
+                              close();
+                            }}
+                            className="menu-item flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-display text-sm font-semibold text-text"
                           >
-                            {(close) => (
-                              <>
-                                {REVIEW_MODES.map((m) => (
-                                  <Link
-                                    key={m.mode}
-                                    href={`/vocabulary/${m.mode}?list=${activeList.id}`}
-                                    onClick={close}
-                                    className="menu-item flex items-start gap-3 rounded-[10px] p-2.5"
-                                  >
-                                    <span
-                                      aria-hidden
-                                      className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bg3 text-muted"
-                                    >
-                                      <ModeIcon name={m.icon} />
-                                    </span>
-                                    <span className="min-w-0">
-                                      <span className="block font-display text-sm font-bold text-text">
-                                        {m.label}
-                                      </span>
-                                      <span className="block font-display text-[12px] leading-snug text-muted">
-                                        {m.desc}
-                                      </span>
-                                    </span>
-                                  </Link>
-                                ))}
+                            <PlusIcon className="h-4 w-4 shrink-0" />
+                            Nouvelle liste
+                          </button>
 
-                                {totals && totals.due > 0 && (
-                                  <>
-                                    <div className="my-1 h-px bg-border" />
-                                    <Link
-                                      href="/vocabulary/review"
-                                      onClick={close}
-                                      className="menu-item flex items-center gap-2 rounded-[10px] px-2.5 py-2 font-display text-sm font-semibold text-text"
-                                    >
-                                      <span className="flex-1">Réviser toutes les listes</span>
-                                      <span className="font-display text-xs text-muted">{totals.due}</span>
-                                    </Link>
-                                  </>
-                                )}
-                              </>
-                            )}
-                          </Dropdown>
-                        )}
-
-                        <Dropdown
-                          button={<MoreDots />}
-                          buttonClassName="hover-surface flex h-9 w-9 items-center justify-center rounded-xl text-muted"
-                          label="Autres actions"
-                          width="w-[230px]"
-                        >
-                          {(close) => (
+                          {stats && stats.total > 0 && (
                             <>
-                              <button
-                                onClick={() => {
-                                  setShowAdd(true);
-                                  close();
-                                }}
-                                className="menu-item flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left font-display text-sm font-semibold text-text"
-                              >
-                                <PlusIcon className="h-4 w-4 shrink-0" />
-                                Ajouter un mot
-                              </button>
-
-                              {stats && stats.total > 0 && (
-                                <>
-                                  <div className="my-1 h-px bg-border" />
-                                  <p className="px-3 pb-1 pt-1.5 font-display text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
-                                    Afficher
-                                  </p>
-                                  {FILTERS.map((f) => {
-                                    const n = f.id === "all" ? stats.total : stats[f.id];
-                                    const on = filter === f.id;
-                                    return (
-                                      <button
-                                        key={f.id}
-                                        onClick={() => {
-                                          setFilter(f.id);
-                                          close();
-                                        }}
-                                        className={`menu-item flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left font-display text-sm ${
-                                          on ? "font-bold text-accent-ink" : "text-text"
-                                        }`}
-                                      >
-                                        <span className="flex-1">{f.label}</span>
-                                        <span className="font-display text-xs text-muted">{n}</span>
-                                      </button>
-                                    );
-                                  })}
-                                </>
-                              )}
-
                               <div className="my-1 h-px bg-border" />
-                              <button
-                                onClick={() => {
-                                  setNameDraft(activeList.name);
-                                  setEditingName(true);
-                                  close();
-                                }}
-                                className="menu-item block w-full rounded-[10px] px-3 py-2 text-left font-display text-sm text-text"
-                              >
-                                Renommer la liste
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setConfirmingDelete(true);
-                                  close();
-                                }}
-                                className="menu-item flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left font-display text-sm text-danger"
-                              >
-                                <TrashIcon className="h-4 w-4 shrink-0" />
-                                Supprimer la liste
-                              </button>
+                              <p className="px-3 pb-1 pt-1.5 font-display text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
+                                Afficher
+                              </p>
+                              {FILTERS.map((f) => {
+                                const n = f.id === "all" ? stats.total : stats[f.id];
+                                const on = filter === f.id;
+                                return (
+                                  <button
+                                    key={f.id}
+                                    onClick={() => {
+                                      setFilter(f.id);
+                                      close();
+                                    }}
+                                    className={`menu-item flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left font-display text-sm ${
+                                      on ? "font-bold text-accent-ink" : "text-text"
+                                    }`}
+                                  >
+                                    <span className="flex-1">{f.label}</span>
+                                    <span className="font-display text-xs text-muted">{n}</span>
+                                  </button>
+                                );
+                              })}
                             </>
                           )}
-                        </Dropdown>
-                      </div>
-                    </div>
-                  )}
+
+                          <div className="my-1 h-px bg-border" />
+                          <button
+                            onClick={() => {
+                              setNameDraft(activeList.name);
+                              setEditingName(true);
+                              close();
+                            }}
+                            className="menu-item block w-full rounded-[10px] px-3 py-2 text-left font-display text-sm text-text"
+                          >
+                            Renommer la liste
+                          </button>
+                          <button
+                            onClick={() => {
+                              setConfirmingDelete(true);
+                              close();
+                            }}
+                            className="menu-item flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left font-display text-sm text-danger"
+                          >
+                            <TrashIcon className="h-4 w-4 shrink-0" />
+                            Supprimer la liste
+                          </button>
+                        </>
+                      )}
+                    </Dropdown>
+                  </div>
                 </div>
               )}
 
@@ -810,92 +756,6 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
   );
 }
 
-/**
- * Un menu déroulant, pour la barre d'outils.
- *
- * POURQUOI UN COMPOSANT LOCAL. `components/ui/Select.tsx` choisit UNE valeur
- * dans une liste ; ici les trois menus font autre chose — naviguer vers un
- * mode de révision, renommer, supprimer. Un sélecteur détourné en menu
- * d'actions ment sur son rôle, et il faudrait lui apprendre les liens.
- *
- * Il ferme au clic ailleurs et à Échap : sans ça il reste ouvert par-dessus
- * la page, et au clavier on s'y trouve enfermé. `children` reçoit la
- * fonction de fermeture, pour que chaque entrée referme après avoir agi.
- */
-function Dropdown({
-  button,
-  buttonClassName,
-  /**
-   * Habillage de l'ENVELOPPE, distinct de celui du bouton.
-   *
-   * C'est la seule façon pour le menu de prendre la largeur disponible :
-   * l'enveloppe est l'enfant direct de la barre d'outils, donc c'est ELLE
-   * que le `flex-1` doit porter. Posé sur le bouton, il n'agissait sur
-   * rien — l'enveloppe se dimensionnait sur son contenu, et le titre, la
-   * loupe et « Réviser » se retrouvaient tassés à gauche d'une barre à
-   * moitié vide. Sur téléphone, c'était pire : faute de place à prendre,
-   * le nom de la liste ne se tronquait jamais et passait sous la loupe.
-   */
-  className = "",
-  label,
-  children,
-  align = "right",
-  width = "w-[240px]",
-}: {
-  button: React.ReactNode;
-  buttonClassName: string;
-  className?: string;
-  label: string;
-  children: (close: () => void) => React.ReactNode;
-  align?: "left" | "right";
-  width?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: MouseEvent) {
-      if (root.current && !root.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  return (
-    <div ref={root} className={`relative min-w-0 ${className}`}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label={label}
-        title={label}
-        className={buttonClassName}
-      >
-        {button}
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className={`modal-panel animate-pop-in absolute top-full z-50 mt-2 ${width} max-w-[calc(100vw-3rem)] overflow-hidden rounded-[14px] p-1.5 ${
-            align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right"
-          }`}
-        >
-          {children(() => setOpen(false))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** La loupe de la barre d'outils, fermée comme ouverte. */
 function SearchGlyph({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -936,25 +796,6 @@ function PlayGlyph() {
   return (
     <svg aria-hidden viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 shrink-0">
       <path d="M8 5.5v13l11-6.5z" />
-    </svg>
-  );
-}
-
-/** Le chevron des boutons à menu. Tourné vers le bas, sans animation : il
- *  indique qu'il y a un menu, il ne raconte pas son état. */
-function Chevron() {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3.5 w-3.5 shrink-0 opacity-60"
-    >
-      <path d="m6 9 6 6 6-6" />
     </svg>
   );
 }
