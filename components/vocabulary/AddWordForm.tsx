@@ -176,6 +176,19 @@ export default function AddWordForm({
 
   const [submitting, setSubmitting] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
+  /** La langue reconnue au dernier basculement automatique, pour le dire. */
+  const [detected, setDetected] = useState<"ru" | "fr" | null>(null);
+  /**
+   * LA DÉTECTION S'ARRÊTE DÈS QUE L'APPRENANT A TRANCHÉ LUI-MÊME.
+   *
+   * S'il actionne le bouton d'inversion, c'est qu'il veut ce sens-là —
+   * y compris pour écrire du latin dans le champ russe, ce qui est le cas de
+   * quelqu'un qui note une translittération à la main. Reculer aussitôt
+   * derrière lui donnerait un formulaire qui se bat contre son utilisateur,
+   * et c'est le seul défaut qu'une détection automatique ne se fait jamais
+   * pardonner. Le verrou saute au mot suivant (voir `reset`).
+   */
+  const autoDetect = useRef(true);
   const firstInput = useRef<HTMLTextAreaElement>(null);
   // « L'apprenant a-t-il écrit dans ce champ ? » est une information de
   // saisie : en refs, elles sont lues à jour dans le callback de la requête
@@ -204,6 +217,8 @@ export default function AddWordForm({
 
   function toggleFirstSide() {
     const next = !frFirst;
+    autoDetect.current = false;
+    setDetected(null);
     setFrFirst(next);
     saveAddWordFirstSide(next ? "fr" : "ru");
     // LE FOCUS APRÈS LE RENDU, pas pendant. `firstInput` ne désignera le
@@ -319,11 +334,57 @@ export default function AddWordForm({
     ruTouched.current = false;
     frTouched.current = false;
     translitTouched.current = false;
+    autoDetect.current = true;
+    setDetected(null);
     lastQuery.current = "";
     firstInput.current?.focus();
   }
 
   function edit(side: "ru" | "fr", value: string) {
+    // ── Reconnaissance de l'écriture ────────────────────────────────
+    // Le texte passe de l'autre côté, et l'ordre des champs suit pour que
+    // le curseur reste là où l'apprenant regarde. Trois garde-fous : le
+    // verrou ci-dessus, l'autre champ doit être VIDE — on ne détruit pas ce
+    // qui est déjà écrit — et il faut deux caractères, sinon la première
+    // lettre ferait sauter la mise en page à chaque frappe.
+    const other = side === "ru" ? fr : ru;
+    if (
+      autoDetect.current &&
+      other.trim() === "" &&
+      value.trim().length >= 2 &&
+      wrongScript(side, value)
+    ) {
+      const moved = side === "ru" ? "fr" : "ru";
+      if (moved === "fr") {
+        setFr(value);
+        setRu("");
+      } else {
+        setRu(value);
+        setFr("");
+      }
+      ruTouched.current = moved === "ru";
+      frTouched.current = moved === "fr";
+      // On NE MÉMORISE PAS ce sens comme préférence (`saveAddWordFirstSide`) :
+      // c'est une correction sur ce mot-ci, pas un choix sur les suivants.
+      setFrFirst(moved === "fr");
+      setDetected(moved);
+      setFilled(null);
+      setDriver(moved);
+      setSuggestion(null);
+      setPickedPair(null);
+      setOpenList(moved);
+      setActiveIndex(0);
+      // Après le rendu, comme pour l'inversion manuelle : `firstInput` ne
+      // désigne le nouveau premier champ qu'une fois React repassé.
+      requestAnimationFrame(() => {
+        const el = firstInput.current;
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      });
+      return;
+    }
+
     const touched = side === "ru" ? ruTouched : frTouched;
     touched.current = value.length > 0;
     if (side === "ru") setRu(value);
@@ -528,6 +589,21 @@ export default function AddWordForm({
         {frFirst ? ruField : frField}
       </div>
 
+      {/* UN BASCULEMENT SILENCIEUX PASSE POUR UN BUG. Le texte change de
+          champ tout seul : sans cette ligne, on croit avoir cliqué à côté.
+          Elle dit ce qui a été reconnu et laisse le bouton d'inversion à
+          portée pour contredire — et le contredire coupe la détection pour
+          ce mot. */}
+      {detected && (
+        <p
+          role="status"
+          className="animate-fade-in mt-2 font-display text-xs text-muted"
+        >
+          {detected === "fr" ? "Français" : "Russe"} reconnu — les champs ont été
+          inversés.
+        </p>
+      )}
+
       {/* Une ligne, pas un bloc : c'est une information de contexte pendant
           la saisie, pas un mur. Le formulaire reste entièrement utilisable —
           on écrit simplement les deux côtés soi-même. */}
@@ -617,6 +693,33 @@ export default function AddWordForm({
       </button>
     </form>
   );
+}
+
+/**
+ * Reconnaître la langue tapée, ici, tient à l'ALPHABET.
+ *
+ * Pas de modèle, pas d'appel réseau, pas de liste de mots : le russe s'écrit
+ * en cyrillique et le français en latin, et c'est vrai de la première lettre.
+ * Un détecteur statistique serait plus lent, faillible sur deux caractères,
+ * et n'apporterait rien sur cette paire de langues précise.
+ *
+ * `à-ö` et `ø-ÿ` plutôt que `à-ÿ` : la plage complète contient × (U+00D7) et
+ * ÷ (U+00F7), qui ne sont pas des lettres.
+ */
+const CYRILLIC = /[\u0400-\u04FF]/;
+const LATIN = /[a-zà-öø-ÿ]/i;
+
+/**
+ * Le texte est-il dans la MAUVAISE écriture pour ce champ ?
+ *
+ * Il faut les deux moitiés : du latin ET pas de cyrillique. Sans la seconde,
+ * « спасибо (spassiba) » — du russe avec sa translittération entre
+ * parenthèses — serait déclaré français.
+ */
+function wrongScript(side: "ru" | "fr", value: string): boolean {
+  return side === "ru"
+    ? LATIN.test(value) && !CYRILLIC.test(value)
+    : CYRILLIC.test(value) && !LATIN.test(value);
 }
 
 /**
