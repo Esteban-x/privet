@@ -494,25 +494,37 @@ export default function AddWordForm({
         </div>
       )}
 
-      {/* Les deux champs à égalité : commencer par l'un ou par l'autre est
-         le même geste, et le bouton central décide seulement lequel tombe
-         sous le curseur en premier. La flèche passive qui occupait cette
-         place disait dans quel sens la proposition circulait — le liseré
-         et le badge portés par le champ rempli le disent déjà, et mieux. */}
-      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
+      {/* UN SEUL CADRE, DEUX CHAMPS EMPILÉS, LES LANGUES EN EN-TÊTE.
+          C'est la disposition d'un traducteur, et elle règle d'un coup les
+          trois défauts de la précédente : deux colonnes de 230 px qui
+          n'utilisaient pas la largeur disponible, deux libellés à des
+          hauteurs différentes dès que l'un des champs grandissait, et un
+          bouton d'inversion coincé entre les deux, aligné sur rien.
+
+          Ici les deux langues sont sur la même ligne, à égale distance du
+          bouton qui les échange, et chaque champ prend toute la largeur. */}
+      <div className="field-focus-within overflow-hidden rounded-2xl border border-border bg-bg transition-shadow duration-200">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+          <span className="flex-1 font-display text-xs font-semibold uppercase tracking-wide text-muted">
+            {frFirst ? "Français" : "Russe"}
+          </span>
+          <button
+            type="button"
+            onClick={toggleFirstSide}
+            aria-label={frFirst ? "Commencer par le russe" : "Commencer par le français"}
+            title={frFirst ? "Commencer par le russe" : "Commencer par le français"}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full surface-interactive text-muted duration-200 hover:scale-110 hover:text-accent-ink active:scale-95"
+            style={{ transitionTimingFunction: "var(--ease)" }}
+          >
+            <SwapIcon className="h-4 w-4" />
+          </button>
+          <span className="flex-1 text-right font-display text-xs font-semibold uppercase tracking-wide text-muted">
+            {frFirst ? "Russe" : "Français"}
+          </span>
+        </div>
+
         {frFirst ? frField : ruField}
-
-        <button
-          type="button"
-          onClick={toggleFirstSide}
-          aria-label={frFirst ? "Commencer par le russe" : "Commencer par le français"}
-          title={frFirst ? "Commencer par le russe" : "Commencer par le français"}
-          className="mx-auto mb-1 flex h-9 w-9 items-center justify-center rounded-full surface-interactive text-muted duration-200 hover:scale-110 hover:text-accent-ink active:scale-95 sm:mb-2.5 sm:self-center"
-          style={{ transitionTimingFunction: "var(--ease)" }}
-        >
-          <SwapIcon className="h-4 w-4" />
-        </button>
-
+        <div className="h-px bg-border" />
         {frFirst ? ruField : frField}
       </div>
 
@@ -586,7 +598,7 @@ export default function AddWordForm({
         }`}
       >
         <span
-          className={`col-start-1 row-start-1 transition-[opacity,transform] duration-200 ${
+          className={`col-start-1 row-start-1 w-full text-center transition-[opacity,transform] duration-200 ${
             submitting ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100"
           }`}
         >
@@ -628,9 +640,9 @@ const FIELD_MAX = 400;
  * chaque frappe.
  */
 function sizeFor(value: string): string {
-  if (value.length > 120) return "text-[13px]";
-  if (value.length > 60) return "text-sm";
-  return "text-base";
+  if (value.length > 160) return "text-sm";
+  if (value.length > 80) return "text-base";
+  return "text-lg";
 }
 
 /**
@@ -713,20 +725,16 @@ function Field({
   const box = useAutoSize(value);
 
   return (
-    // `relative` : c'est ce bloc qui ancre le menu de complétion, pas la
-    // grille — sinon le menu se placerait par rapport aux deux colonnes et
-    // déborderait sur le champ voisin.
+    // `relative` : c'est ce bloc qui ancre le menu de complétion.
+    //
+    // NI BORDURE NI LIBELLÉ ICI. Les deux champs vivent maintenant dans un
+    // cadre commun, avec les deux langues et le bouton d'inversion dans une
+    // barre au-dessus — la disposition de Yandex Traducteur. Chaque champ
+    // portait avant son propre libellé et sa propre bordure : à deux, ça
+    // faisait quatre traits et deux titres pour une seule paire, et rien
+    // n'alignait le bouton d'inversion, coincé entre deux boîtes de hauteurs
+    // différentes.
     <label className="relative block">
-      <span className="mb-1.5 flex items-center justify-between gap-2 font-display text-xs font-semibold uppercase tracking-wide text-muted">
-        {label}
-        {loading ? (
-          <span className="normal-case">
-            <LoadingDots label="" />
-          </span>
-        ) : (
-          badge
-        )}
-      </span>
       <textarea
         ref={mergeRefs(inputRef, box)}
         rows={1}
@@ -755,11 +763,26 @@ function Field({
            `resize-none` et `overflow-hidden` : la hauteur est pilotée par
            le contenu (voir `useAutoSize`), pas par la poignée du navigateur
            ni par une barre de défilement interne. */
-        className={`block max-h-64 min-h-12 w-full resize-none overflow-hidden rounded-xl border bg-bg px-4 py-3 font-display leading-snug text-text transition-shadow duration-200 placeholder:text-muted/50 field-focus focus:outline-none ${sizeFor(value)} ${
-          suggested ? "border-accent2/60" : "border-border"
+        aria-label={label}
+        /* `resize-none` et `overflow-hidden` : la hauteur est pilotée par le
+           contenu (voir `useAutoSize`), pas par la poignée du navigateur ni
+           par une barre de défilement interne.
+
+           `min-h-[112px]` : la taille d'un champ dit ce qu'on attend dedans.
+           À 48 px il annonçait un mot ; les gens y collent des expressions
+           entières, et c'est très bien. */
+        className={`block max-h-64 min-h-[112px] w-full resize-none overflow-hidden px-4 py-3.5 font-display leading-snug text-text placeholder:text-muted/50 focus:bg-accent/[0.045] focus:outline-none ${sizeFor(value)} ${
+          suggested ? "bg-accent2/[0.06]" : "bg-transparent"
         }`}
-        style={{ transitionTimingFunction: "var(--ease)" }}
       />
+      {/* Le badge — « proposé », ou les points d'attente — flotte en haut à
+          droite du champ. Dans le flux, il aurait poussé le texte ou réservé
+          une ligne vide en permanence. */}
+      {(loading || badge) && (
+        <span className="pointer-events-none absolute right-3 top-3 font-display text-[11px]">
+          {loading ? <LoadingDots label="" /> : badge}
+        </span>
+      )}
       {menu}
     </label>
   );

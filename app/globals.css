@@ -1544,6 +1544,18 @@ button:disabled,
    Le focus d'un <input> passe par `:focus` et non `:focus-visible` (on veut
    la marque même au clic, pas seulement au clavier). Cette classe porte la
    même signature que la règle globale, pour que rien ne diverge. */
+/* MÊME ANNEAU, DÉCLENCHÉ PAR UN ENFANT.
+   Le formulaire d'ajout de mot met deux champs SANS BORDURE dans un cadre
+   commun (components/vocabulary/AddWordForm.tsx) : l'anneau n'a plus de
+   contour où s'accrocher sur le champ lui-même, il se pose donc sur le
+   cadre. Le champ actif, lui, se distingue par son fond. */
+.field-focus-within:focus-within {
+  border-color: color-mix(in oklab, var(--flag-blue) 28%, var(--color-border));
+  box-shadow:
+    -1px -1px 0 1.5px color-mix(in oklab, var(--flag-blue) 55%, transparent),
+    1px 1px 0 1.5px color-mix(in oklab, var(--flag-red) 45%, transparent);
+}
+
 .field-focus:focus,
 .field-focus:focus-visible {
   outline: 2px solid transparent;
