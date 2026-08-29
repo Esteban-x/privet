@@ -413,7 +413,12 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                     )}
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  {/* `justify-end` : sous 640 px cette rangée occupe toute
+                      la largeur sous le champ de recherche, et les trois
+                      boutons s'entassaient à gauche avec un vide à droite.
+                      Calés à droite, ils se retrouvent sous le pouce et le
+                      vide passe du côté où il ne gêne pas. */}
+                  <div className="flex shrink-0 items-center justify-end gap-2">
                     {/* AJOUTER EST LE BOUTON PLEIN. C'est par lui que la
                         liste existe : sans mot ajouté, ni la révision ni la
                         recherche n'ont de matière. « Réviser » garde son

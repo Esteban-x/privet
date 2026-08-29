@@ -90,7 +90,14 @@ export default function WordCard({
             C'est ce qui fait que la colonne de droite s'aligne d'une carte à
             l'autre — l'irrégularité entre les lignes est ce qui se voyait le
             plus. */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        {/* LES COMMANDES SONT DANS LA MÊME RANGÉE QUE LES MOTS, y compris
+            sous 640 px où elles passaient en dessous. Cette ligne
+            supplémentaire coûtait environ 40 px par carte — sur une liste de
+            cinquante mots, deux écrans entiers de vide, alors que toute la
+            refonte visait à en gagner. Calées en haut (`items-start`), elles
+            se logent dans la hauteur du bloc de texte : la carte retombe de
+            ~128 à ~88 px sur téléphone. */}
+        <div className="flex items-start gap-3 sm:items-center sm:gap-4">
           {/* Les deux langues à égalité, comme dans un dictionnaire ouvert.
               La translittération passe SOUS le mot russe : à côté, elle se
               collait à l'accent tonique de la dernière voyelle. */}
