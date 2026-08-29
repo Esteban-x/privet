@@ -105,7 +105,7 @@ export default async function AlphabetHub() {
         Savoir lire les lettres ne suffit pas encore à prononcer les mots :{" "}
         <Link
           href="/guides/prononciation-du-russe"
-          className="font-semibold text-accent hover:underline"
+          className="font-semibold text-accent-ink hover:underline"
         >
           les cinq règles de la prononciation russe
         </Link>{" "}

@@ -166,7 +166,7 @@ function VoiceInner() {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <Link
           href={backHref}
-          className="font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+          className="font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent-ink"
         >
           {backLabel}
         </Link>
@@ -216,7 +216,7 @@ function VoiceInner() {
             <button
               onClick={() => void speakRu(current.ru)}
               aria-busy={loadingAudio}
-              className="mx-auto mt-4 inline-flex items-center gap-1.5 font-display text-xs font-semibold text-accent underline-offset-4 hover:underline"
+              className="mx-auto mt-4 inline-flex items-center gap-1.5 font-display text-xs font-semibold text-accent-ink underline-offset-4 hover:underline"
             >
               <SpeakerIcon className="h-3.5 w-3.5 shrink-0" />
               {loadingAudio ? "Préparation…" : "Entendre la prononciation"}
@@ -267,7 +267,7 @@ function VoiceInner() {
           </button>
         ) : (
           <div className="mt-6 rounded-xl border border-accent/40 bg-accent/10 p-4 text-left">
-            <p className="font-display text-2xl font-bold text-accent">{current.ru}</p>
+            <p className="font-display text-2xl font-bold text-accent-ink">{current.ru}</p>
             <p className="font-display text-sm text-muted">{current.transliteration}</p>
             <p className="mt-2 font-display text-base">{current.fr}</p>
             {current.example && (
@@ -283,7 +283,7 @@ function VoiceInner() {
         <div className="mt-6 grid grid-cols-4 gap-1.5 sm:gap-2.5">
           <QualityButton label="À revoir" color="var(--color-accent2-deep)" onClick={() => handleReview(1)} />
           <QualityButton label="Difficile" color="var(--color-accent2)" onClick={() => handleReview(3)} />
-          <QualityButton label="Bien" color="var(--color-accent)" onClick={() => handleReview(4)} />
+          <QualityButton label="Bien" color="var(--color-accent-ink)" onClick={() => handleReview(4)} />
           <QualityButton label="Facile" color="var(--color-success)" onClick={() => handleReview(5)} />
         </div>
       )}
@@ -297,7 +297,7 @@ function EmptyState() {
       <p className="font-display text-lg font-semibold">Aucun mot à réviser pour l&apos;instant</p>
       <p className="mt-2 font-display text-sm text-muted">
         Choisis des thèmes dans ton{" "}
-        <Link href="/account" className="text-accent hover:underline">
+        <Link href="/account" className="text-accent-ink hover:underline">
           profil
         </Link>{" "}
         pour obtenir des mots tout faits, ou crée ta propre liste.
@@ -324,7 +324,7 @@ function QualityButton({
   return (
     <button
       onClick={onClick}
-      className="rounded-[10px] px-1 py-3 font-display text-[11px] font-semibold whitespace-nowrap text-white transition-opacity hover:opacity-90 sm:text-xs"
+      className="rounded-[10px] px-1 py-3 font-display text-[11px] font-semibold whitespace-nowrap text-on-tint transition-opacity hover:opacity-90 sm:text-xs"
       style={{ background: color }}
     >
       {label}

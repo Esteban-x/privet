@@ -48,14 +48,14 @@ export default async function ParticipleSkillPage({
     <div className="mx-auto max-w-4xl px-6 py-8 sm:py-16">
       <Link
         href="/participles"
-        className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+        className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent-ink"
       >
         ← Participes et gérondifs
       </Link>
 
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="font-display text-3xl font-extrabold sm:text-4xl tracking-tight">{info.title}</h1>
-        <span className="font-display text-sm font-bold text-accent">{info.level}</span>
+        <span className="font-display text-sm font-bold text-accent-ink">{info.level}</span>
       </div>
       <p className="mb-7 sm:mb-10 max-w-2xl font-display leading-relaxed text-muted">{info.summary}</p>
 

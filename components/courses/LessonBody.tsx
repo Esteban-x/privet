@@ -120,7 +120,7 @@ export function SectionBlock({ section, id }: { section: Section; id: string }) 
       return (
         <section id={id} className="mt-8 scroll-mt-24 first:mt-0">
           <div className="rounded-2xl border border-accent/40 bg-accent/10 px-5 py-4">
-            <p className="mb-2.5 font-display text-[11px] font-bold uppercase tracking-[0.08em] text-accent">
+            <p className="mb-2.5 font-display text-[11px] font-bold uppercase tracking-[0.08em] text-accent-ink">
               {section.title ?? "À retenir"}
             </p>
             <ul className="space-y-2">

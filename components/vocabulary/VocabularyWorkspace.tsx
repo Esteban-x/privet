@@ -311,7 +311,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
               label={focusCountLabel("known", totals.known)}
               tone="text-success"
             />
-            <Stat value={totals.due} label="à revoir" tone="text-accent" />
+            <Stat value={totals.due} label="à revoir" tone="text-accent-ink" />
             <div className="min-w-[180px] flex-1">
               <FocusBar
                 compact
@@ -473,7 +473,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                         >
                           <span
                             aria-hidden
-                            className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-bg3 text-muted transition-colors duration-200 group-hover:bg-accent/15 group-hover:text-accent"
+                            className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-bg3 text-muted transition-colors duration-200 group-hover:bg-accent/15 group-hover:text-accent-ink"
                             style={{ transitionTimingFunction: "var(--ease)" }}
                           >
                             <ModeIcon name={m.icon} />
@@ -633,7 +633,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                 key={idea}
                 type="button"
                 onClick={() => setNewName(idea)}
-                className="rounded-full border border-border px-2.5 py-1 font-display text-xs text-muted transition-colors hover:bg-accent/10 hover:border-accent/35 hover:text-accent"
+                className="rounded-full border border-border px-2.5 py-1 font-display text-xs text-muted transition-colors hover:bg-accent/10 hover:border-accent/35 hover:text-accent-ink"
               >
                 {idea}
               </button>

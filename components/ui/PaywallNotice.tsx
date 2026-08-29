@@ -48,7 +48,7 @@ export default function PaywallNotice({
 
       <div className="relative">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent-ink">
             <svg
               viewBox="0 0 24 24"
               fill="none"

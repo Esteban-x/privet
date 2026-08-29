@@ -73,19 +73,19 @@ export default function GuidesIndex() {
             <span className="mt-1.5 font-display text-sm leading-relaxed text-muted">
               {guide.lede}
             </span>
-            <ArrowRightIcon className="mt-3 h-4 w-4 text-accent" />
+            <ArrowRightIcon className="mt-3 h-4 w-4 text-accent-ink" />
           </Link>
         ))}
       </div>
 
       <div className="mt-12 border-t border-border pt-8">
         <p className="font-display leading-relaxed text-muted">
-          Quand vous serez prêt à commencer :{" "}
-          <Link href="/cours" className="font-semibold text-accent hover:underline">
+          Quand tu seras prêt à commencer :{" "}
+          <Link href="/cours" className="font-semibold text-accent-ink hover:underline">
             le cours complet
           </Link>{" "}
           ou{" "}
-          <Link href="/alphabet" className="font-semibold text-accent hover:underline">
+          <Link href="/alphabet" className="font-semibold text-accent-ink hover:underline">
             l&apos;alphabet
           </Link>
           .

@@ -24,8 +24,8 @@ function badgeFor(introducedAt: CefrLevel, level: CefrLevel | undefined, mastery
   const gap = CEFR_LEVELS.indexOf(introducedAt) - CEFR_LEVELS.indexOf(level);
   if (gap <= 0) {
     return mastery && mastery.attempts > 0
-      ? { label: "en cours", className: "border-accent/50 bg-accent/10 text-accent" }
-      : { label: "à commencer", className: "border-accent/50 bg-accent/10 text-accent" };
+      ? { label: "en cours", className: "border-accent/50 bg-accent/10 text-accent-ink" }
+      : { label: "à commencer", className: "border-accent/50 bg-accent/10 text-accent-ink" };
   }
   if (gap === 1) {
     return { label: "prochaine étape", className: "border-border bg-bg3 text-muted" };

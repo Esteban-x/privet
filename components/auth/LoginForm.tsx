@@ -196,7 +196,7 @@ function LoginCard() {
             </label>
             <Link
               href="/forgot-password"
-              className="font-display text-xs font-semibold text-muted transition-colors hover:text-accent"
+              className="font-display text-xs font-semibold text-muted transition-colors hover:text-accent-ink"
             >
               Oublié ?
             </Link>
@@ -256,7 +256,7 @@ function LoginCard() {
 
         <p className="mt-6 text-center font-display text-sm text-muted">
           Pas encore de compte ?{" "}
-          <Link href="/signup" className="font-semibold text-text hover:text-accent">
+          <Link href="/signup" className="font-semibold text-text hover:text-accent-ink">
             Créer un compte
           </Link>
         </p>

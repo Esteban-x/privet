@@ -41,7 +41,7 @@ const EXITS = [
   {
     href: "/exercices",
     label: "Les exercices",
-    detail: "Huit modules, corrigés par un moteur de règles",
+    detail: "Huit modules, corrigés à la règle",
     Icon: TargetIcon,
   },
 ];
@@ -96,7 +96,7 @@ export default function NotFound() {
           </p>
           <Link
             href="/cases/genitive"
-            className="mt-4 inline-flex items-center gap-1.5 font-display text-sm font-semibold text-accent hover:underline"
+            className="mt-4 inline-flex items-center gap-1.5 font-display text-sm font-semibold text-accent-ink hover:underline"
           >
             Travailler le génitif
             <ArrowRightIcon className="h-4 w-4 shrink-0" />
@@ -113,7 +113,7 @@ export default function NotFound() {
               href={href}
               className="surface-interactive group flex items-start gap-3.5 rounded-[16px] p-5 transition-transform hover:-translate-y-0.5"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/12 text-accent">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/12 text-accent-ink">
                 <Icon className="h-5 w-5" />
               </span>
               <span className="min-w-0">
@@ -128,7 +128,7 @@ export default function NotFound() {
 
         <Link
           href="/"
-          className="mt-6 inline-block font-display text-sm font-semibold text-muted transition-colors hover:text-accent"
+          className="mt-6 inline-block font-display text-sm font-semibold text-muted transition-colors hover:text-accent-ink"
         >
           ← Revenir à l&apos;accueil
         </Link>

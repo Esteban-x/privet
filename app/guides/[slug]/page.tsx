@@ -105,7 +105,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
       <article className="mx-auto max-w-3xl px-6 py-10 sm:py-16">
         <Link
           href="/guides"
-          className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+          className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent-ink"
         >
           ← Guides
         </Link>
@@ -118,7 +118,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
 
         {/* La réponse courte, avant tout le reste. */}
         <div className="surface mt-8 rounded-[20px] border-l-[3px] border-l-accent p-6">
-          <p className="font-display text-xs font-bold uppercase tracking-[0.08em] text-accent">
+          <p className="font-display text-xs font-bold uppercase tracking-[0.08em] text-accent-ink">
             En bref
           </p>
           <p className="mt-2.5 font-display text-[17px] leading-relaxed">{guide.answer}</p>
@@ -166,7 +166,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
                 <span className="mt-1 font-display text-sm leading-snug text-muted">
                   {item.detail}
                 </span>
-                <ArrowRightIcon className="mt-3 h-4 w-4 text-accent" />
+                <ArrowRightIcon className="mt-3 h-4 w-4 text-accent-ink" />
               </Link>
             ))}
           </div>
@@ -182,7 +182,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
                 <li key={g.slug}>
                   <Link
                     href={`/guides/${g.slug}`}
-                    className="font-display font-semibold text-accent hover:underline"
+                    className="font-display font-semibold text-accent-ink hover:underline"
                   >
                     {g.h1}
                   </Link>

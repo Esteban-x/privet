@@ -29,14 +29,14 @@ export default function SkillPageShell({
     <div className="mx-auto max-w-4xl px-6 py-8 sm:py-16">
       <Link
         href={basePath}
-        className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted transition-colors hover:text-accent"
+        className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted transition-colors hover:text-accent-ink"
       >
         ← {backLabel}
       </Link>
 
       <div className="mb-3 flex flex-wrap items-baseline gap-3">
         <h1 className="font-display text-3xl font-extrabold sm:text-4xl tracking-tight">{skill.title}</h1>
-        <span className="font-display text-sm font-bold text-accent">{skill.level}</span>
+        <span className="font-display text-sm font-bold text-accent-ink">{skill.level}</span>
       </div>
       <p className="mb-6 max-w-2xl font-display leading-relaxed text-muted">{skill.summary}</p>
 

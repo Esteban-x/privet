@@ -83,7 +83,7 @@ export default async function AdjectivesHub() {
                 {row.forms.map((f, i) => (
                   <td
                     key={`${row.gender}-${SHOWCASE_CASES[i]}`}
-                    className={`whitespace-nowrap px-4 py-3 ${i === 0 ? "text-accent" : "text-muted"}`}
+                    className={`whitespace-nowrap px-4 py-3 ${i === 0 ? "text-accent-ink" : "text-muted"}`}
                   >
                     {f}
                   </td>

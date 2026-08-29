@@ -137,7 +137,7 @@ export default function BottomNav({ signedIn }: { signedIn: boolean }) {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={`flex h-full flex-col items-center justify-center gap-1 px-1 transition-colors ${
-                    active ? "text-accent" : "text-muted"
+                    active ? "text-accent-ink" : "text-muted"
                   }`}
                 >
                   <Icon className="h-[22px] w-[22px] shrink-0" strokeWidth={active ? 2.2 : 1.8} />

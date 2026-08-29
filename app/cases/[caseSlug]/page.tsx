@@ -98,7 +98,7 @@ export default async function CasePracticePage({
       />
       <Link
         href="/cases"
-        className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+        className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent-ink"
       >
         ← Tous les cas
       </Link>

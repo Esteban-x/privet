@@ -61,7 +61,7 @@ export default async function LevelTestPage() {
                 <span className="text-muted">
                   {t.score}/{t.total}
                 </span>
-                <span className={`font-bold ${i === 0 ? "text-accent" : "text-text"}`}>
+                <span className={`font-bold ${i === 0 ? "text-accent-ink" : "text-text"}`}>
                   {t.level}
                 </span>
               </span>
@@ -86,7 +86,7 @@ export default async function LevelTestPage() {
           finishLabel="Retour au tableau de bord"
           intro={
             <>
-              <p className="font-display text-xs font-semibold uppercase tracking-wide text-accent">
+              <p className="font-display text-xs font-semibold uppercase tracking-wide text-accent-ink">
                 Nouvelle passation
               </p>
               <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight">
@@ -132,7 +132,7 @@ export default async function LevelTestPage() {
             </Link>
             <Link
               href="/motion"
-              className="rounded-[10px] border border-border px-5 py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:bg-accent/10 hover:border-accent/35 hover:text-accent"
+              className="rounded-[10px] border border-border px-5 py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:bg-accent/10 hover:border-accent/35 hover:text-accent-ink"
             >
               Verbes de mouvement
             </Link>

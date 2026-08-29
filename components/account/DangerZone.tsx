@@ -44,7 +44,7 @@ export default function DangerZone() {
         <button
           type="submit"
           disabled={!canDelete || pending}
-          className="mt-4 block rounded-[10px] bg-danger px-5 py-2.5 font-display text-sm font-semibold text-white transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-4 block rounded-[10px] bg-danger px-5 py-2.5 font-display text-sm font-semibold text-on-tint transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {pending ? "Suppression…" : "Supprimer définitivement mon compte"}
         </button>

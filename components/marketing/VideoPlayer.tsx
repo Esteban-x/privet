@@ -96,7 +96,7 @@ export default function VideoPlayer({
                 />
                 <span
                   aria-hidden
-                  className="animate-float absolute left-[12%] top-[18%] select-none font-display text-[110px] font-extrabold leading-none text-accent opacity-[0.08]"
+                  className="animate-float absolute left-[12%] top-[18%] select-none font-display text-[110px] font-extrabold leading-none text-accent-ink opacity-[0.08]"
                 >
                   Ж
                 </span>

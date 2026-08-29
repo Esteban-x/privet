@@ -199,7 +199,7 @@ function QcmInner() {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <Link
           href={backHref}
-          className="font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+          className="font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent-ink"
         >
           {backLabel}
         </Link>
@@ -274,7 +274,7 @@ function EmptyState() {
       <p className="font-display text-lg font-semibold">Aucun mot à réviser pour l&apos;instant</p>
       <p className="mt-2 font-display text-sm text-muted">
         Choisis des thèmes dans ton{" "}
-        <Link href="/account" className="text-accent hover:underline">
+        <Link href="/account" className="text-accent-ink hover:underline">
           profil
         </Link>{" "}
         pour obtenir des mots tout faits, ou crée ta propre liste.

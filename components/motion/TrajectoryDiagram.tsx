@@ -108,7 +108,7 @@ export default function TrajectoryDiagram({
   className?: string;
 }) {
   const head = `arrow-${schema}`;
-  const path = "text-accent";
+  const path = "text-accent-ink";
   const arrowProps = {
     fill: "none",
     stroke: "currentColor",

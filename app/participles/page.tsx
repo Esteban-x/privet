@@ -72,7 +72,7 @@ export default async function ParticiplesHub() {
         {SHOWCASE.map((s) => (
           <div key={s.label} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-display text-lg text-muted">{s.expanded}</span>
-            <span className="font-display text-lg text-accent">→</span>
+            <span className="font-display text-lg text-accent-ink">→</span>
             <span className="font-display text-lg font-bold">{s.compressed}</span>
             <span className="rounded-full border border-border px-2 py-0.5 font-display text-[11px] font-semibold uppercase tracking-wide text-muted">
               {s.label}
@@ -152,7 +152,7 @@ export default async function ParticiplesHub() {
                     <span className="font-bold">{v.imperfective}</span>
                     <span className="ml-2 text-xs text-muted">{v.translation}</span>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-accent">{v.activePresent}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-accent-ink">{v.activePresent}</td>
                   <td className="whitespace-nowrap px-4 py-3">{v.activePastImp}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-muted">{v.passivePast ?? "—"}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-muted">{v.gerundImp ?? "—"}</td>

@@ -65,7 +65,7 @@ export default function ListRail({
           <FlameIcon className="h-3.5 w-3.5" />
         </span>
         <span className="min-w-0">
-          <span className="block font-display text-sm font-bold text-accent">Réviser</span>
+          <span className="block font-display text-sm font-bold text-accent-ink">Réviser</span>
           <span className="block font-display text-xs text-muted">
             {dueTotal > 0 ? `${dueTotal} mot${dueTotal > 1 ? "s" : ""} en attente` : "rien d'urgent"}
           </span>
@@ -78,7 +78,7 @@ export default function ListRail({
       >
         <span
           aria-hidden
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted transition-all duration-300 group-hover:rotate-90 group-hover:border-accent/40 group-hover:text-accent"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted transition-all duration-300 group-hover:rotate-90 group-hover:border-accent/40 group-hover:text-accent-ink"
           style={{ transitionTimingFunction: "var(--ease)" }}
         >
           <PlusIcon className="h-[18px] w-[18px]" />

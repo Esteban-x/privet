@@ -149,7 +149,7 @@ export default function SignupForm() {
 
         <p className="mt-5 text-center font-display text-sm text-muted">
           Déjà inscrit ?{" "}
-          <Link href="/login" className="font-semibold ml-2 text-text hover:text-accent">
+          <Link href="/login" className="font-semibold ml-2 text-text hover:text-accent-ink">
             Se connecter
           </Link>
         </p>
@@ -181,7 +181,7 @@ function ConfirmationSent({ email }: { email: string }) {
       </div>
 
       <p className="mt-6 font-display text-sm text-muted">
-        <Link href="/login" className="font-semibold text-text hover:text-accent">
+        <Link href="/login" className="font-semibold text-text hover:text-accent-ink">
           Retour à la connexion
         </Link>
       </p>

@@ -54,7 +54,7 @@ export default function ReviewHubPage() {
     <div className="mx-auto max-w-3xl px-6 py-8 sm:py-16">
       <Link
         href="/vocabulary"
-        className="mb-8 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+        className="mb-8 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent-ink"
       >
         ← Mes listes
       </Link>
@@ -124,7 +124,7 @@ export default function ReviewHubPage() {
           <p className="font-display text-base font-semibold">Aucun mot à réviser</p>
           <p className="mt-2 font-display text-sm text-muted">
             Choisis des thèmes dans ton{" "}
-            <Link href="/account" className="text-accent hover:underline">
+            <Link href="/account" className="text-accent-ink hover:underline">
               profil
             </Link>{" "}
             pour recevoir des mots tout faits, ou crée ta propre liste.

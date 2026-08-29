@@ -99,7 +99,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       <div className="mx-auto max-w-6xl px-6 py-10">
         <Link
           href="/cours"
-          className="mb-8 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted transition-colors hover:text-accent"
+          className="mb-8 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted transition-colors hover:text-accent-ink"
         >
           ← Tous les cours
         </Link>
@@ -159,7 +159,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="inline-flex items-center gap-2 rounded-xl surface-interactive px-4 py-2.5 font-display text-sm font-semibold hover:text-accent"
+                      className="inline-flex items-center gap-2 rounded-xl surface-interactive px-4 py-2.5 font-display text-sm font-semibold hover:text-accent-ink"
                     >
                       {link.label}
                       <span aria-hidden>→</span>
@@ -179,7 +179,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                   <span className="block font-display text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                     ← Précédent
                   </span>
-                  <span className="mt-1 block font-display text-sm font-bold transition-colors group-hover:text-accent">
+                  <span className="mt-1 block font-display text-sm font-bold transition-colors group-hover:text-accent-ink">
                     {previous.lesson.title}
                   </span>
                 </Link>
@@ -194,7 +194,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                   <span className="block font-display text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                     Suivant →
                   </span>
-                  <span className="mt-1 block font-display text-sm font-bold transition-colors group-hover:text-accent">
+                  <span className="mt-1 block font-display text-sm font-bold transition-colors group-hover:text-accent-ink">
                     {next.lesson.title}
                   </span>
                 </Link>
@@ -214,7 +214,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                     <li key={entry.anchor}>
                       <a
                         href={`#${entry.anchor}`}
-                        className="block font-display text-xs leading-snug text-muted transition-colors hover:text-accent"
+                        className="block font-display text-xs leading-snug text-muted transition-colors hover:text-accent-ink"
                       >
                         {entry.label}
                       </a>

@@ -150,7 +150,7 @@ export default async function MotionHub() {
             <tbody className="bg-bg2">
               {MOTION_PAIRS.map((pair) => (
                 <tr key={pair.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-bold text-accent">{pair.uni}</td>
+                  <td className="px-4 py-3 font-bold text-accent-ink">{pair.uni}</td>
                   <td className="px-4 py-3 font-bold">{pair.multi}</td>
                   <td className="px-4 py-3 text-muted">{pair.translation}</td>
                   <td className="px-4 py-3 text-muted">
@@ -174,7 +174,7 @@ export default async function MotionHub() {
           {MOTION_PREFIXES.map((p) => (
             <div key={p.id} className="rounded-2xl surface p-5">
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-lg font-bold text-accent">{p.perfective}</span>
+                <span className="font-display text-lg font-bold text-accent-ink">{p.perfective}</span>
                 <span className="font-display text-sm text-muted">/ {p.imperfective}</span>
               </div>
               <p className="mt-0.5 font-display text-sm">{p.translation}</p>

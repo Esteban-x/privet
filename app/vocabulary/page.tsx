@@ -6,8 +6,8 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 export const metadata = {
   title: "Vocabulaire russe : listes et répétition espacée",
   description:
-    "Tes propres listes de mots russes, quatre modes de révision et un calendrier qui décide " +
-    "quand te remontrer chaque mot. Carte de démonstration à essayer sans compte.",
+    "Tes listes de mots russes, quatre modes de révision et une répétition espacée qui décide " +
+    "quand te remontrer chaque mot. À essayer sans compte.",
   // Voir la note équivalente dans app/reading/page.tsx : page publique,
   // donc adresse canonique obligatoire (`npm run check:seo`).
   alternates: { canonical: "/vocabulary" },

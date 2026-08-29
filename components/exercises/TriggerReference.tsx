@@ -89,7 +89,7 @@ function TriggerGroup({ kind, items, color }: { kind: TriggerKind; items: CaseTr
       {canToggle && (
         <button
           onClick={() => setExpanded((e) => !e)}
-          className="mt-4 font-display text-xs font-semibold text-accent hover:underline"
+          className="mt-4 font-display text-xs font-semibold text-accent-ink hover:underline"
         >
           {expanded ? "Voir moins" : `Voir plus (+${hiddenCount})`}
         </button>

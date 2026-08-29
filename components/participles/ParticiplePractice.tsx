@@ -130,7 +130,7 @@ export default function ParticiplePractice({
                   Proposition dépliée
                 </p>
                 <p className="mt-1 font-display text-lg text-muted">{exercise.expanded}</p>
-                <p className="mt-2 text-center font-display text-xl text-accent">↓</p>
+                <p className="mt-2 text-center font-display text-xl text-accent-ink">↓</p>
               </div>
             )}
 

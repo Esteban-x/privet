@@ -45,14 +45,28 @@ export function subscribeTheme(onChange: () => void): () => void {
   };
 }
 
-/** Le serveur ne peut rien savoir : il rend le thème par défaut. */
+/**
+ * Le thème rendu côté serveur, faute de pouvoir lire ni localStorage ni la
+ * préférence système.
+ *
+ * CLAIR, ET C'EST UN PARI CALCULÉ. `prefers-color-scheme: light` est vrai
+ * pour qui préfère le clair ET pour qui n'a jamais rien réglé — la valeur
+ * `no-preference` a disparu de la spécification. La majorité des visiteurs
+ * voit donc le thème clair, et parier « sombre » ici faisait afficher la
+ * mauvaise icône au ThemeToggle jusqu'à l'hydratation, avec la bascule
+ * visible qui va avec.
+ *
+ * Ce choix ne concerne QUE cet instantané serveur : la page elle-même est
+ * peinte par les règles `prefers-color-scheme` de globals.css, évaluées
+ * avant le premier rendu. Rien ne clignote de ce côté-là.
+ */
 export function serverTheme(): Theme {
-  return "dark";
+  return "light";
 }
 
 /** Le thème effectivement appliqué, préférence système comprise. */
 export function readTheme(): Theme {
-  if (typeof document === "undefined") return "dark";
+  if (typeof document === "undefined") return "light";
   const explicit = document.documentElement.getAttribute("data-theme");
   if (explicit === "light" || explicit === "dark") return explicit;
   return window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";

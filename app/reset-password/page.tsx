@@ -54,7 +54,7 @@ export default async function ResetPasswordPage() {
 
         <p className="mt-6 text-center font-display text-xs text-muted">
           Ce n&apos;est pas toi qui as fait cette demande ?{" "}
-          <Link href="/account" className="font-semibold text-accent hover:underline">
+          <Link href="/account" className="font-semibold text-accent-ink hover:underline">
             Vérifie ton compte
           </Link>
           .

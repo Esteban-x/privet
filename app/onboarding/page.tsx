@@ -29,7 +29,7 @@ export default async function OnboardingPage() {
         markOnboarded
         intro={
           <>
-            <p className="font-display text-xs font-semibold uppercase tracking-wide text-accent">
+            <p className="font-display text-xs font-semibold uppercase tracking-wide text-accent-ink">
               Avant de commencer
             </p>
             <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight">
@@ -42,16 +42,16 @@ export default async function OnboardingPage() {
             </p>
             <ul className="mt-4 space-y-2 font-display text-sm text-muted">
               <li className="flex gap-2">
-                <span className="text-accent">·</span>
+                <span className="text-accent-ink">·</span>
                 Les questions suivent le référentiel ТРКИ, le standard du russe langue étrangère.
               </li>
               <li className="flex gap-2">
-                <span className="text-accent">·</span>
+                <span className="text-accent-ink">·</span>
                 Réponds sans chercher : un niveau surestimé ne t&apos;avantage pas, il rend les
                 exercices inutilisables.
               </li>
               <li className="flex gap-2">
-                <span className="text-accent">·</span>
+                <span className="text-accent-ink">·</span>
                 Tu pourras le repasser plus tard, et ton niveau s&apos;ajuste de toute façon avec ta
                 progression réelle.
               </li>

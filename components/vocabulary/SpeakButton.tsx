@@ -59,8 +59,8 @@ export default function SpeakButton({
       aria-label={label}
       title={title}
       aria-busy={pending}
-      className={`shrink-0 self-center rounded-lg p-1 text-muted/60 transition-colors hover:bg-bg hover:text-accent ${
-        pending ? "text-accent" : ""
+      className={`shrink-0 self-center rounded-lg p-1 text-muted/60 transition-colors hover:bg-bg hover:text-accent-ink ${
+        pending ? "text-accent-ink" : ""
       } ${className}`}
     >
       <svg

@@ -54,7 +54,7 @@ export default function ReferenceTable({ targetCase }: { targetCase: CaseId }) {
                 <tr key={m.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 text-muted">{m.label}</td>
                   <td className="px-4 py-3 font-bold">{noun.forms.singular[0]}</td>
-                  <td className="px-4 py-3 font-bold text-accent">{result.accented}</td>
+                  <td className="px-4 py-3 font-bold text-accent-ink">{result.accented}</td>
                 </tr>
               );
             })}

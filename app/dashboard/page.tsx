@@ -190,8 +190,8 @@ export default async function DashboardPage() {
                     m.state === "solid"
                       ? "border-success/50 bg-success/10 text-success"
                       : m.state === "started"
-                        ? "border-accent/50 bg-accent/10 text-accent"
-                        : "border-border bg-bg3 text-muted hover:bg-accent/10 hover:border-accent/35 hover:text-accent"
+                        ? "border-accent/50 bg-accent/10 text-accent-ink"
+                        : "border-border bg-bg3 text-muted hover:bg-accent/10 hover:border-accent/35 hover:text-accent-ink"
                   }`}
                 >
                   {m.label} · {m.solidSkills}/{m.totalSkills}
@@ -205,7 +205,7 @@ export default async function DashboardPage() {
               Ta maîtrise des cas justifierait{" "}
               <span className="font-semibold text-text">{estimate.depthLevel}</span>, mais
               l&apos;estimation reste à {estimate.level} : les cas ne sont pas toute la grammaire, et{" "}
-              <Link href={estimate.blockedBy.href} className="font-semibold text-accent hover:underline">
+              <Link href={estimate.blockedBy.href} className="font-semibold text-accent-ink hover:underline">
                 {estimate.blockedBy.label.toLowerCase()}
               </Link>{" "}
               n&apos;a pas encore été {estimate.blockedBy.state === "untouched" ? "abordé" : "consolidé"}.
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
           {practiceAhead && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-accent/40 bg-accent/10 px-4 py-3">
               <p className="font-display text-sm text-text">
-                Ta pratique te situe en <span className="font-semibold text-accent">{estimate.level}</span>,
+                Ta pratique te situe en <span className="font-semibold text-accent-ink">{estimate.level}</span>,
                 au-dessus de ton niveau testé ({testedLevel}).
               </p>
               <Link
@@ -241,7 +241,7 @@ export default async function DashboardPage() {
       <div className="mt-6 rounded-[20px] surface p-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="font-display text-sm font-semibold text-muted">Maîtrise des cas</p>
-          <Link href="/cases" className="font-display text-xs font-semibold text-accent hover:underline">
+          <Link href="/cases" className="font-display text-xs font-semibold text-accent-ink hover:underline">
             S&apos;entraîner →
           </Link>
         </div>
@@ -269,14 +269,14 @@ export default async function DashboardPage() {
       <div className="mt-6 rounded-[20px] surface p-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="font-display text-sm font-semibold text-muted">Progression du vocabulaire</p>
-          <Link href="/vocabulary/review" className="font-display text-xs font-semibold text-accent hover:underline">
+          <Link href="/vocabulary/review" className="font-display text-xs font-semibold text-accent-ink hover:underline">
             Réviser →
           </Link>
         </div>
         {vocabTotal === 0 ? (
           <p className="font-display text-sm text-muted">
             Pas encore de mots — crée une liste dans{" "}
-            <Link href="/vocabulary" className="text-accent hover:underline">
+            <Link href="/vocabulary" className="text-accent-ink hover:underline">
               Vocabulaire
             </Link>
             .
@@ -319,7 +319,7 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
         {label}
       </p>
       <p
-        className={`mt-1 font-display text-3xl font-extrabold ${accent ? "text-accent" : "text-text"}`}
+        className={`mt-1 font-display text-3xl font-extrabold ${accent ? "text-accent-ink" : "text-text"}`}
       >
         {value}
       </p>

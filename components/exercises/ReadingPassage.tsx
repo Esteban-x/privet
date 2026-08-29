@@ -136,7 +136,14 @@ export default function ReadingPassage({
                     onClick={() => setActiveKey(active ? null : key)}
                     className={`border-b-2 pb-0.5 transition-colors ${
                       caseInfo
-                        ? `${unverified ? "border-dashed" : ""} ${active ? "bg-white/10" : "hover:bg-white/5"}`
+                        // DU BLANC TRANSLUCIDE NE SE VOIT PAS SUR DU BLANC.
+                        // C'était `bg-white/10` : lisible en sombre, et
+                        // strictement invisible en thème clair — le seul
+                        // retour visuel du clic disparaissait, sur le geste
+                        // qui EST la fonctionnalité. `surface-hover` et
+                        // `surface-active` sont les jetons prévus pour ça,
+                        // et ils s'inversent avec le thème.
+                        ? `${unverified ? "border-dashed" : ""} ${active ? "bg-[var(--surface-active)]" : "hover:bg-[var(--surface-hover)]"}`
                         : `border-dotted border-accent2 ${active ? "bg-accent2/15" : "hover:bg-accent2/10"}`
                     }`}
                     style={caseInfo ? { borderColor: caseInfo.color } : undefined}
@@ -172,7 +179,7 @@ export default function ReadingPassage({
       {!readOnly && (
       <div className="mt-6 flex justify-end border-t border-border pt-5">
         {completion === "done" ? (
-          <span className="font-display text-sm font-semibold text-accent">✓ Texte terminé</span>
+          <span className="font-display text-sm font-semibold text-accent-ink">✓ Texte terminé</span>
         ) : (
           <button
             onClick={markDone}

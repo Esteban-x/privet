@@ -150,7 +150,7 @@ export default function ExerciseExplorer({
                   </div>
 
                   <Link href={module.href} className="group">
-                    <h2 className="font-display text-xl font-bold tracking-tight transition-colors group-hover:text-accent">
+                    <h2 className="font-display text-xl font-bold tracking-tight transition-colors group-hover:text-accent-ink">
                       {module.title}
                     </h2>
                     <p className="font-display text-sm text-accent2">{module.titleRu}</p>

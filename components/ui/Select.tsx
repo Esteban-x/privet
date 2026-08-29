@@ -97,8 +97,8 @@ export default function Select({
                 }}
                 className={`block w-full cursor-pointer whitespace-nowrap rounded-lg px-3 py-2 text-left font-display text-sm transition-colors duration-150 ${
                   opt.value === value
-                    ? "bg-accent/15 text-accent"
-                    : "text-text hover:bg-accent/10 hover:text-accent"
+                    ? "bg-accent/15 text-accent-ink"
+                    : "text-text hover:bg-accent/10 hover:text-accent-ink"
                 }`}
               >
                 {opt.label}

@@ -65,7 +65,7 @@ export function LessonReadToggle({ slug }: { slug: string }) {
       <span
         aria-hidden
         className={`flex h-5 w-5 items-center justify-center rounded-full border transition-colors duration-200 ${
-          done ? "border-success bg-success text-white" : "border-border text-transparent"
+          done ? "border-success bg-success text-on-tint" : "border-border text-transparent"
         }`}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-3 w-3">

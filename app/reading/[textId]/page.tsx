@@ -41,7 +41,7 @@ export default async function ReadingTextPage({
     <div className="mx-auto max-w-3xl px-6 py-8 sm:py-16">
       <Link
         href="/reading"
-        className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+        className="mb-6 inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent-ink"
       >
         ← Tous les textes
       </Link>

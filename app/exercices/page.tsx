@@ -16,7 +16,7 @@ import { loadAllProgress } from "@/lib/exercises/progress";
 export const metadata = {
   title: "Exercices de russe : 8 modules corrigés, de A0 à C1",
   description:
-    "Tous les modules d'entraînement : lecture, déclinaison, conjugaison, aspect, verbes de mouvement, participes, nombres et temps. Corrigés par un moteur de règles.",
+    "Déclinaison, conjugaison, aspect, verbes de mouvement, participes, nombres : huit modules corrigés à la règle, avec l'erreur expliquée à chaque fois.",
   alternates: { canonical: "/exercices" },
   openGraph: {
     type: "website",
@@ -24,7 +24,7 @@ export const metadata = {
     title: "Exercices de russe : 8 modules corrigés, de A0 à C1",
     description:
       "Déclinaison, aspect, verbes de mouvement, participes, alphabet, nombres, conjugaison : " +
-      "chaque exercice corrige, explique l'erreur et renvoie à la leçon.",
+      "chaque exercice corrige, explique l'erreur et renvoie à la leçon qui va avec.",
   },
 };
 

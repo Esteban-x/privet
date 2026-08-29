@@ -106,7 +106,7 @@ export default function Error({
 
           <Link
             href="/cours"
-            className="mt-4 inline-flex items-center gap-1.5 font-display text-sm font-semibold text-accent hover:underline"
+            className="mt-4 inline-flex items-center gap-1.5 font-display text-sm font-semibold text-accent-ink hover:underline"
           >
             En attendant, reprendre le cours
             <ArrowRightIcon className="h-4 w-4 shrink-0" />

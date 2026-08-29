@@ -75,7 +75,7 @@ export default function ReadingPreview() {
             <div key={title} className="rounded-2xl surface p-6">
               <span
                 aria-hidden
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/12 text-accent"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/12 text-accent-ink"
               >
                 <Icon className="h-5 w-5" />
               </span>

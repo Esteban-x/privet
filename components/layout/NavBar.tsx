@@ -310,7 +310,7 @@ export default function NavBar({
                 href="/dashboard"
                 className={`hidden whitespace-nowrap rounded-lg border px-4 py-2 font-display text-sm font-semibold transition-colors lg:block ${
                   pathname.startsWith("/dashboard")
-                    ? "border-accent bg-accent/12 text-accent"
+                    ? "border-accent bg-accent/12 text-accent-ink"
                     : "border-border text-text hover:bg-accent/10 hover:border-accent/35"
                 }`}
               >
@@ -329,7 +329,7 @@ export default function NavBar({
                   aria-label="Mon compte"
                   className={`relative flex h-9 w-9 items-center justify-center rounded-full border font-display text-sm font-bold transition-colors ${
                     pathname.startsWith("/account") || openPanel === "account"
-                      ? "border-accent bg-accent/12 text-accent"
+                      ? "border-accent bg-accent/12 text-accent-ink"
                       : "border-border text-muted hover:bg-accent/10 hover:border-accent/35 hover:text-text"
                   }`}
                 >
@@ -359,7 +359,7 @@ export default function NavBar({
                     )}
                     <Link
                       href="/account"
-                      className="menu-item block rounded-[10px] px-3 py-2.5 font-display text-sm font-medium text-text hover:text-accent"
+                      className="menu-item block rounded-[10px] px-3 py-2.5 font-display text-sm font-medium text-text hover:text-accent-ink"
                     >
                       Mon compte
                     </Link>

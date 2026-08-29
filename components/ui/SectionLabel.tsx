@@ -1,5 +1,5 @@
 const COLOR_CLASS = {
-  accent: "text-accent",
+  accent: "text-accent-ink",
   accent2: "text-accent2",
   text: "text-text",
 } as const;

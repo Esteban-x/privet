@@ -191,7 +191,7 @@ export function subscriptionOffer(priceEur: number) {
     name: "Privetik Pro",
     description:
       "Abonnement mensuel : exercices et révisions sans compteur quotidien, textes de lecture " +
-      "générés à votre niveau, fiches de mots détaillées et prononciation par voix native.",
+      "générés à ton niveau, fiches de mots détaillées et prononciation par voix native.",
     brand: { "@id": ORGANIZATION_ID },
     offers: {
       "@type": "Offer",

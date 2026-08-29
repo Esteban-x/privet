@@ -81,7 +81,7 @@ export default function TimelineDiagram({
       </defs>
       <TimeAxis head={head} />
 
-      <g className="text-accent">
+      <g className="text-accent-ink">
         {schema === "process" && (
           <path d="M34 34 H190" {...line} strokeDasharray="1 9" strokeWidth={5} />
         )}

@@ -149,7 +149,7 @@ export default async function AspectHub() {
                       <span className="font-display text-sm">
                         <span className="text-muted">{p.imperfective}</span>
                         <span className="mx-1.5 text-muted/60">→</span>
-                        <span className="font-bold text-accent">{p.perfective}</span>
+                        <span className="font-bold text-accent-ink">{p.perfective}</span>
                       </span>
                       <span className="shrink-0 font-display text-xs text-muted">
                         {p.translation}

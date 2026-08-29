@@ -52,13 +52,13 @@ export default function ReviewModeGrid({ listId }: { listId?: string }) {
               qui change de fond derrière un dessin figé. */}
           <span
             aria-hidden
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-bg3 text-muted transition-colors duration-200 group-hover:bg-accent/15 group-hover:text-accent"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-bg3 text-muted transition-colors duration-200 group-hover:bg-accent/15 group-hover:text-accent-ink"
             style={{ transitionTimingFunction: "var(--ease)" }}
           >
             <ModeIcon name={m.icon} />
           </span>
           <div className="min-w-0">
-            <h3 className="font-display text-base font-bold transition-colors group-hover:text-accent">
+            <h3 className="font-display text-base font-bold transition-colors group-hover:text-accent-ink">
               {m.label}
             </h3>
             <p className="mt-0.5 font-display text-sm leading-snug text-muted">{m.desc}</p>

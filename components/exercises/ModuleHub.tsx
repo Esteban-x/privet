@@ -75,7 +75,7 @@ export default function ModuleHub({
               <span className="h-1.5 w-full" style={{ background: color }} />
               <span className="flex flex-1 flex-col p-6">
                 <span className="mb-2 flex items-center justify-between gap-3">
-                  <span className="font-display text-lg font-bold tracking-tight transition-colors group-hover:text-accent">
+                  <span className="font-display text-lg font-bold tracking-tight transition-colors group-hover:text-accent-ink">
                     {skill.title}
                   </span>
                   <span className="shrink-0 rounded-full border border-border px-2 py-0.5 font-display text-[10px] font-bold text-muted">

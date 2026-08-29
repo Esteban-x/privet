@@ -36,11 +36,11 @@ export default function SessionSummary({
       {reviewed > 0 && (
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-2xl surface p-4">
-            <p className="font-display text-2xl font-extrabold text-accent">{reviewed}</p>
+            <p className="font-display text-2xl font-extrabold text-accent-ink">{reviewed}</p>
             <p className="font-display text-xs text-muted">mot{reviewed > 1 ? "s" : ""} revu{reviewed > 1 ? "s" : ""}</p>
           </div>
           <div className="rounded-2xl surface p-4">
-            <p className="font-display text-2xl font-extrabold text-accent">{accuracy}%</p>
+            <p className="font-display text-2xl font-extrabold text-accent-ink">{accuracy}%</p>
             <p className="font-display text-xs text-muted">de réussite</p>
           </div>
         </div>

@@ -232,7 +232,7 @@ export default function LevelTestRunner({
         <div className="rounded-[20px] surface p-8">
           <div className="rounded-xl border border-accent bg-accent/10 p-5 text-center">
             <p className="font-display text-sm text-muted">Ton niveau</p>
-            <p className="font-display text-3xl font-extrabold sm:text-4xl text-accent">{level}</p>
+            <p className="font-display text-3xl font-extrabold sm:text-4xl text-accent-ink">{level}</p>
             <p className="mt-1 font-display text-xs text-muted">
               {localResult.score}/{localResult.total} bonnes réponses
             </p>
@@ -272,7 +272,7 @@ export default function LevelTestRunner({
                       {d.correct}/{d.asked}
                     </span>
                     {ratio < 0.75 && practice && (
-                      <Link href={practice.href} className="text-xs font-semibold text-accent hover:underline">
+                      <Link href={practice.href} className="text-xs font-semibold text-accent-ink hover:underline">
                         {practice.label} →
                       </Link>
                     )}

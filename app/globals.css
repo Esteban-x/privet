@@ -53,10 +53,26 @@
      ramené vers le #0039a6 officiel, juste assez éclairci pour rester
      lisible sur fond sombre. */
   --color-accent: #2f6fe0;
+  /* L'ACCENT NE PEUT PAS TENIR SES DEUX RÔLES AVEC UNE SEULE VALEUR, et
+     ce n'est pas une question de goût : c'est arithmétique. Pour qu'une
+     couleur se LISE sur #0a0a0a en AA (4,5:1) il lui faut une luminance
+     relative ≥ 0,19 ; pour qu'elle PORTE du texte blanc en AA il lui en
+     faut ≤ 0,183. Aucune valeur ne satisfait les deux. #2f6fe0 penchait du
+     côté du fond plein (blanc dessus : 4,70) et ratait le texte (4,22).
+     D'où deux jetons : celui-ci pour les aplats, `accent-ink` pour tout ce
+     qui s'écrit avec. En thème clair la contrainte se relâche et les deux
+     valeurs se rejoignent. */
+  --color-accent-ink: #4a86ee; /* texte : 5,60 sur le fond */
   --color-accent2: #6b8fbe;
   --color-accent2-deep: #d99429;
   --color-danger: #ed2939;
   --color-success: #34c28e;
+  /* L'ENCRE POSÉE SUR UNE PASTILLE DE COULEUR. En sombre, les teintes
+     d'état sont claires — un vert menthe, un orange — et du blanc dessus
+     tombait à 2,27 (succès) ou 2,56 (orange) : illisible, sur les boutons
+     de notation qui sont les plus touchés de l'app. En clair les teintes
+     sont foncées et c'est l'inverse. Un seul jeton, deux valeurs. */
+  --color-on-tint: #0a0a0a;
 
   /* Surfaces d'interaction. Un survol se lit par un CHANGEMENT DE FOND,
      jamais par une bordure qui s'allume : la bordure colorée attire l'œil
@@ -162,10 +178,16 @@
     --color-text: #14161f;
     --color-muted: #5f6579;
     --color-accent: #1e50c8;
+    /* 6,63 sur le fond clair : l'aplat et l'encre peuvent être la même
+       valeur, la contrainte du sombre ne s'applique pas ici. */
+    --color-accent-ink: #1e50c8;
     --color-accent2: #4a6a99;
     --color-accent2-deep: #a3660d;
     --color-danger: #d21f2e;
-    --color-success: #16906a;
+    /* #16906a ratait ses DEUX rôles : 3,85 en texte, 4,01 sous du blanc.
+       Assombri d'un cran, il passe les deux (4,71 et 4,91). */
+    --color-success: #12805e;
+    --color-on-tint: #ffffff;
 
     --surface-hover: rgba(20, 22, 31, 0.04);
     --card-hover-bg: #fcfcfe;
@@ -234,10 +256,12 @@
   --color-text: #14161f;
   --color-muted: #5f6579;
   --color-accent: #1e50c8;
+  --color-accent-ink: #1e50c8;
   --color-accent2: #4a6a99;
   --color-accent2-deep: #a3660d;
   --color-danger: #d21f2e;
-  --color-success: #16906a;
+  --color-success: #12805e;
+  --color-on-tint: #ffffff;
 
   --surface-hover: rgba(20, 22, 31, 0.04);
   --card-hover-bg: #fcfcfe;
@@ -298,6 +322,8 @@
   --color-text: var(--color-text);
   --color-muted: var(--color-muted);
   --color-accent: var(--color-accent);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-on-tint: var(--color-on-tint);
   --color-accent2: var(--color-accent2);
   --color-accent2-deep: var(--color-accent2-deep);
   --color-success: var(--color-success);

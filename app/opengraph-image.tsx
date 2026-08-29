@@ -23,7 +23,7 @@ import { NOUNS } from "@/lib/grammar/nouns-data";
  */
 
 export const alt =
-  "Privetik — apprendre le russe : les cas, l'aspect et les verbes de mouvement, corrigés par un moteur de règles";
+  "Privetik — apprendre le russe : les cas, l'aspect et les verbes de mouvement, corrigés à la règle";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

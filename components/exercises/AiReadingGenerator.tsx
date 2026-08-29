@@ -91,7 +91,7 @@ export default function AiReadingGenerator({
             onClick={() => setOptionsOpen((v) => !v)}
             className={`rounded-[10px] cursor-pointer border px-4 py-3 font-display text-sm font-semibold transition-colors ${
               optionsOpen
-                ? "border-accent bg-accent/10 text-accent"
+                ? "border-accent bg-accent/10 text-accent-ink"
                 : "border-border text-muted hover:text-text"
             }`}
           >
@@ -136,7 +136,7 @@ export default function AiReadingGenerator({
                   onClick={() => setLength(opt.value)}
                   className={`flex-1 rounded-[10px] border px-2 py-2.5 font-display text-sm font-semibold transition-colors ${
                     length === opt.value
-                      ? "border-accent bg-accent/10 text-accent"
+                      ? "border-accent bg-accent/10 text-accent-ink"
                       : "border-border text-muted hover:text-text"
                   }`}
                 >
@@ -172,7 +172,7 @@ export default function AiReadingGenerator({
                 onClick={() => setFocusCase("")}
                 className={`rounded-full border px-3 py-1.5 font-display text-xs font-semibold transition-colors ${
                   focusCase === ""
-                    ? "border-accent bg-accent/10 text-accent"
+                    ? "border-accent bg-accent/10 text-accent-ink"
                     : "border-border text-muted hover:text-text"
                 }`}
               >
@@ -233,7 +233,7 @@ export default function AiReadingGenerator({
       {!loading && !text && completedTitle && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-accent/40 bg-accent/10 px-5 py-4 animate-fade-in">
           <p className="font-display text-sm text-text">
-            <span className="font-semibold text-accent">✓ Texte terminé</span> — «&nbsp;
+            <span className="font-semibold text-accent-ink">✓ Texte terminé</span> — «&nbsp;
             {completedTitle}&nbsp;» reste dans « Mes textes » ci-dessous.
           </p>
           <button

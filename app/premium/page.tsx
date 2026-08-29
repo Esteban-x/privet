@@ -95,7 +95,7 @@ const EXPLANATION_FIELDS = [
   ["Exemples", "des phrases où le mot apparaît fléchi, avec leur traduction"],
   ["Collocations", "les mots avec lesquels il va habituellement"],
   ["Mots proches", "et la ligne qui dit ce qui les distingue"],
-  ["Piège du francophone", "faux-ami, rection, aspect — ce sur quoi vous alliez trébucher"],
+  ["Piège du francophone", "faux-ami, mauvaise préposition, mauvais aspect — ce sur quoi tu allais trébucher"],
 ] as const;
 
 export default async function PremiumPage() {
@@ -143,32 +143,32 @@ export default async function PremiumPage() {
       answer:
         `Non. Les ${TOTAL_LESSONS} leçons, l'alphabet et les tables sont ouverts sans compteur, ` +
         `et ${FREE_PRACTICE_CAP} exercices par jour suffisent aux premières séances. ` +
-        "L'abonnement devient utile le jour où vous vous entraînez tous les jours.",
+        "L'abonnement devient utile le jour où tu t'entraînes tous les jours.",
     },
     {
       question: "Que perd-on exactement en restant gratuit ?",
       answer:
-        "Rien de la matière : les leçons, les tableaux, le test de niveau et vos listes de " +
+        "Rien de la matière : les leçons, les tableaux, le test de niveau et tes listes de " +
         `vocabulaire restent entiers. La formule découverte s'arrête à ${FREE_PRACTICE_CAP} ` +
         `exercices et ${FREE_REVIEW_CAP} révisions par jour, et le compteur repart chaque nuit.`,
     },
     {
       question: "L'IA peut-elle m'enseigner une forme fausse ?",
       answer:
-        "Pas une déclinaison. Le modèle rédige la phrase ; la forme attendue est produite par un " +
-        `moteur de règles à partir des ${NOUNS.length} noms d'une banque relue à la main.`,
+        "Pas une déclinaison. Le modèle rédige la phrase ; la terminaison attendue, elle, est " +
+        `calculée à partir de ${NOUNS.length} noms relus un par un.`,
     },
     {
       question: "Puis-je résilier quand je veux ?",
       answer:
-        "Oui, depuis votre compte, en un clic. L'accès reste ouvert jusqu'à la fin du mois déjà " +
+        "Oui, depuis ton compte, en un clic. L'accès reste ouvert jusqu'à la fin du mois déjà " +
         "payé, puis retombe sur la formule gratuite.",
     },
     {
       question: "Que deviennent mes textes et mes fiches si j'arrête ?",
       answer:
         "Ils restent. Les textes générés et les fiches de mots déjà obtenues sont enregistrés sur " +
-        "votre compte et restent consultables sans abonnement.",
+        "ton compte et restent consultables sans abonnement.",
     },
   ];
 
@@ -222,7 +222,7 @@ export default async function PremiumPage() {
           <h1 className="font-display text-[42px] font-extrabold leading-[1.08] tracking-tight sm:text-[52px]">
             Des textes et des exercices
             <br />
-            <span className="text-flag">écrits pour vous.</span>
+            <span className="text-flag">écrits pour toi.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl font-display text-lg leading-relaxed text-muted">
@@ -230,7 +230,7 @@ export default async function PremiumPage() {
             formule découverte donne {FREE_PRACTICE_CAP} exercices et{" "}
             {FREE_REVIEW_CAP} révisions par jour — de quoi juger la méthode.
             L&apos;abonnement lève le compteur et paie ce qui doit être rédigé
-            à neuf : vos textes de lecture, vos fiches de mots, vos phrases
+            à neuf : tes textes de lecture, tes fiches de mots, tes phrases
             d&apos;entraînement.
           </p>
 
@@ -257,7 +257,7 @@ export default async function PremiumPage() {
             {[
               "Sans engagement",
               "Résiliation en un clic",
-              "Vos textes vous restent",
+              "Tes textes te restent",
             ].map((item) => (
               <li key={item} className="flex items-center gap-2 font-display text-[13px] text-muted">
                 <CheckIcon className="h-3.5 w-3.5 shrink-0 text-success" />
@@ -279,11 +279,11 @@ export default async function PremiumPage() {
         <div className="mb-7 sm:mb-10 text-center">
           <SectionLabel color="accent">Concrètement</SectionLabel>
           <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Trois choses que l&apos;app écrit pour vous
+            Trois choses que l&apos;app écrit pour toi
           </h2>
           <p className="mx-auto mt-4 max-w-2xl font-display leading-relaxed text-muted">
             Elles ont un point commun : elles n&apos;existent pas avant que
-            vous les demandiez. C&apos;est ce qui les rend utiles — et ce qui
+            tu les demandes. C&apos;est ce qui les rend utiles — et ce qui
             fait qu&apos;elles se paient.
           </p>
         </div>
@@ -291,11 +291,11 @@ export default async function PremiumPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* ── La lecture ── */}
           <Spotlight className="surface flex flex-col rounded-[22px] p-7">
-            <DemoHeading n={1}>Un texte à votre mesure</DemoHeading>
+            <DemoHeading n={1}>Un texte à ta mesure</DemoHeading>
             <p className="mt-3 font-display text-[15px] leading-relaxed text-muted">
-              Vous ne recevez pas « un texte de niveau intermédiaire ». Vous
-              commandez le niveau, la longueur, la forme — récit, dialogue ou
-              description — et le cas que vous voulez voir revenir à chaque
+              Tu ne reçois pas « un texte de niveau intermédiaire ». Tu
+              commandes le niveau, la longueur, la forme — récit, dialogue ou
+              description — et le cas que tu veux voir revenir à chaque
               phrase.
             </p>
 
@@ -340,7 +340,7 @@ export default async function PremiumPage() {
 
             <p className="mt-auto pt-6 font-display text-[13px] leading-relaxed text-muted/80">
               Chaque mot du texte est cliquable : la traduction s&apos;ouvre
-              sans quitter la page, et le texte reste dans votre compte.
+              sans quitter la page, et le texte reste dans ton compte.
             </p>
           </Spotlight>
 
@@ -348,9 +348,9 @@ export default async function PremiumPage() {
           <Spotlight className="surface flex flex-col rounded-[22px] p-7">
             <DemoHeading n={2}>Une fiche, pas une définition</DemoHeading>
             <p className="mt-3 font-display text-[15px] leading-relaxed text-muted">
-              Un dictionnaire vous donne un équivalent français. Il ne vous dit
+              Un dictionnaire te donne un équivalent français. Il ne te dit
               pas dans quel registre le mot vit, avec quoi il se construit, ni
-              pourquoi vous êtes sur le point de l&apos;employer de travers.
+              pourquoi tu es sur le point de l&apos;employer de travers.
             </p>
 
             <ul className="mt-6 space-y-3">
@@ -369,18 +369,18 @@ export default async function PremiumPage() {
             </ul>
 
             <p className="mt-auto pt-6 font-display text-[13px] leading-relaxed text-muted/80">
-              La fiche est enregistrée sur votre compte : vous la relisez
-              autant que vous voulez, sans rien reconsommer.
+              La fiche est enregistrée sur ton compte : tu la relis autant
+              que tu veux, sans rien reconsommer.
             </p>
           </Spotlight>
 
           {/* ── L'exercice rédigé ── */}
           <Spotlight className="surface flex flex-col rounded-[22px] p-7">
-            <DemoHeading n={3}>La phrase qui vous manque</DemoHeading>
+            <DemoHeading n={3}>La phrase qui te manque</DemoHeading>
             <p className="mt-3 font-display text-[15px] leading-relaxed text-muted">
               Un cas ne s&apos;apprend pas en bloc : il s&apos;apprend
               déclencheur par déclencheur. L&apos;app en suit{" "}
-              {TRIGGERS.length}, repère ceux que vous ratez, et fait écrire une
+              {TRIGGERS.length}, repère ceux que tu rates, et fait écrire une
               phrase neuve autour de celui-là.
             </p>
 
@@ -423,14 +423,14 @@ export default async function PremiumPage() {
             </h2>
             <p className="mt-5 font-display text-lg leading-relaxed text-muted">
               Elle ne peut pas : elle n&apos;a jamais la main sur la
-              grammaire. Le modèle écrit la phrase ; la forme, elle, sort du
-              moteur de règles et des {NOUNS.length} noms de la banque curée,
-              dont chaque déclinaison a été vérifiée une par une.
+              grammaire. Le modèle écrit la phrase ; la terminaison, elle, est
+              calculée — à partir de {NOUNS.length} noms dont chaque
+              déclinaison a été vérifiée une par une.
             </p>
             <p className="mt-4 font-display text-[15px] leading-relaxed text-muted">
-              C&apos;est aussi pour ça que le moteur sert les deux formules à
-              l&apos;identique. La qualité de la grammaire ne se paie pas — ce
-              qui se paie, c&apos;est le travail de rédaction autour.
+              Et c&apos;est le même calcul pour les deux formules. La
+              justesse de la grammaire ne se paie pas — ce qui se paie, c&apos;est
+              le travail de rédaction autour.
             </p>
           </div>
 
@@ -504,7 +504,7 @@ export default async function PremiumPage() {
           <div className="surface rounded-[22px] p-7">
             <h3 className="font-display text-lg font-bold">Découverte</h3>
             <p className="mt-1 font-display text-sm text-muted">
-              Pour voir si la méthode vous parle.
+              Pour voir si la méthode te parle.
             </p>
 
             <p className="mt-5 font-display text-3xl font-extrabold tracking-tight">
@@ -585,21 +585,21 @@ export default async function PremiumPage() {
                 Exercices et révisions sans compteur quotidien
               </Feature>
               <Feature included strong>
-                Vos textes de lecture, autant que vous en lisez
+                Tes textes de lecture, autant que tu en lis
               </Feature>
               <Feature included strong>
                 Fiches de mots sans compteur, régénérables si la première ne
-                vous convient pas
+                te convient pas
               </Feature>
               <Feature included strong>
-                Exercices de cas rédigés autour du déclencheur que vous ratez
+                Exercices de cas rédigés autour du déclencheur que tu rates
               </Feature>
               <Feature included strong>
-                Second avis sur vos réponses jugées fausses : les variantes
+                Second avis sur tes réponses jugées fausses : les variantes
                 acceptables sont rattrapées
               </Feature>
               <Feature included strong>
-                Prononciation par voix native de tous vos mots, sans y penser
+                Prononciation par voix native de tous tes mots, sans y penser
               </Feature>
             </ul>
 
@@ -630,7 +630,7 @@ export default async function PremiumPage() {
               </p>
               <p className="mt-2 font-display text-[14px] leading-relaxed text-muted">
                 Une seule heure coûte deux mois d&apos;abonnement, et elle ne
-                vous suit pas le reste de la semaine.
+                te suit pas le reste de la semaine.
               </p>
             </div>
             <div className="surface rounded-[18px] p-6">
@@ -641,8 +641,8 @@ export default async function PremiumPage() {
                 {PER_DAY}
               </p>
               <p className="mt-2 font-display text-[14px] leading-relaxed text-muted">
-                Pour un texte écrit à votre niveau, des fiches sur vos mots et
-                des exercices sur ce qui vous bloque.
+                Pour un texte écrit à ton niveau, des fiches sur tes mots et
+                des exercices sur ce qui te bloque.
               </p>
             </div>
           </div>
@@ -656,8 +656,8 @@ export default async function PremiumPage() {
             Un abonnement de logiciel classique coûte la même chose à dix
             usages qu&apos;à mille. Ici, non : chaque texte généré, chaque
             fiche, chaque phrase d&apos;exercice a un coût réel à la seconde
-            où vous la demandez. Le prix n&apos;est pas une marge sur du
-            logiciel — c&apos;est ce qui permet de ne pas vous rationner.
+            où tu la demandes. Le prix n&apos;est pas une marge sur du
+            logiciel — c&apos;est ce qui permet de ne pas te rationner.
           </p>
         </div>
       </section>
@@ -672,49 +672,48 @@ export default async function PremiumPage() {
 
           <div className="space-y-3">
             <Faq q="Je débute complètement. Est-ce que je dois m'abonner tout de suite ?">
-              Non, et c&apos;est franc : commencez gratuitement. Les{" "}
+              Non, et c&apos;est franc : commence gratuitement. Les{" "}
               {TOTAL_LESSONS} leçons, l&apos;alphabet et les tables sont
               ouverts sans compteur, et {FREE_PRACTICE_CAP} exercices par jour
               suffisent aux premières séances. L&apos;abonnement devient utile
-              le jour où vous vous entraînez tous les jours — et où vous avez
+              le jour où tu t&apos;entraînes tous les jours — et où tu as
               besoin de matière neuve : lire autre chose que les textes de la
-              bibliothèque, travailler le déclencheur précis qui vous résiste.
+              bibliothèque, travailler le déclencheur précis qui te résiste.
             </Faq>
             <Faq q="Que perd-on exactement en restant gratuit ?">
               Rien de la matière : les leçons, les tableaux, le test de niveau
-              et vos listes de vocabulaire restent entiers, et la suggestion de
+              et tes listes de vocabulaire restent entiers, et la suggestion de
               traduction fonctionne aussi. Ce qui change, c&apos;est le rythme :
               la formule découverte s&apos;arrête à {FREE_PRACTICE_CAP}{" "}
               exercices et {FREE_REVIEW_CAP} révisions par jour — le compteur
               repart chaque nuit. L&apos;abonnement le lève, et ajoute ce qui
-              est rédigé pour vous : textes de lecture, fiches de mots, phrases
+              est rédigé pour toi : textes de lecture, fiches de mots, phrases
               d&apos;exercice sur mesure.
             </Faq>
             <Faq q="L'IA peut-elle m'enseigner une forme fausse ?">
               Pas une déclinaison, non. Le modèle rédige la phrase française et
-              russe ; la forme attendue, elle, est produite par le moteur de
-              règles à partir des {NOUNS.length} noms de la banque curée. Là où
+              russe ; la terminaison attendue, elle, est calculée — à partir de{" "}
+              {NOUNS.length} noms relus un par un. Là où
               le modèle parle en son nom — la fiche d&apos;un mot, son
               commentaire de sens — l&apos;app le signale explicitement à
               l&apos;écran.
             </Faq>
             <Faq q="Puis-je résilier quand je veux ?">
-              Oui, depuis votre compte, en un clic. L&apos;accès reste ouvert
+              Oui, depuis ton compte, en un clic. L&apos;accès reste ouvert
               jusqu&apos;à la fin du mois déjà payé, puis retombe sur la
               formule gratuite. Aucune relance, aucun formulaire à remplir.
             </Faq>
             <Faq q="Que deviennent mes textes et mes fiches si j'arrête ?">
               Ils restent. Les textes générés et les fiches de mots déjà
-              obtenues sont enregistrés sur votre compte : vous continuez à les
-              relire sans abonnement, comme vos listes de vocabulaire et votre
+              obtenues sont enregistrés sur ton compte : tu continues à les
+              relire sans abonnement, comme tes listes de vocabulaire et ta
               progression.
             </Faq>
             <Faq q="Un mois suffit-il pour voir si ça marche ?">
-              Largement. En un mois, vous pouvez générer plusieurs dizaines de
-              textes, autant de fiches, et faire remonter vos points faibles
-              sur les {TRIGGERS.length} déclencheurs. Si ça ne vous sert pas,
-              vous partez avant le renouvellement et vous gardez ce que vous
-              avez produit.
+              Largement. En un mois, tu peux générer plusieurs dizaines de
+              textes, autant de fiches, et faire remonter tes points faibles
+              sur les {TRIGGERS.length} déclencheurs. Si ça ne te sert pas, tu
+              pars avant le renouvellement et tu gardes ce que tu as produit.
             </Faq>
           </div>
         </div>
@@ -732,11 +731,11 @@ export default async function PremiumPage() {
         </div>
         <div className="mx-auto max-w-2xl px-6 py-12 sm:py-20 text-center">
           <h2 className="font-display text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-            Arrêtez de deviner les désinences.
+            Arrête de deviner les terminaisons.
           </h2>
           <p className="mx-auto mt-4 max-w-lg font-display leading-relaxed text-muted">
-            {PRICE} par mois, sans engagement. Vous gardez vos textes, vos
-            fiches et votre progression même si vous partez.
+            {PRICE} par mois, sans engagement. Tu gardes tes textes, tes
+            fiches et ta progression même si tu pars.
           </p>
           <div className="mx-auto mt-8 max-w-xs">{cta}</div>
         </div>
@@ -752,7 +751,7 @@ function DemoHeading({ n, children }: { n: number; children: React.ReactNode }) 
     <div className="flex items-center gap-3">
       <span
         aria-hidden
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/12 font-display text-[13px] font-bold text-accent"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/12 font-display text-[13px] font-bold text-accent-ink"
       >
         {n}
       </span>

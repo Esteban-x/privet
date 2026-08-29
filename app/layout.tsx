@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   // c'est cette phrase qui décide du clic, pas le titre.
   description:
     "Cours de russe complet et gratuit : alphabet, 6 cas, aspect verbal. " +
-    "Exercices corrigés par un moteur de règles, pas par une IA qui devine.",
+    "Chaque correction sort d'une règle, jamais d'une IA qui devine.",
   applicationName: SITE_NAME,
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: "Apprendre le russe en ligne — cours, cas et exercices",
     description:
-      "Les six cas, l'aspect et les verbes de mouvement, corrigés par un moteur de règles. " +
+      "Les six cas, l'aspect et les verbes de mouvement, corrigés à la règle, jamais devinés. " +
       "Cours complet gratuit, exercices quotidiens offerts.",
     // L'image vient de app/opengraph-image.tsx : Next l'ajoute ici tout
     // seul, avec ses dimensions et son texte alternatif.
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Apprendre le russe en ligne — Privetik",
     description:
-      "Les six cas, l'aspect et les verbes de mouvement, corrigés par un moteur de règles.",
+      "Les six cas, l'aspect et les verbes de mouvement, corrigés à la règle, jamais devinés.",
   },
   robots: {
     index: true,

@@ -46,7 +46,7 @@ const DEMO_TRANSLATION = LEXICON.find((e) => e[0] === DEMO_WORD)?.[1] ?? "livre"
 const GRADES: { label: string; quality: Quality; color: string }[] = [
   { label: "À revoir", quality: 1, color: "var(--color-accent2-deep)" },
   { label: "Difficile", quality: 3, color: "var(--color-accent2)" },
-  { label: "Bien", quality: 4, color: "var(--color-accent)" },
+  { label: "Bien", quality: 4, color: "var(--color-accent-ink)" },
   { label: "Facile", quality: 5, color: "var(--color-success)" },
 ];
 
@@ -117,7 +117,7 @@ export default function VocabDemoCard() {
       >
         {flipped ? (
           <>
-            <p className="font-display text-3xl font-bold text-accent">{DEMO_TRANSLATION}</p>
+            <p className="font-display text-3xl font-bold text-accent-ink">{DEMO_TRANSLATION}</p>
             <p className="font-display text-sm text-muted">{DEMO_WORD}</p>
           </>
         ) : (
@@ -176,7 +176,7 @@ export default function VocabDemoCard() {
           <button
             type="button"
             onClick={restart}
-            className="mt-3 font-display text-xs font-semibold text-accent hover:underline"
+            className="mt-3 font-display text-xs font-semibold text-accent-ink hover:underline"
           >
             Repartir d&apos;une carte neuve
           </button>

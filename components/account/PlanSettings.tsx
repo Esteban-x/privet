@@ -110,7 +110,7 @@ export default function PlanSettings({
                 "Prononciation illimitée",
               ].map((item) => (
                 <li key={item} className="flex items-center gap-2">
-                  <CheckIcon className="h-3.5 w-3.5 shrink-0 text-accent" />
+                  <CheckIcon className="h-3.5 w-3.5 shrink-0 text-accent-ink" />
                   <span className="font-display text-[13px] text-text/90">{item}</span>
                 </li>
               ))}

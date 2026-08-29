@@ -441,7 +441,7 @@ export default function AddWordForm({
         <div className="flex items-center gap-3">
           <span
             aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent-ink"
           >
             <PlusIcon className="h-[18px] w-[18px]" />
           </span>
@@ -467,7 +467,7 @@ export default function AddWordForm({
           onClick={toggleFirstSide}
           aria-label={frFirst ? "Commencer par le russe" : "Commencer par le français"}
           title={frFirst ? "Commencer par le russe" : "Commencer par le français"}
-          className="mx-auto mb-1 flex h-9 w-9 items-center justify-center rounded-full surface-interactive text-muted duration-200 hover:scale-110 hover:text-accent active:scale-95 sm:mb-2.5 sm:self-center"
+          className="mx-auto mb-1 flex h-9 w-9 items-center justify-center rounded-full surface-interactive text-muted duration-200 hover:scale-110 hover:text-accent-ink active:scale-95 sm:mb-2.5 sm:self-center"
           style={{ transitionTimingFunction: "var(--ease)" }}
         >
           <SwapIcon className="h-4 w-4" />
@@ -487,7 +487,7 @@ export default function AddWordForm({
               La traduction automatique fait partie de{" "}
               <Link
                 href="/premium"
-                className="font-semibold text-accent underline-offset-2 hover:underline"
+                className="font-semibold text-accent-ink underline-offset-2 hover:underline"
               >
                 Privetik Pro
               </Link>
@@ -520,7 +520,7 @@ export default function AddWordForm({
         <button
           type="button"
           onClick={() => setShowTranslit(true)}
-          className="mt-3 font-display text-xs font-semibold text-muted underline-offset-2 hover:text-accent hover:underline"
+          className="mt-3 font-display text-xs font-semibold text-muted underline-offset-2 hover:text-accent-ink hover:underline"
         >
           + Translittération
           {transliteration && <span className="ml-1.5 text-accent2">({transliteration})</span>}

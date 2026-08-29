@@ -37,8 +37,8 @@ export interface UnitHeader {
 const LEVEL_TONE: Record<CefrLevel, string> = {
   A0: "border-success/40 text-success",
   A1: "border-success/40 text-success",
-  A2: "border-accent/40 text-accent",
-  B1: "border-accent/40 text-accent",
+  A2: "border-accent/40 text-accent-ink",
+  B1: "border-accent/40 text-accent-ink",
   B2: "border-accent2/50 text-accent2",
   C1: "border-accent2-deep/50 text-accent2-deep",
   C2: "border-accent2-deep/50 text-accent2-deep",
@@ -440,7 +440,7 @@ function LessonRow({
         title={read ? "Marquer comme non lue" : "Marquer comme lue"}
         className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
           read
-            ? "border-success bg-success text-white"
+            ? "border-success bg-success text-on-tint"
             : "border-border text-transparent hover:border-success"
         }`}
       >

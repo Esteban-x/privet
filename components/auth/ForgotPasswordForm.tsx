@@ -95,7 +95,7 @@ export default function ForgotPasswordForm() {
       )}
 
       <p className="mt-6 text-center font-display text-sm text-muted">
-        <Link href="/login" className="font-semibold text-accent hover:underline">
+        <Link href="/login" className="font-semibold text-accent-ink hover:underline">
           Revenir à la connexion
         </Link>
       </p>

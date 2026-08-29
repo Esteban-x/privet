@@ -122,7 +122,7 @@ export default function CoursesPage() {
       <div className="mt-14 border-t border-border pt-8">
         <p className="font-display leading-relaxed text-muted">
           Vous hésitez encore sur la marche à suivre ?{" "}
-          <Link href="/guides" className="font-semibold text-accent hover:underline">
+          <Link href="/guides" className="font-semibold text-accent-ink hover:underline">
             Les guides
           </Link>{" "}
           répondent aux questions d&apos;avant la première leçon : combien de temps ça prend, par

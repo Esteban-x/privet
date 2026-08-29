@@ -97,9 +97,9 @@ export default function Home() {
 
             <p className="mt-6 max-w-md font-display text-lg leading-relaxed text-muted">
               Les six cas, l&apos;aspect, les verbes de mouvement, les participes —
-              tout ce que les applications généralistes évitent. Chaque déclinaison
-              sort d&apos;un moteur de règles vérifié, jamais d&apos;une IA qui
-              improvise.
+              tout ce que les applications généralistes te font sauter. Et aucune
+              terminaison inventée&nbsp;: elles sont calculées et contrôlées, jamais
+              devinées par une IA.
             </p>
 
             <div className="mt-9 flex flex-wrap gap-3">
@@ -135,7 +135,7 @@ export default function Home() {
               <span className="animate-float absolute -left-6 -top-6 select-none font-display text-[86px] font-extrabold leading-none text-accent2 opacity-[0.12]">
                 Ж
               </span>
-              <span className="animate-float-slow absolute -bottom-8 -right-6 select-none font-display text-[70px] font-extrabold leading-none text-accent opacity-[0.12] [animation-delay:1s]">
+              <span className="animate-float-slow absolute -bottom-8 -right-6 select-none font-display text-[70px] font-extrabold leading-none text-accent-ink opacity-[0.12] [animation-delay:1s]">
                 Я
               </span>
             </div>
@@ -164,15 +164,15 @@ export default function Home() {
                 </div>
                 <div className="flex items-center justify-between rounded-xl border border-accent/45 bg-accent/12 px-4 py-3 font-display text-sm shadow-glow">
                   <span className="font-semibold">{demoDecl.form}</span>
-                  <span className="flex items-center gap-2 text-xs uppercase tracking-wide text-accent">
+                  <span className="flex items-center gap-2 text-xs uppercase tracking-wide text-accent-ink">
                     génitif <span className="text-sm">✓</span>
                   </span>
                 </div>
               </div>
 
               <p className="mt-4 font-display text-[12px] leading-relaxed text-muted">
-                Forme calculée par le moteur de règles, vérifiée sur les{" "}
-                {NOUNS.length} noms de la banque.
+                Cette terminaison n&apos;a pas été devinée&nbsp;: elle est calculée,
+                puis contrôlée sur {NOUNS.length} noms.
               </p>
             </Spotlight>
           </div>
@@ -202,17 +202,17 @@ export default function Home() {
             <Strength
               icon={<CheckIcon className="h-5 w-5" />}
               title="Vérifié, pas improvisé"
-              body={`Chaque forme fléchie est calculée par un moteur déterministe et contrôlée par une suite de tests. L'IA écrit la mise en situation ; elle ne décide jamais d'une terminaison.`}
+              body={`Une application qui se trompe d'une lettre t'apprend l'erreur, et tu la répètes pendant des mois. Ici, chaque terminaison est calculée puis recontrôlée à chaque mise en ligne. L'IA écrit la phrase d'exemple — jamais la terminaison.`}
             />
             <Strength
               icon={<BookIcon className="h-5 w-5" />}
               title="Les six cas, par déclencheur"
-              body="Chaque préposition, chaque verbe à régime, chaque expression figée est travaillée pour elle-même — avec les noms qui ont réellement du sens derrière elle."
+              body="Après « без », génitif. Après « к », datif. Tu t'entraînes déclencheur par déclencheur, sur des phrases qui veulent dire quelque chose — pas sur « la plume de ma tante »."
             />
             <Strength
               icon={<SpeakerIcon className="h-5 w-5" />}
               title="Prononcé par des natifs"
-              body="Voix russe de Moscou et voix française, synthétisées en studio. Plus jamais de voix système qui ânonne du cyrillique à la française."
+              body="Une voix russe pour le russe, une voix française pour le français. Fini le téléphone qui lit « здравствуйте » à la française et t'installe un accent qu'il faudra désapprendre."
             />
           </div>
         </div>
@@ -231,28 +231,28 @@ export default function Home() {
             glyph="К"
             title="Курс"
             subtitle="Le cours"
-            description={`${TOTAL_LESSONS} leçons en ${UNITS.length} unités, de l'alphabet aux registres littéraires : la règle, ses tableaux, ses exemples traduits et le piège du francophone.`}
+            description={`${TOTAL_LESSONS} leçons en ${UNITS.length} unités, de l'alphabet aux registres littéraires : la règle, son tableau, ses exemples traduits, et le piège où tombent les francophones.`}
           />
           <ModuleCard
             href="/exercices"
             glyph="Я"
             title="Упражнения"
             subtitle="Les exercices"
-            description="Déchiffrage, déclinaison, conjugaison, aspect, mouvement, participes, nombres : chaque réponse est corrigée et expliquée."
+            description="Déchiffrage, déclinaison, conjugaison, aspect, mouvement, participes, nombres : chaque réponse est corrigée, l'erreur expliquée, et renvoyée à la leçon qui va avec."
           />
           <ModuleCard
             href="/vocabulary"
             glyph="С"
             title="Словарь"
-            subtitle="Vocabulaire"
-            description="Vos propres listes en répétition espacée, prononcées — et c'est vous qui décidez ce qui revient souvent et ce qui est acquis."
+            subtitle="Le vocabulaire"
+            description="Tes listes à toi, remises devant toi au moment où tu allais les oublier, et prononcées à voix haute par une vraie voix russe."
           />
           <ModuleCard
             href="/reading"
             glyph="Ч"
             title="Чтение"
-            subtitle="Lecture"
-            description="Des textes originaux à votre niveau, avec la traduction mot à mot et le cas grammatical de chaque mot, au clic."
+            subtitle="La lecture"
+            description="Des textes écrits à ton niveau. Clique un mot : tu as sa traduction et son cas, sans quitter la page."
           />
         </div>
       </section>
@@ -273,7 +273,7 @@ export default function Home() {
             </p>
             <Link
               href="/cases"
-              className="mt-7 inline-flex items-center gap-2 font-display text-sm font-bold text-accent transition-transform hover:translate-x-1"
+              className="mt-7 inline-flex items-center gap-2 font-display text-sm font-bold text-accent-ink transition-transform hover:translate-x-1"
             >
               Travailler les cas <span aria-hidden>→</span>
             </Link>
@@ -300,12 +300,12 @@ export default function Home() {
       <section className="mx-auto max-w-4xl px-6 py-14 sm:py-24 text-center">
         <SectionLabel>Sans engagement</SectionLabel>
         <h2 className="mb-4 font-display text-[38px] font-extrabold tracking-tight">
-          Essayez tout, payez si ça vous porte
+          Essaie tout, paie seulement si ça te porte
         </h2>
         <p className="mx-auto mb-9 max-w-lg font-display leading-relaxed text-muted">
           Les {TOTAL_LESSONS} leçons, le test de niveau et les exercices de
-          déclinaison sont accessibles sans payer. L&apos;abonnement débloque la
-          lecture générée, les explications de mots et les exercices rédigés sur
+          déclinaison sont ouverts sans payer. L&apos;abonnement ajoute les textes
+          écrits à ton niveau, les fiches de mots et les exercices rédigés sur
           mesure.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
@@ -330,7 +330,7 @@ export default function Home() {
           <div className="flex items-center gap-2.5">
 <Logo size={24} />
             <span className="font-display text-sm text-muted">
-              Privetik — apprendre le russe, à votre rythme.
+              Privetik — apprendre le russe, à ton rythme.
             </span>
           </div>
           <div className="flex items-center gap-5 font-display text-sm text-muted">
@@ -341,10 +341,10 @@ export default function Home() {
                 par le plan du site sans jamais comprendre qu'elles
                 appartiennent à ce domaine-ci. Une ligne en pied de page
                 suffit à les rattacher, et ne gêne personne. */}
-            <Link href="/guides" className="transition-colors hover:text-accent">
+            <Link href="/guides" className="transition-colors hover:text-accent-ink">
               Guides
             </Link>
-            <Link href="/premium" className="transition-colors hover:text-accent">
+            <Link href="/premium" className="transition-colors hover:text-accent-ink">
               Tarifs
             </Link>
             <span>© {new Date().getFullYear()} Privetik</span>
@@ -366,7 +366,7 @@ function Strength({
 }) {
   return (
     <Spotlight className="surface rounded-[20px] p-7">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/12 text-accent">
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/12 text-accent-ink">
         {icon}
       </span>
       <h3 className="mt-4 font-display text-lg font-bold">{title}</h3>
@@ -390,7 +390,7 @@ function ModuleCard({
 }) {
   return (
     <Link href={href} className="surface-interactive group block rounded-[20px] p-7">
-      <span className="flex h-[52px] w-[52px] items-center justify-center rounded-xl bg-accent/12 font-display text-2xl font-bold text-accent transition-colors group-hover:bg-accent/20">
+      <span className="flex h-[52px] w-[52px] items-center justify-center rounded-xl bg-accent/12 font-display text-2xl font-bold text-accent-ink transition-colors group-hover:bg-accent/20">
         {glyph}
       </span>
       <p className="mt-4 font-display text-xs font-semibold uppercase tracking-[0.08em] text-muted">
@@ -398,7 +398,7 @@ function ModuleCard({
       </p>
       <h3 className="mt-1 font-display text-xl font-bold">{title}</h3>
       <p className="mt-2 font-display text-[15px] leading-relaxed text-muted">{description}</p>
-      <span className="mt-4 inline-flex items-center gap-1.5 font-display text-xs font-bold uppercase tracking-wide text-accent">
+      <span className="mt-4 inline-flex items-center gap-1.5 font-display text-xs font-bold uppercase tracking-wide text-accent-ink">
         Ouvrir
         <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">
           →

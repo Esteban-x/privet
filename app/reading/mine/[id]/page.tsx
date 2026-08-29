@@ -58,7 +58,7 @@ export default async function MyReadingTextPage({
       <div className="mb-6 flex items-center justify-between gap-4">
         <Link
           href="/reading"
-          className="inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent"
+          className="inline-block font-display text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent-ink"
         >
           ← Tous les textes
         </Link>
