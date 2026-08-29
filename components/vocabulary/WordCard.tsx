@@ -12,25 +12,31 @@ import AiSpark from "@/components/ui/AiSpark";
 /**
  * Un mot, en carte.
  *
- * DEUX RANGÉES, ET TOUT EST À DÉCOUVERT. Elle en a porté trois — commandes,
- * langues, sélecteur de rangement — soit 130 px par mot ; puis une seule,
- * les commandes repliées derrière un « ⋯ ». Le repli coûtait un appui à
- * chaque geste sur un mot, pour deux commandes qu'on emploie constamment :
- * expliquer, et ranger. Un menu qui ne contient que ce qu'on fait souvent
- * n'est pas un menu, c'est un obstacle.
+ * TROIS ESSAIS AVANT CELUI-CI, et chacun corrigeait le précédent.
  *
- * Tout tient donc sur la ligne du libellé, à droite : le rangement, le
- * bouton d'explication, la corbeille. La rangée existait de toute façon
- * pour porter « Russe → Français » — elle était vide à 70 %.
+ * 1. Trois rangées empilées — commandes, langues, sélecteur de rangement :
+ *    130 px par mot, dont la moitié en boutons. Sur cent mots, six écrans
+ *    de commandes pour six écrans de vocabulaire.
+ * 2. Tout replié derrière un « ⋯ ». Compact, mais un appui de plus pour les
+ *    deux gestes qu'on fait constamment — expliquer, ranger. Un menu qui ne
+ *    contient que ce qu'on fait souvent est un obstacle, pas un menu.
+ * 3. Les commandes remontées sur la ligne du libellé. Elles y flottaient
+ *    dans une bande à part, sans rapport visuel avec le mot qu'elles
+ *    règlent — et sur téléphone, où ce libellé est masqué, elles se
+ *    retrouvaient seules dans un bandeau vide en haut de chaque carte.
  *
- * CE QUI A RENDU ÇA POSSIBLE : `FocusControl` en variante compacte. Les
- * trois libellés en entier font 230 px et ne laissaient de place à rien
- * d'autre ; seul le segment ACTIF garde le sien, les deux autres se
- * réduisent à leur signe. L'état courant reste lisible en toutes lettres,
- * ce qui est la seule chose qu'on doit pouvoir lire sans réfléchir.
+ * ELLES SONT DONC SUR LA LIGNE DES MOTS, à droite, et le groupe a une
+ * LARGEUR CONSTANTE : trois cases de 28 px, un bouton dont le texte ne
+ * change jamais, une corbeille. C'est le point qui manquait aux versions
+ * précédentes — le sélecteur changeait de largeur selon le rangement actif
+ * (« À travailler » et « Normal » n'ont pas la même longueur), donc la
+ * colonne de droite ondulait le long de la liste. Sur une liste, ce qui se
+ * voit n'est pas la largeur d'un élément mais l'irrégularité entre les
+ * lignes.
  *
- * Sous 640 px, « Expliquer » se réduit à son étincelle : à cette largeur,
- * c'est lui ou le mot russe.
+ * Sous 640 px, les commandes passent sous les mots plutôt que de les
+ * comprimer ; entre 640 et 1024, « Expliquer » se réduit à son étincelle,
+ * parce qu'à cette largeur c'est lui qui écrase les deux colonnes de texte.
  *
  * Ce qui n'y figure toujours pas : le genre et l'animacité. Ils étaient
  * réglables ici, ce qui revenait à demander à l'apprenant de corriger la
@@ -64,29 +70,61 @@ export default function WordCard({
       }`}
     >
       <div className="px-4 py-3">
-        {/* `flex-wrap` plutôt qu'une largeur calculée : sur un écran étroit
-            avec un mot long, le groupe de commandes passe proprement à la
-            ligne au lieu de comprimer le libellé jusqu'à l'illisible. */}
-        <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-          {/* LE LIBELLÉ DISPARAÎT SOUS 640 px, ET IL NE MANQUE À PERSONNE.
-              Il est identique sur CHAQUE carte — toutes les listes vont du
-              russe au français — donc il ne distingue rien : c'est une
-              étiquette de colonne recopiée sur chaque ligne. Sur grand
-              écran elle a son utilité, les deux langues étant côte à côte et
-              rien d'autre ne disant laquelle est laquelle. Sur téléphone
-              elles s'empilent, l'alphabet suffit à les séparer, et ses
-              105 px étaient exactement ce qui faisait déborder la rangée de
-              commandes sur une deuxième ligne — donc une rangée de plus par
-              mot, sur toute la liste. */}
-          <span className="hidden shrink-0 font-display text-[11px] font-semibold uppercase tracking-[0.06em] text-muted/70 sm:inline">
-            Russe → Français
-          </span>
+        {/* Le libellé est identique sur CHAQUE carte — toutes les listes vont
+            du russe au français — donc il ne distingue rien : c'est une
+            étiquette de colonne recopiée sur chaque ligne. Il gagne sa place
+            sur grand écran, où les deux langues sont côte à côte et où rien
+            d'autre ne dit laquelle est laquelle ; sur téléphone elles
+            s'empilent et l'alphabet suffit. */}
+        <span className="mb-1.5 hidden font-display text-[11px] font-semibold uppercase tracking-[0.06em] text-muted/70 sm:block">
+          Russe → Français
+        </span>
+
+        {/* LES COMMANDES SONT SUR LA LIGNE DES MOTS, PAS AU-DESSUS.
+            Elles ont d'abord été posées sur la ligne du libellé : sur grand
+            écran elles flottaient dans une bande à part, sans rapport visuel
+            avec le mot qu'elles règlent, et sur téléphone — où ce libellé
+            n'existe pas — elles se retrouvaient seules dans un bandeau vide
+            en haut de chaque carte.
+
+            Le groupe a maintenant une largeur CONSTANTE : trois cases de
+            28 px, un bouton dont le texte ne change jamais, une corbeille.
+            C'est ce qui fait que la colonne de droite s'aligne d'une carte à
+            l'autre — l'irrégularité entre les lignes est ce qui se voyait le
+            plus. */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+          {/* Les deux langues à égalité, comme dans un dictionnaire ouvert.
+              La translittération passe SOUS le mot russe : à côté, elle se
+              collait à l'accent tonique de la dernière voyelle. */}
+          <div className="grid min-w-0 flex-1 grid-cols-1 items-baseline gap-x-6 gap-y-0.5 sm:grid-cols-2">
+            <div className="min-w-0">
+              <p className="flex min-w-0 items-baseline gap-1.5 font-display text-lg font-bold leading-snug">
+                <span className="min-w-0">{word.ru}</span>
+                <SpeakButton
+                  label={`Écouter ${word.ru} en russe`}
+                  title="Écouter en russe"
+                  onSpeak={() => speakRu(word.ru)}
+                />
+              </p>
+              {word.transliteration && (
+                <p className="font-display text-xs leading-snug text-muted/80">
+                  {word.transliteration}
+                </p>
+              )}
+            </div>
+            <p className="flex min-w-0 items-baseline gap-1.5 font-display text-lg leading-snug text-text/90">
+              <span className="min-w-0">{word.fr}</span>
+              <SpeakButton
+                label={`Écouter ${word.fr} en français`}
+                title="Écouter en français"
+                onSpeak={() => speakFr(word.fr)}
+              />
+            </p>
+          </div>
 
           {confirming ? (
-            <div className="ml-auto flex items-center gap-2">
-              <span className="font-display text-[11px] text-muted">
-                Supprimer ce mot et son historique ?
-              </span>
+            <div className="flex shrink-0 items-center justify-end gap-2">
+              <span className="font-display text-[11px] text-muted">Supprimer ce mot ?</span>
               <button
                 type="button"
                 onClick={() => onDelete(word.id)}
@@ -104,7 +142,7 @@ export default function WordCard({
               </button>
             </div>
           ) : (
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center justify-end gap-1.5">
               <FocusControl
                 compact
                 value={word.focus}
@@ -118,14 +156,17 @@ export default function WordCard({
                 aria-expanded={explaining}
                 aria-label={`Expliquer ${word.ru}`}
                 title="Expliquer ce mot avec l'IA"
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 font-display text-[11px] font-bold transition-colors sm:px-2.5 ${
+                className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2 font-display text-[11px] font-bold transition-colors lg:px-2.5 ${
                   explaining
                     ? "border-accent2 bg-accent2/20 text-accent2"
                     : "border-accent2/40 bg-accent2/10 text-accent2 hover:border-accent2/50 hover:bg-accent2/20"
                 }`}
               >
                 <AiSpark className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Expliquer</span>
+                {/* Le mot n'apparaît qu'au-delà de 1024 px : entre 640 et
+                    1024, la carte a deux colonnes de texte à loger et c'est
+                    lui qui les compresse en premier. */}
+                <span className="hidden lg:inline">Expliquer</span>
               </button>
 
               <button
@@ -133,7 +174,7 @@ export default function WordCard({
                 onClick={() => setConfirming(true)}
                 aria-label={`Supprimer ${word.ru}`}
                 title="Supprimer ce mot"
-                className="shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:bg-danger/15 hover:text-danger"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/15 hover:text-danger"
               >
                 <svg
                   aria-hidden
@@ -152,35 +193,6 @@ export default function WordCard({
               </button>
             </div>
           )}
-        </div>
-
-        {/* Les deux langues à égalité, comme dans un dictionnaire ouvert.
-            La translittération passe SOUS le mot russe : à côté, elle se
-            collait à l'accent tonique de la dernière voyelle. */}
-        <div className="grid grid-cols-1 items-baseline gap-x-6 gap-y-0.5 sm:grid-cols-2">
-          <div className="min-w-0">
-            <p className="flex min-w-0 items-baseline gap-1.5 font-display text-lg font-bold leading-snug">
-              <span className="min-w-0">{word.ru}</span>
-              <SpeakButton
-                label={`Écouter ${word.ru} en russe`}
-                title="Écouter en russe"
-                onSpeak={() => speakRu(word.ru)}
-              />
-            </p>
-            {word.transliteration && (
-              <p className="font-display text-xs leading-snug text-muted/80">
-                {word.transliteration}
-              </p>
-            )}
-          </div>
-          <p className="flex min-w-0 items-baseline gap-1.5 font-display text-lg leading-snug text-text/90">
-            <span className="min-w-0">{word.fr}</span>
-            <SpeakButton
-              label={`Écouter ${word.fr} en français`}
-              title="Écouter en français"
-              onSpeak={() => speakFr(word.fr)}
-            />
-          </p>
         </div>
       </div>
 

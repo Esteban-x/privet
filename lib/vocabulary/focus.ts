@@ -57,7 +57,10 @@ export const FOCUS_META: Record<
     dot: "bg-success",
     text: "text-success",
     bar: "bg-success",
-    active: "bg-success text-white",
+    // `text-white` sur ce vert menthe donne 2,27:1 en thème sombre. L'encre
+    // adaptative (voir --color-on-tint dans globals.css) passe les deux
+    // thèmes : 8,72 en sombre, 4,91 en clair.
+    active: "bg-success text-on-tint",
     hint: "Retiré des révisions tant que tu ne le remets pas",
   },
 };
