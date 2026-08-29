@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   addWord,
   createList,
@@ -14,10 +14,9 @@ import {
   type CustomVocabWord,
   type VocabListSummary,
 } from "@/lib/vocabulary/custom";
-import { countFocus, focusCountLabel, FOCUS_META, type Focus } from "@/lib/vocabulary/focus";
+import { countFocus, FOCUS_META, type Focus } from "@/lib/vocabulary/focus";
 import AddWordForm from "@/components/vocabulary/AddWordForm";
 import ListRail, { ListTile } from "@/components/vocabulary/ListRail";
-import FocusBar from "@/components/vocabulary/FocusBar";
 import WordCard from "@/components/vocabulary/WordCard";
 import { ModeIcon, REVIEW_MODES } from "@/components/vocabulary/ReviewModeGrid";
 import { PlusIcon, TrashIcon } from "@/components/ui/icons";
@@ -293,36 +292,20 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
     }
   }
 
+  const dueCount = activeList?.dueCount ?? 0;
+
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
-      {/* ── Bandeau : ce que vaut tout le vocabulaire, d'un coup d'œil ── */}
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <p className="mb-1.5 font-display text-xs font-bold uppercase tracking-[0.08em] text-accent2">
-            Словарь
-          </p>
-          <h1 className="font-display text-3xl font-extrabold sm:text-4xl tracking-tight">Vocabulaire</h1>
-        </div>
-        {totals && totals.words > 0 && (
-          <div className="flex flex-wrap items-center gap-6">
-            <Stat value={totals.words} label={`mot${totals.words > 1 ? "s" : ""}`} />
-            <Stat
-              value={totals.known}
-              label={focusCountLabel("known", totals.known)}
-              tone="text-success"
-            />
-            <Stat value={totals.due} label="à revoir" tone="text-accent-ink" />
-            <div className="min-w-[180px] flex-1">
-              <FocusBar
-                compact
-                total={totals.words}
-                known={totals.known}
-                priority={totals.priority}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+    <div className="mx-auto max-w-7xl px-6 pb-10 pt-5">
+      {/* LE TITRE RESTE, MAIS IL NE PREND PLUS DE PLACE.
+          Cette page portait « СЛОВАРЬ / Vocabulaire » en 36 px, trois
+          compteurs et une barre de progression — 130 px avant même d'arriver
+          à la liste, et les mêmes chiffres réapparaissaient 200 px plus bas
+          dans l'en-tête de liste, puis une troisième fois dans les puces de
+          filtre. Le nom de la liste ouverte fait un meilleur titre : il dit
+          où l'on est, ce que « Vocabulaire » ne disait pas.
+          Il reste ici pour les lecteurs d'écran, qui ont toujours besoin
+          d'un h1 pour annoncer la page. */}
+      <h1 className="sr-only">Vocabulaire</h1>
 
       {error && (
         <p className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2.5 font-display text-sm text-danger">
@@ -330,9 +313,192 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+      {/* ── La barre d'outils, collée sous la barre de navigation ─────────
+          TOUT CE QU'ON FAIT SOUVENT TIENT ICI : chercher, réviser, changer
+          de liste. C'était réparti sur 400 px de hauteur, dont 215 pour
+          quatre cartes qui décrivaient les modes de révision — une
+          documentation qu'on lit une fois et qu'on payait à chaque visite.
+          Les descriptions n'ont pas disparu : elles sont dans le menu du
+          bouton « Réviser », c'est-à-dire à l'endroit où l'on choisit.
+
+          Collante, avec le même décalage que les barres de /cours et
+          /exercices : sur deux cents mots, remonter en haut pour filtrer
+          est le geste qu'on fait le plus, et celui qu'on ne devrait pas
+          avoir à faire. */}
+      {activeList && (
+        <div className="sticky top-[calc(var(--nav-h)+0.5rem)] z-30 mb-5 rounded-2xl surface px-3 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-bg2/85">
+          <div className="flex flex-wrap items-center gap-2">
+            {editingName ? (
+              <form onSubmit={saveName} className="flex min-w-0 flex-1 items-center gap-2.5">
+                <ListTile name={activeList.name} className="h-9 w-9 shrink-0 text-sm" />
+                <input
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  autoFocus
+                  maxLength={80}
+                  onBlur={saveName}
+                  aria-label="Nom de la liste"
+                  className="min-w-0 flex-1 rounded-lg border border-accent bg-bg px-2.5 py-1.5 font-display text-lg font-extrabold text-text field-focus focus:outline-none"
+                />
+              </form>
+            ) : (
+              <Dropdown
+                align="left"
+                button={
+                  <>
+                    <ListTile name={activeList.name} className="h-9 w-9 shrink-0 text-sm" />
+                    <span className="min-w-0 text-left">
+                      <span className="block truncate font-display text-lg font-extrabold leading-tight">
+                        {activeList.name}
+                      </span>
+                      <span className="block font-display text-[11px] leading-tight text-muted">
+                        {activeList.wordCount} mot{activeList.wordCount === 1 ? "" : "s"}
+                        {dueCount > 0 && ` · ${dueCount} à réviser`}
+                      </span>
+                    </span>
+                    <Chevron />
+                  </>
+                }
+                buttonClassName="hover-surface flex min-w-0 max-w-full items-center gap-2.5 rounded-xl px-2 py-1.5"
+                label="Changer de liste"
+              >
+                {(close) => (
+                  <>
+                    {(lists ?? []).map((l) => (
+                      <button
+                        key={l.id}
+                        onClick={() => {
+                          setActiveId(l.id);
+                          close();
+                        }}
+                        className={`menu-item flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-display text-sm ${
+                          l.id === activeId ? "font-bold text-accent-ink" : "text-text"
+                        }`}
+                      >
+                        <ListTile name={l.name} className="h-7 w-7 shrink-0 text-[11px]" />
+                        <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                        <span className="shrink-0 font-display text-xs text-muted">
+                          {l.wordCount}
+                        </span>
+                      </button>
+                    ))}
+                    <div className="my-1 h-px bg-border" />
+                    <button
+                      onClick={() => {
+                        setShowCreate(true);
+                        close();
+                      }}
+                      className="menu-item flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-display text-sm font-semibold text-text"
+                    >
+                      <PlusIcon className="h-4 w-4 shrink-0" />
+                      Nouvelle liste
+                    </button>
+                  </>
+                )}
+              </Dropdown>
+            )}
+
+            <div className="ml-auto flex items-center gap-2">
+              {/* LA RECHERCHE EST ENFIN À CÔTÉ DE CE QU'ELLE FILTRE. Elle
+                  était à 500 px au-dessus des mots : on tapait sans voir le
+                  résultat. Elle filtre à la frappe, sans bouton ni validation. */}
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                type="search"
+                placeholder="Chercher…"
+                aria-label="Chercher un mot"
+                className="w-32 rounded-xl border border-border bg-bg px-3 py-2 font-display text-sm text-text placeholder:text-muted/60 field-focus focus:outline-none sm:w-52"
+              />
+
+              {activeList.wordCount > 0 && (
+                <Dropdown
+                  button={
+                    <>
+                      <span>Réviser</span>
+                      {dueCount > 0 && (
+                        <span className="rounded-full bg-on-tint/20 px-1.5 font-display text-[11px] font-bold">
+                          {dueCount}
+                        </span>
+                      )}
+                      <Chevron />
+                    </>
+                  }
+                  buttonClassName="btn btn-primary btn-sheen flex items-center gap-1.5 rounded-xl px-3.5 py-2 font-display text-sm font-bold"
+                  label="Choisir un mode de révision"
+                  width="w-[290px]"
+                >
+                  {(close) => (
+                    <>
+                      {REVIEW_MODES.map((m) => (
+                        <Link
+                          key={m.mode}
+                          href={`/vocabulary/${m.mode}?list=${activeList.id}`}
+                          onClick={close}
+                          className="menu-item flex items-start gap-3 rounded-[10px] p-2.5"
+                        >
+                          <span
+                            aria-hidden
+                            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bg3 text-muted"
+                          >
+                            <ModeIcon name={m.icon} />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block font-display text-sm font-bold text-text">
+                              {m.label}
+                            </span>
+                            <span className="block font-display text-[12px] leading-snug text-muted">
+                              {m.desc}
+                            </span>
+                          </span>
+                        </Link>
+                      ))}
+                    </>
+                  )}
+                </Dropdown>
+              )}
+
+              <Dropdown
+                button={<MoreDots />}
+                buttonClassName="hover-surface flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-muted"
+                label="Autres actions sur la liste"
+                width="w-[210px]"
+              >
+                {(close) => (
+                  <>
+                    <button
+                      onClick={() => {
+                        setNameDraft(activeList.name);
+                        setEditingName(true);
+                        close();
+                      }}
+                      className="menu-item block w-full rounded-[10px] px-3 py-2 text-left font-display text-sm text-text"
+                    >
+                      Renommer la liste
+                    </button>
+                    <button
+                      onClick={() => {
+                        setConfirmingDelete(true);
+                        close();
+                      }}
+                      className="menu-item flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left font-display text-sm text-danger"
+                    >
+                      <TrashIcon className="h-4 w-4 shrink-0" />
+                      Supprimer la liste
+                    </button>
+                  </>
+                )}
+              </Dropdown>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* ── Colonne des listes ─────────────────────────────────── */}
-        <aside className="lg:sticky lg:top-[calc(var(--nav-h)+1.5rem)] lg:h-[calc(100vh-var(--nav-h)-4rem)]">
+        {/* Décalée de la barre de navigation ET de la barre d'outils
+            (56 px + la gouttière), sans quoi elle se figerait dessous. */}
+        <aside className="lg:sticky lg:top-[calc(var(--nav-h)+4.5rem)] lg:h-[calc(100vh-var(--nav-h)-7rem)]">
           {lists === null ? (
             <div className="space-y-2">
               {[0, 1, 2, 3].map((i) => (
@@ -350,7 +516,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
           )}
         </aside>
 
-        {/* ── Panneau de la liste ouverte ─────────────────────────── */}
+        {/* ── Les mots ───────────────────────────────────────────── */}
         <section className="min-w-0">
           {lists !== null && lists.length === 0 ? (
             <EmptyState onCreate={() => setShowCreate(true)} />
@@ -361,235 +527,139 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-3xl surface">
-              {/* En-tête de la liste */}
-              <div className="border-b border-border px-6 py-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <ListTile name={activeList.name} className="h-11 w-11 text-base" />
-                    <div className="min-w-0">
-                      {editingName ? (
-                        <form onSubmit={saveName} className="flex items-center gap-2">
-                          <input
-                            value={nameDraft}
-                            onChange={(e) => setNameDraft(e.target.value)}
-                            autoFocus
-                            maxLength={80}
-                            onBlur={saveName}
-                            className="min-w-0 rounded-lg border border-accent bg-bg px-2 py-1 font-display text-2xl font-extrabold text-text field-focus focus:outline-none"
-                          />
-                        </form>
-                      ) : (
-                        <button
-                          onClick={() => setEditingName(true)}
-                          title="Cliquer pour renommer"
-                          className="group/name flex items-center gap-2 text-left"
-                        >
-                          <h2 className="truncate font-display text-2xl font-extrabold tracking-tight">
-                            {activeList.name}
-                          </h2>
-                          <span className="font-display text-sm text-muted opacity-0 transition-opacity group-hover/name:opacity-100">
-                            ✎
-                          </span>
-                        </button>
-                      )}
-                      <p className="font-display text-sm text-muted">
-                        {activeList.wordCount} mot{activeList.wordCount === 1 ? "" : "s"}
-                        {stats &&
-                          stats.known > 0 &&
-                          ` · ${stats.known} ${focusCountLabel("known", stats.known)}`}
-                        {stats &&
-                          stats.priority > 0 &&
-                          ` · ${stats.priority} ${focusCountLabel("priority", stats.priority)}`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Chercher…"
-                      aria-label="Chercher un mot"
-                      className="w-40 rounded-xl border border-border bg-bg px-3 py-2 font-display text-sm text-text transition-shadow duration-200 placeholder:text-muted/60 field-focus focus:outline-none"
-                    />
-                    {confirmingDelete ? (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={removeList}
-                          className="btn h-[38px] rounded-xl bg-danger px-3.5 font-display text-xs font-semibold text-white shadow-soft transition-all hover:brightness-110 active:translate-y-px"
-                        >
-                          Supprimer la liste
-                        </button>
-                        <button
-                          onClick={() => setConfirmingDelete(false)}
-                          className="font-display text-xs text-muted hover:text-text"
-                        >
-                          Annuler
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmingDelete(true)}
-                        aria-label="Supprimer la liste"
-                        title="Supprimer la liste"
-                        className="btn btn-danger h-[38px] w-[38px] shrink-0 rounded-xl"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {stats && stats.total > 0 && (
-                  <div className="mt-4">
-                    <FocusBar total={stats.total} known={stats.known} priority={stats.priority} />
-                  </div>
-                )}
-
-                {/* LES QUATRE MODES N'ÉTAIENT QU'UNE RANGÉE DE PASTILLES,
-                   sans titre ni phrase : rien ne disait qu'il s'agissait de
-                   réviser cette liste, ni ce qui distinguait « Frappe » de
-                   « QCM ». L'information vivait dans un `title=`, c'est-à-dire
-                   nulle part — invisible au tactile et au clavier. Elle est
-                   maintenant à l'écran, sous chaque mode. */}
-                {activeList.wordCount > 0 && (
-                  <div className="mt-6">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <h3 className="font-display text-sm font-bold">Réviser cette liste</h3>
-                      <span className="font-display text-xs text-muted">
-                        {activeList.wordCount}
-                        {" "}
-                        {activeList.wordCount > 1 ? "mots" : "mot"} · quatre façons
-                      </span>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                      {REVIEW_MODES.map((m) => (
-                        <Link
-                          key={m.mode}
-                          href={`/vocabulary/${m.mode}?list=${activeList.id}`}
-                          className="surface-interactive group flex items-start gap-3 rounded-xl p-3.5"
-                        >
-                          <span
-                            aria-hidden
-                            className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-bg3 text-muted transition-colors duration-200 group-hover:bg-accent/15 group-hover:text-accent-ink"
-                            style={{ transitionTimingFunction: "var(--ease)" }}
-                          >
-                            <ModeIcon name={m.icon} />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block font-display text-sm font-bold">{m.label}</span>
-                            <span className="block font-display text-[12.5px] leading-snug text-muted">
-                              {m.desc}
-                            </span>
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Ajout + filtres + mots */}
-              <div className="space-y-4 px-6 py-5">
-                {showAdd ? (
-                  <div className="animate-fade-in">
-                    <AddWordForm onAdd={handleAdd} />
-                    <button
-                      onClick={() => setShowAdd(false)}
-                      className="mt-2 font-display text-xs font-semibold text-muted hover:text-text"
-                    >
-                      Fermer
-                    </button>
-                  </div>
-                ) : (
-                  /* AJOUTER UN MOT EST L'ACTION PRINCIPALE DE CE MODULE,
-                     et elle était traitée comme une note de bas de page :
-                     un rectangle en pointillés gris, du même poids visuel
-                     qu'un filtre. Sans mot ajouté, tout le reste du module
-                     — révision, prononciation, explications — n'a rien à
-                     se mettre sous la dent. Elle se présente donc comme
-                     une carte pleine, avec un pictogramme, un titre et ce
-                     qu'elle apporte. */
-                  <button
-                    onClick={() => setShowAdd(true)}
-                    className="group flex w-full items-center gap-4 rounded-2xl border border-accent/25 bg-accent/[0.07] p-4 text-left transition-all duration-200 hover:border-accent/45 hover:bg-accent/[0.12] hover:shadow-card"
-                    style={{ transitionTimingFunction: "var(--ease)" }}
-                  >
-                    <span
-                      aria-hidden
-                      className="btn btn-primary btn-sheen flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-glow transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90"
-                      style={{ transitionTimingFunction: "var(--ease)" }}
-                    >
-                      <PlusIcon className="h-5 w-5" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-display text-[15px] font-bold text-text">
-                        Ajouter un mot
-                      </span>
-                      <span className="block font-display text-[13px] leading-snug text-muted">
-                        Tape en russe ou en français — la traduction, l&apos;accent tonique et la
-                        prononciation suivent.
-                      </span>
-                    </span>
-                  </button>
-                )}
-
-                {words !== null && words.length > 0 && (
-                  <div className="inline-flex rounded-full border border-border bg-bg p-1">
-                    {FILTERS.map((f) => (
+            <div className="space-y-4">
+              {/* LES PUCES PORTENT LEURS COMPTEURS, et remplacent à elles
+                  seules la ligne « 0 acquis · 2 normaux · 1 à travailler »
+                  ET la barre de progression qui la suivait : c'était trois
+                  fois la même ventilation, empilée. Les voir sur le filtre
+                  dit en plus ce qu'on va obtenir avant de cliquer. */}
+              {stats && stats.total > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {FILTERS.map((f) => {
+                    const n = f.id === "all" ? stats.total : stats[f.id];
+                    const on = filter === f.id;
+                    return (
                       <button
                         key={f.id}
                         onClick={() => setFilter(f.id)}
-                        className={`rounded-full px-3 py-1 font-display text-xs font-semibold transition-colors ${
-                          filter === f.id ? "bg-accent text-white" : "text-muted hover:text-text"
+                        aria-pressed={on}
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-display text-xs font-semibold transition-colors ${
+                          on
+                            ? "border-accent bg-accent text-on-tint"
+                            : "border-border text-muted hover:border-accent/35 hover:text-text"
                         }`}
                       >
                         {f.label}
+                        <span className={on ? "opacity-80" : "opacity-60"}>{n}</span>
                       </button>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
+              )}
 
-                {words === null ? (
-                  <ListRowsSkeleton />
-                ) : words.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center">
-                    <p className="font-display text-sm text-muted">
-                      Liste vide. Tape un mot russe : sa traduction, sa translittération et son
-                      accent tonique te sont proposés.
-                    </p>
-                    {!showAdd && (
-                      <button
-                        onClick={() => setShowAdd(true)}
-                        className="btn btn-primary btn-sheen mt-4 rounded-xl px-4 py-2 font-display text-sm"
-                      >
-                        Ajouter un premier mot
-                      </button>
-                    )}
-                  </div>
-                ) : visible && visible.length === 0 ? (
-                  <p className="px-2 py-6 font-display text-sm text-muted">
-                    Aucun mot ne correspond.
+              {/* AJOUTER EST UNE LIGNE DE LA LISTE, pas une bannière.
+                  La carte pleine coûtait 90 px en permanence pour une action
+                  qu'on déclenche une fois par mot ; en tête de liste, elle
+                  reste la première chose sous la main et laisse la place aux
+                  mots. Elle se déplie sur place. */}
+              {showAdd ? (
+                <div className="animate-fade-in rounded-2xl surface p-4">
+                  <AddWordForm onAdd={handleAdd} />
+                  <button
+                    onClick={() => setShowAdd(false)}
+                    className="mt-2 font-display text-xs font-semibold text-muted hover:text-text"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAdd(true)}
+                  className="group flex w-full items-center gap-3 rounded-2xl border border-dashed border-border px-4 py-3 text-left transition-colors hover:border-accent/45 hover:bg-accent/[0.06]"
+                >
+                  <span
+                    aria-hidden
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/12 text-accent-ink transition-transform duration-200 group-hover:rotate-90"
+                    style={{ transitionTimingFunction: "var(--ease)" }}
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </span>
+                  <span className="font-display text-sm font-semibold text-muted transition-colors group-hover:text-text">
+                    Ajouter un mot…
+                  </span>
+                </button>
+              )}
+
+              {words === null ? (
+                <ListRowsSkeleton />
+              ) : words.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center">
+                  <p className="font-display text-sm text-muted">
+                    Liste vide. Tape un mot russe : sa traduction, sa translittération et son
+                    accent tonique te sont proposés.
                   </p>
-                ) : (
-                  <div className="space-y-2.5">
-                    {visible?.map((w) => (
-                      <WordCard
-                        key={w.id}
-                        word={w}
-                        onDelete={removeWord}
-                        onFocusChange={changeFocus}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : visible && visible.length === 0 ? (
+                <p className="px-2 py-6 font-display text-sm text-muted">
+                  Aucun mot ne correspond.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {visible?.map((w) => (
+                    <WordCard
+                      key={w.id}
+                      word={w}
+                      onDelete={removeWord}
+                      onFocusChange={changeFocus}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </section>
       </div>
+
+      {/* LA SUPPRESSION D'UNE LISTE PASSE PAR UN DIALOGUE, depuis qu'elle est
+          entrée dans un menu : une confirmation en ligne dans la barre
+          d'outils aurait fait sauter la mise en page, et un geste
+          irréversible mérite mieux qu'un second bouton au même endroit que
+          le premier. */}
+      <Modal
+        open={confirmingDelete}
+        onClose={() => setConfirmingDelete(false)}
+        title="Supprimer cette liste ?"
+        description={
+          activeList
+            ? `« ${activeList.name} » et ses ${activeList.wordCount} mot${activeList.wordCount === 1 ? "" : "s"} seront perdus. C'est définitif.`
+            : undefined
+        }
+        icon={
+          <span
+            aria-hidden
+            className="flex h-14 w-14 items-center justify-center rounded-xl bg-danger/12 text-danger"
+          >
+            <TrashIcon className="h-6 w-6" />
+          </span>
+        }
+      >
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(false)}
+            className="rounded-xl border border-border px-4 py-2.5 font-display text-sm font-semibold text-muted transition-colors hover:border-muted hover:text-text"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={removeList}
+            className="btn rounded-xl bg-danger px-5 py-2.5 font-display text-sm font-semibold text-on-tint transition-[filter] hover:brightness-110"
+          >
+            Supprimer
+          </button>
+        </div>
+      </Modal>
 
       <Modal
         open={showCreate}
@@ -662,20 +732,106 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
   );
 }
 
-function Stat({
-  value,
+/**
+ * Un menu déroulant, pour la barre d'outils.
+ *
+ * POURQUOI UN COMPOSANT LOCAL. `components/ui/Select.tsx` choisit UNE valeur
+ * dans une liste ; ici les trois menus font autre chose — naviguer vers un
+ * mode de révision, renommer, supprimer. Un sélecteur détourné en menu
+ * d'actions ment sur son rôle, et il faudrait lui apprendre les liens.
+ *
+ * Il ferme au clic ailleurs et à Échap : sans ça il reste ouvert par-dessus
+ * la page, et au clavier on s'y trouve enfermé. `children` reçoit la
+ * fonction de fermeture, pour que chaque entrée referme après avoir agi.
+ */
+function Dropdown({
+  button,
+  buttonClassName,
   label,
-  tone = "text-text",
+  children,
+  align = "right",
+  width = "w-[240px]",
 }: {
-  value: number;
+  button: React.ReactNode;
+  buttonClassName: string;
   label: string;
-  tone?: string;
+  children: (close: () => void) => React.ReactNode;
+  align?: "left" | "right";
+  width?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (root.current && !root.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div>
-      <p className={`font-display text-2xl font-extrabold leading-none ${tone}`}>{value}</p>
-      <p className="mt-1 font-display text-xs uppercase tracking-wide text-muted">{label}</p>
+    <div ref={root} className="relative min-w-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={label}
+        title={label}
+        className={buttonClassName}
+      >
+        {button}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className={`modal-panel animate-pop-in absolute top-full z-50 mt-2 ${width} max-w-[calc(100vw-3rem)] overflow-hidden rounded-[14px] p-1.5 ${
+            align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right"
+          }`}
+        >
+          {children(() => setOpen(false))}
+        </div>
+      )}
     </div>
+  );
+}
+
+/** Le chevron des boutons à menu. Tourné vers le bas, sans animation : il
+ *  indique qu'il y a un menu, il ne raconte pas son état. */
+function Chevron() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0 opacity-60"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+/** Les trois points des actions secondaires. */
+function MoreDots() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+      <circle cx="5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="19" cy="12" r="1.8" />
+    </svg>
   );
 }
 
