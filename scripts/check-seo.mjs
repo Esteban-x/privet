@@ -83,9 +83,24 @@ function readArray(name) {
 }
 const publicPaths = readArray("PUBLIC_PATHS");
 const indexOnly = readArray("INDEX_ONLY");
+const previewPaths = readArray("PREVIEW_PATHS");
 if (publicPaths.length === 0) throw new Error("proxy.ts : PUBLIC_PATHS lu vide");
 
+/**
+ * « Atteignable sans session », du point de vue d'un robot.
+ *
+ * PREVIEW_PATHS COMPTE ICI AU MÊME TITRE QUE PUBLIC_PATHS. Les deux listes
+ * diffèrent sur un point qui ne concerne que les comptes — un membre non
+ * finalisé est renvoyé vers /onboarding depuis un chemin d'aperçu, pas
+ * depuis un chemin public (voir proxy.ts). Un robot n'a jamais de session :
+ * pour lui les deux se valent, et c'est cette lecture-là que le plan du
+ * site doit refléter.
+ *
+ * Comparaison EXACTE pour les aperçus, comme dans proxy.ts : /reading est
+ * ouverte, /reading/[id] non.
+ */
 function isPublic(route) {
+  if (previewPaths.includes(route)) return true;
   return publicPaths.some(
     (p) => route === p || (route.startsWith(`${p}/`) && !indexOnly.includes(p))
   );

@@ -88,6 +88,27 @@ const PUBLIC_PATHS = [
  */
 const INDEX_ONLY = ["/alphabet", "/conjugation", "/numbers"];
 
+/**
+ * Les deux accueils qui servent une DÉMONSTRATION à un visiteur et l'espace
+ * personnel à un membre — /reading et /vocabulary (voir ReadingPreview et
+ * VocabularyPreview).
+ *
+ * POURQUOI PAS SIMPLEMENT DANS PUBLIC_PATHS. Ça a été la première version,
+ * et elle ouvrait un trou : `isPublic` ne dispense pas seulement de la
+ * session, il dispense AUSSI du passage obligé par l'onboarding, plus bas.
+ * Un compte inscrit mais non finalisé — pas de niveau, pas de thèmes —
+ * serait entré dans son atelier de vocabulaire par cette porte, alors que
+ * toutes les autres routes continuaient de le renvoyer vers /onboarding. Il
+ * se serait retrouvé dans un état mi-figue mi-raisin, sur ces deux pages
+ * seulement.
+ *
+ * Les deux règles sont donc distinctes : ces chemins ne demandent pas de
+ * session, mais dès qu'il y en a une, l'onboarding s'applique comme
+ * partout. Comparaison EXACTE, jamais par préfixe : /reading/[id],
+ * /reading/mine et les quatre modes de /vocabulary restent fermés.
+ */
+const PREVIEW_PATHS = ["/reading", "/vocabulary"];
+
 // Routes accessibles à un utilisateur connecté même s'il n'a pas terminé
 // l'onboarding : l'onboarding lui-même, et les API qu'il appelle pour
 // s'enregistrer. Sans cette liste, le garde-fou ci-dessous provoquerait une
@@ -149,7 +170,11 @@ export default async function proxy(request: NextRequest) {
     (p) => path === p || (path.startsWith(p + "/") && !INDEX_ONLY.includes(p))
   );
 
-  if (!user && !isPublic) {
+  // Une page d'aperçu se visite sans session — mais elle n'est pas
+  // « publique » au sens de la règle d'onboarding ci-dessous.
+  const isPreview = PREVIEW_PATHS.includes(path);
+
+  if (!user && !isPublic && !isPreview) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", path);

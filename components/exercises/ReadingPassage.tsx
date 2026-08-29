@@ -13,9 +13,23 @@ import { CASES } from "@/lib/grammar/cases";
 export default function ReadingPassage({
   text,
   onCompleted,
+  readOnly = false,
 }: {
   text: ReadingText;
   onCompleted?: () => void;
+  /**
+   * Retire le bouton « J'ai terminé ce texte ».
+   *
+   * POUR LA DÉMONSTRATION SERVIE AUX VISITEURS (voir ReadingPreview) : le
+   * bouton enregistre une progression, ce qui demande un compte. Sans
+   * compte l'appel part quand même, se fait rediriger vers /login, et le
+   * `catch` best-effort affiche « ✓ Texte terminé » — l'app confirmerait
+   * un enregistrement qui n'a pas eu lieu.
+   *
+   * Le reste du composant est pur : c'est donc le VRAI lecteur qu'on
+   * montre, mots cliquables et couleurs de cas compris, pas une maquette.
+   */
+  readOnly?: boolean;
 }) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [completion, setCompletion] = useState<"idle" | "saving" | "done">("idle");
@@ -155,6 +169,7 @@ export default function ReadingPassage({
         ))}
       </div>
 
+      {!readOnly && (
       <div className="mt-6 flex justify-end border-t border-border pt-5">
         {completion === "done" ? (
           <span className="font-display text-sm font-semibold text-accent">✓ Texte terminé</span>
@@ -168,6 +183,7 @@ export default function ReadingPassage({
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

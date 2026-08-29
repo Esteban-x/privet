@@ -39,6 +39,9 @@ const STATIC_PAGES: Entry[] = [
   { path: "/cases", priority: 0.9, changeFrequency: "monthly" },
   // Le catalogue des exercices : la page qui énumère ce que l'app fait.
   { path: "/exercices", priority: 0.8, changeFrequency: "monthly" },
+  // Les deux accueils qui montrent une démonstration à un visiteur.
+  { path: "/reading", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/vocabulary", priority: 0.7, changeFrequency: "monthly" },
   { path: "/alphabet", priority: 0.8, changeFrequency: "monthly" },
   { path: "/conjugation", priority: 0.8, changeFrequency: "monthly" },
   { path: "/numbers", priority: 0.7, changeFrequency: "monthly" },

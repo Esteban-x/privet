@@ -50,8 +50,12 @@ export default function robots(): MetadataRoute.Robots {
           "/onboarding",
           "/level-test",
           "/reset-password",
-          "/vocabulary",
-          "/reading",
+          // LA BARRE FINALE, comme pour /alphabet plus bas : les deux
+          // accueils sont publics et portent une démonstration à indexer —
+          // un texte russe glosé mot à mot, une carte de révision — mais
+          // leur descendance reste des espaces personnels en redirection.
+          "/vocabulary/",
+          "/reading/",
           // Les modules d'entraînement. Tous protégés, donc tous en
           // redirection pour un robot — et sans contenu à indexer de toute
           // façon : un exercice est un formulaire, pas un texte.

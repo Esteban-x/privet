@@ -94,12 +94,14 @@ export default function BottomNav({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
   if (isSession(pathname)) return null;
 
-  // Sur l'accueil, un visiteur n'a rien à naviguer : la page est une
-  // démonstration qui porte ses propres appels à l'action, et un bandeau
-  // d'onglets par-dessus donnerait à une page de vente l'air d'une app
-  // qu'on n'a pas encore choisie.
-  if (!signedIn && pathname === "/") return null;
-
+  // L'ACCUEIL FAISAIT EXCEPTION POUR UN VISITEUR, et c'était le mauvais
+  // calcul. L'idée — une page de vente n'a pas à ressembler à une app qu'on
+  // n'a pas choisie — supposait que le visiteur repart d'où il vient. En
+  // pratique il ARRIVE là, par une recherche ou un lien, et sur téléphone il
+  // n'avait alors AUCUNE navigation : ni bandeau, ni menu replié, la barre du
+  // haut ne portant ses liens qu'au-delà de 1024 px. La seule sortie était le
+  // corps de la page. Une page de vente sans navigation ne vend pas mieux,
+  // elle enferme.
   const tabs = signedIn ? MEMBER_TABS : VISITOR_TABS;
 
   return (
