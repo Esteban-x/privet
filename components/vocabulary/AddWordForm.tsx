@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   suggestTranslation,
   type CustomVocabWord,
@@ -141,8 +141,19 @@ export default function AddWordForm({
    * le formulaire, ce qui est l'un des pires défauts d'accessibilité qu'on
    * puisse introduire.
    */
-  function onFieldKeyDown(e: React.KeyboardEvent<HTMLInputElement>, side: "ru" | "fr") {
-    if (openList !== side || completions.length === 0) return;
+  function onFieldKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, side: "ru" | "fr") {
+    // ENTRÉE ENVOIE, ELLE NE SAUTE PAS DE LIGNE. Le champ est un
+    // <textarea> parce qu'il doit grandir ; il reste une ligne de
+    // saisie, et un retour chariot n'a rien à faire dans un mot ni dans
+    // une expression. (Quand la liste de complétions est ouverte, le
+    // bloc ci-dessous intercepte Entrée avant, pour choisir.)
+    if (openList !== side || completions.length === 0) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        e.currentTarget.form?.requestSubmit();
+      }
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIndex((i) => (i + 1) % completions.length);
@@ -165,7 +176,7 @@ export default function AddWordForm({
 
   const [submitting, setSubmitting] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
-  const firstInput = useRef<HTMLInputElement>(null);
+  const firstInput = useRef<HTMLTextAreaElement>(null);
   // « L'apprenant a-t-il écrit dans ce champ ? » est une information de
   // saisie : en refs, elles sont lues à jour dans le callback de la requête
   // sans le relancer à chaque frappe.
@@ -446,7 +457,15 @@ export default function AddWordForm({
   );
 
   return (
-    <form onSubmit={submit} className={bare ? "" : "surface rounded-2xl p-6"}>
+    // EN FEUILLE, LE FORMULAIRE PREND TOUTE LA HAUTEUR pour que son bouton
+    // se cale en bas. Sans ça, les deux champs et le bouton s'entassaient en
+    // haut d'un écran vide aux trois quarts, ce qui n'a l'air ni voulu ni
+    // fini — et laissait le seul bouton d'action au milieu de nulle part,
+    // hors de portée du pouce.
+    <form
+      onSubmit={submit}
+      className={bare ? "flex min-h-full flex-col" : "surface rounded-2xl p-6"}
+    >
       {bare ? (
         // Le dialogue porte le titre ; il ne reste à annoncer que le
         // résultat du dernier ajout, qui est ce qui dit qu'on peut
@@ -552,11 +571,17 @@ export default function AddWordForm({
          occupent la même case de grille et se croisent en fondu, sans que la
          largeur du texte ni la hauteur de la ligne ne bougent. Remplacer le
          mot faisait clignoter le bouton à chaque ajout. */}
+      {/* `mt-auto` colle le bouton en bas ; cet espaceur garantit l'écart
+          minimal avec ce qui précède quand le formulaire est court. */}
+      {bare && <div aria-hidden className="h-6 shrink-0" />}
+
       <button
         type="submit"
         disabled={submitting || !ru.trim() || !fr.trim()}
         aria-busy={submitting}
-        className={`btn btn-primary btn-sheen mt-5 grid h-12 w-full place-items-center rounded-xl px-4 font-display text-sm ${
+        className={`btn btn-primary btn-sheen grid h-12 w-full place-items-center rounded-xl px-4 font-display text-sm ${
+          bare ? "mt-auto" : "mt-5"
+        } ${
           submitting ? "cursor-wait" : "disabled:cursor-not-allowed disabled:opacity-40"
         }`}
       >
@@ -582,6 +607,75 @@ export default function AddWordForm({
   );
 }
 
+/**
+ * Le plafond d'un champ, ici comme côté serveur (app/api/vocab/words).
+ *
+ * 200 SUFFISAIT POUR UN MOT, PAS POUR UNE EXPRESSION. On colle aussi des
+ * tournures — « Что вы хотите вместо этого » — et parfois une phrase
+ * entière trouvée dans un texte. 400 les couvre sans ouvrir la porte au
+ * paragraphe : chaque caractère finit lu à voix haute par la synthèse, qui
+ * se facture au caractère.
+ */
+const FIELD_MAX = 400;
+
+/**
+ * La taille du texte décroît avec sa longueur, comme dans un traducteur.
+ *
+ * POURQUOI PAS UNE TAILLE FIXE. Un mot de six lettres dans un champ pleine
+ * largeur a besoin d'air ; une phrase de trois lignes a besoin de tenir.
+ * Servir la même taille aux deux, c'est choisir lequel des deux cas sera
+ * mal servi. Les paliers sont larges : la taille change une fois, pas à
+ * chaque frappe.
+ */
+function sizeFor(value: string): string {
+  if (value.length > 120) return "text-[13px]";
+  if (value.length > 60) return "text-sm";
+  return "text-base";
+}
+
+/**
+ * `useLayoutEffect` côté navigateur, `useEffect` au rendu serveur.
+ *
+ * La hauteur doit être posée AVANT la peinture, sinon un collage de trois
+ * lignes s'affiche une image sur une seule, puis saute. Mais React avertit
+ * si `useLayoutEffect` s'exécute au rendu serveur, où il ne peut rien
+ * mesurer — d'où l'aiguillage, fait une seule fois au chargement du module.
+ */
+const useIsoLayoutEffect = typeof document === "undefined" ? useEffect : useLayoutEffect;
+
+/**
+ * La hauteur suit le contenu, jusqu'au plafond posé par `max-h-64`.
+ *
+ * LA RÉFÉRENCE EST CRÉÉE ICI et rendue à l'appelant, plutôt que reçue en
+ * paramètre : le compilateur React traite les paramètres d'une fonction
+ * comme non modifiables, et écrire dans le nœud qu'ils désignent lui fait
+ * signaler « `box` cannot be modified ». Née dans le hook, elle lui
+ * appartient.
+ */
+function useAutoSize(value: string) {
+  const box = useRef<HTMLTextAreaElement>(null);
+  useIsoLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    // Remis à zéro d'abord : sans ça, `scrollHeight` ne redescend jamais
+    // quand on efface du texte, puisqu'il inclut la hauteur déjà imposée.
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return box;
+}
+
+/** Deux références sur un même nœud : celle du parent, et la nôtre. */
+function mergeRefs(
+  outer: React.RefObject<HTMLTextAreaElement | null> | undefined,
+  inner: React.RefObject<HTMLTextAreaElement | null>
+) {
+  return (el: HTMLTextAreaElement | null) => {
+    inner.current = el;
+    if (outer) outer.current = el;
+  };
+}
+
 function Field({
   inputRef,
   label,
@@ -599,7 +693,7 @@ function Field({
   listId,
   spellCheck = true,
 }: {
-  inputRef?: React.RefObject<HTMLInputElement | null>;
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
   label: string;
   value: string;
   placeholder: string;
@@ -607,7 +701,7 @@ function Field({
   badge: React.ReactNode;
   loading: boolean;
   onChange: (value: string) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onBlur?: () => void;
   onFocus?: () => void;
   /** Le menu de complétion, positionné par le <label> relatif. */
@@ -616,6 +710,8 @@ function Field({
   listId?: string;
   spellCheck?: boolean;
 }) {
+  const box = useAutoSize(value);
+
   return (
     // `relative` : c'est ce bloc qui ancre le menu de complétion, pas la
     // grille — sinon le menu se placerait par rapport aux deux colonnes et
@@ -631,8 +727,9 @@ function Field({
           badge
         )}
       </span>
-      <input
-        ref={inputRef}
+      <textarea
+        ref={mergeRefs(inputRef, box)}
+        rows={1}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
@@ -649,12 +746,16 @@ function Field({
         placeholder={placeholder}
         autoComplete="off"
         spellCheck={spellCheck}
-        maxLength={200}
+        maxLength={FIELD_MAX}
         /* Le focus se signale par un ANNEAU en plus de la bordure : sur un
            champ, la seule bordure qui change de teinte est trop discrète
            pour dire où l'on tape, surtout en thème clair. L'anneau est en
-           `box-shadow`, donc il ne déplace rien. */
-        className={`h-12 w-full rounded-xl border bg-bg px-4 font-display text-base text-text transition-shadow duration-200 placeholder:text-muted/50 field-focus focus:outline-none ${
+           `box-shadow`, donc il ne déplace rien.
+
+           `resize-none` et `overflow-hidden` : la hauteur est pilotée par
+           le contenu (voir `useAutoSize`), pas par la poignée du navigateur
+           ni par une barre de défilement interne. */
+        className={`block max-h-64 min-h-12 w-full resize-none overflow-hidden rounded-xl border bg-bg px-4 py-3 font-display leading-snug text-text transition-shadow duration-200 placeholder:text-muted/50 field-focus focus:outline-none ${sizeFor(value)} ${
           suggested ? "border-accent2/60" : "border-border"
         }`}
         style={{ transitionTimingFunction: "var(--ease)" }}

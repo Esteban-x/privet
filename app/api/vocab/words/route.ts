@@ -85,8 +85,8 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const listId = typeof body.listId === "string" ? body.listId : "";
-  const ru = field(body, "ru", 100);
-  const fr = field(body, "fr", 200);
+  const ru = field(body, "ru", 400);
+  const fr = field(body, "fr", 400);
   if (!listId || !ru || !fr) {
     return NextResponse.json({ error: "listId, ru et fr sont requis" }, { status: 400 });
   }
