@@ -68,7 +68,17 @@ export default function WordCard({
             avec un mot long, le groupe de commandes passe proprement à la
             ligne au lieu de comprimer le libellé jusqu'à l'illisible. */}
         <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-          <span className="shrink-0 font-display text-[11px] font-semibold uppercase tracking-[0.06em] text-muted/70">
+          {/* LE LIBELLÉ DISPARAÎT SOUS 640 px, ET IL NE MANQUE À PERSONNE.
+              Il est identique sur CHAQUE carte — toutes les listes vont du
+              russe au français — donc il ne distingue rien : c'est une
+              étiquette de colonne recopiée sur chaque ligne. Sur grand
+              écran elle a son utilité, les deux langues étant côte à côte et
+              rien d'autre ne disant laquelle est laquelle. Sur téléphone
+              elles s'empilent, l'alphabet suffit à les séparer, et ses
+              105 px étaient exactement ce qui faisait déborder la rangée de
+              commandes sur une deuxième ligne — donc une rangée de plus par
+              mot, sur toute la liste. */}
+          <span className="hidden shrink-0 font-display text-[11px] font-semibold uppercase tracking-[0.06em] text-muted/70 sm:inline">
             Russe → Français
           </span>
 
