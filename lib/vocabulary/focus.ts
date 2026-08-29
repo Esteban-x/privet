@@ -35,7 +35,7 @@ export const FOCUS_META: Record<
     short: "à travailler",
     icon: "★",
     dot: "bg-accent",
-    text: "text-accent",
+    text: "text-accent-ink",
     bar: "bg-accent",
     active: "bg-accent text-white",
     hint: "Toujours proposé en premier dans les révisions",
