@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Un menu déroulant : un bouton, un panneau d'actions.
@@ -45,6 +45,52 @@ export default function Dropdown({
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
+  /**
+   * Décalage horizontal pour que le panneau tienne dans la fenêtre.
+   *
+   * POURQUOI UNE MESURE, ET PAS UNE LARGEUR MAXIMALE. Le panneau est ancré
+   * sur son bouton ; ce qui décide s'il déborde, c'est la POSITION de ce
+   * bouton, que le CSS ne connaît pas. Un menu de 290 px ancré à droite d'un
+   * bouton situé à 320 px du bord gauche part à −12 px : c'est ce qui
+   * arrivait au menu « Réviser » sur téléphone, dont les quatre modes se
+   * lisaient « rtes / appe / CM / ix ». Un `max-width` en `vw` ne pouvait
+   * pas le rattraper, puisqu'il ignore où commence le bouton.
+   */
+  const [shift, setShift] = useState(0);
+
+  /**
+   * La mesure se fait dans une RÉFÉRENCE-FONCTION, pas dans un effet.
+   *
+   * C'est le moment prévu pour lire la géométrie : elle est appelée pendant
+   * la validation du rendu, avant que le navigateur ne peigne, donc le
+   * panneau n'apparaît jamais à la mauvaise place. Un `useEffect` qui pose
+   * un état déclenche en plus un second rendu en cascade, ce que le linter
+   * refuse à juste titre.
+   */
+  const measure = useCallback((el: HTMLDivElement | null) => {
+    if (!el) {
+      setShift(0);
+      return;
+    }
+    const margin = 8;
+    const box = el.getBoundingClientRect();
+    // `animate-pop-in` peut être à `scale(0.97)` au moment de la mesure, avec
+    // `transform-origin: top` — donc une origine horizontale CENTRÉE, et une
+    // boîte rétrécie symétriquement. `offsetWidth` ignore les
+    // transformations : l'écart entre les deux donne la correction exacte,
+    // et vaut zéro si l'animation n'a pas encore commencé.
+    const bleed = (el.offsetWidth - box.width) / 2;
+    const left = box.left - bleed;
+    const right = box.right + bleed;
+    if (left < margin) setShift(margin - left);
+    else if (right > window.innerWidth - margin) {
+      setShift(window.innerWidth - margin - right);
+    }
+  }, []);
+
+  // Un menu déplié doit se refermer sur un clic ailleurs et sur Échap : sans
+  // ça il reste ouvert par-dessus la page, et au clavier on s'y trouve
+  // enfermé.
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e: MouseEvent) {
@@ -76,8 +122,20 @@ export default function Dropdown({
       </button>
       {open && (
         <div
+          ref={measure}
           role="menu"
-          className={`modal-panel animate-pop-in absolute top-full z-50 mt-2 ${width} max-w-[calc(100vw-3rem)] overflow-hidden rounded-[14px] p-1.5 ${
+          // LE DÉCALAGE PASSE PAR UNE MARGE, PAS PAR `transform` :
+          // `animate-pop-in` anime justement `transform` en `fill-mode: both`,
+          // et une animation l'emporte sur un style en ligne — le décalage
+          // aurait été effacé au premier rendu.
+          style={
+            shift
+              ? align === "right"
+                ? { marginRight: -shift }
+                : { marginLeft: shift }
+              : undefined
+          }
+          className={`modal-panel animate-pop-in absolute top-full z-50 mt-2 ${width} max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[14px] p-1.5 ${
             align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right"
           }`}
         >

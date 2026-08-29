@@ -385,7 +385,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                   </form>
                 </div>
               ) : (
-                <div className="sticky top-[calc(var(--nav-h)+0.5rem)] z-30 mb-4 flex flex-col gap-2 rounded-2xl surface px-3 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-bg2/85 sm:flex-row sm:items-center">
+                <div className="sticky top-[calc(var(--nav-h)+0.5rem)] z-30 mb-4 flex flex-col gap-1.5 rounded-2xl surface px-2.5 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg2/85 sm:flex-row sm:items-center sm:gap-2 sm:px-3 sm:py-2.5">
                   <div className="relative min-w-0 flex-1">
                     <SearchGlyph className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                     <input
@@ -399,7 +399,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                       // utile.
                       placeholder={`Chercher dans « ${activeList.name} »`}
                       aria-label={`Chercher un mot dans ${activeList.name}`}
-                      className="w-full rounded-xl border border-border bg-bg py-2.5 pl-10 pr-9 font-display text-sm text-text placeholder:text-muted/60 field-focus focus:outline-none"
+                      className="w-full rounded-xl border border-border bg-bg py-2 pl-10 pr-9 font-display text-sm text-text placeholder:text-muted/60 field-focus focus:outline-none sm:py-2.5"
                     />
                     {query && (
                       <button
@@ -422,9 +422,9 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                     <button
                       type="button"
                       onClick={() => setShowAdd(true)}
-                      className="btn btn-primary btn-sheen flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 font-display text-sm font-bold"
+                      className="btn btn-primary btn-sheen flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2.5 font-display text-[13px] font-bold sm:h-9 sm:px-3 sm:text-sm"
                     >
-                      <PlusIcon className="h-4 w-4" />
+                      <PlusIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       Ajouter
                     </button>
 
@@ -441,7 +441,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                             )}
                           </>
                         }
-                        buttonClassName="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 font-display text-sm font-bold text-accent-ink transition-colors hover:border-accent/60 hover:bg-accent/15"
+                        buttonClassName="flex h-8 shrink-0 items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 px-2.5 font-display text-[13px] font-bold text-accent-ink transition-colors hover:border-accent/60 hover:bg-accent/15 sm:h-9 sm:px-3 sm:text-sm"
                         label="Choisir un mode de révision"
                         width="w-[290px]"
                       >
@@ -493,7 +493,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
 
                     <Dropdown
                       button={<MoreDots />}
-                      buttonClassName="hover-surface flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted"
+                      buttonClassName="hover-surface flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-muted sm:h-9 sm:w-9"
                       label="Listes et réglages"
                       width="w-[250px]"
                     >
