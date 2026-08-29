@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   addWord,
@@ -70,6 +71,30 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
 
   const activeList = lists?.find((l) => l.id === activeId) ?? null;
 
+  /**
+   * UNE NAVIGATION VERS /vocabulary REMET LES LISTES DEVANT.
+   *
+   * C'est le cas du bandeau du bas : on est dans une liste, on tape
+   * « Vocabulaire », et on doit retomber sur ses listes. Sans ceci, rien ne
+   * bougeait — React réconcilie le même composant au même endroit et garde
+   * son état, si bien que l'adresse changeait sans que l'écran suive.
+   *
+   * On compare à la DERNIÈRE VALEUR VUE, pas à la valeur courante : la
+   * sélection écrit elle-même `?list=` par `replaceState`, que le routeur
+   * de Next n'observe pas. `useSearchParams` ne bouge donc que sur une vraie
+   * navigation — exactement les cas où l'adresse doit faire autorité.
+   *
+   * Comparaison pendant le rendu plutôt que dans un effet, comme ailleurs
+   * dans ce fichier : un effet qui pose un état provoque un rendu en
+   * cascade, et l'écran clignoterait sur l'ancienne liste.
+   */
+  const urlList = useSearchParams().get("list");
+  const [seenUrlList, setSeenUrlList] = useState(urlList);
+  if (urlList !== seenUrlList) {
+    setSeenUrlList(urlList);
+    setActiveId(urlList);
+  }
+
   function closeCreate() {
     setShowCreate(false);
     setNewName("");
@@ -85,6 +110,17 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
         setActiveId((current) => {
           if (current && d.lists.some((l) => l.id === current)) return current;
           if (d.lists.length === 0) return null;
+          // SOUS 1024 px, ON N'OUVRE RIEN. Les deux panneaux ne tiennent pas
+          // côte à côte sur un téléphone : ils y deviennent deux écrans
+          // successifs, et le premier est la liste des listes. Ouvrir la
+          // plus chargée d'office sautait cet écran — on arrivait dans une
+          // liste sans avoir choisi, et sans savoir qu'il y en avait
+          // d'autres.
+          //
+          // La mesure est faite ICI et pas au rendu : ce rappel s'exécute
+          // après le chargement des listes, donc côté navigateur, donc sans
+          // le moindre risque d'écart avec ce que le serveur a rendu.
+          if (!window.matchMedia("(min-width: 1024px)").matches) return null;
           return [...d.lists].sort((a, b) => b.dueCount - a.dueCount)[0].id;
         });
       })
@@ -295,6 +331,19 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
 
   const dueCount = activeList?.dueCount ?? 0;
 
+  /**
+   * MAÎTRE ET DÉTAIL, EN DEUX ÉCRANS SOUS 1024 px, côte à côte au-delà.
+   *
+   * C'est la sélection qui décide, pas un état de navigation en plus :
+   * l'adresse porte déjà `?list=`, donc un lien partagé ouvre le bon écran,
+   * le bouton « retour » du navigateur remonte aux listes, et il n'y a rien
+   * à garder synchronisé.
+   *
+   * Le cas « aucune liste » va au détail malgré tout : c'est lui qui porte
+   * l'invitation à en créer une, et le rail ne montrerait qu'un bouton seul.
+   */
+  const showDetail = Boolean(activeId) || (lists !== null && lists.length === 0);
+
   return (
     <div className="mx-auto max-w-7xl px-6 pb-10 pt-4">
       {/* LE TITRE RESTE, MAIS IL NE PREND PLUS DE PLACE.
@@ -322,7 +371,18 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
             passaient devant ce qu'on était venu lire. C'était la vraie
             raison pour laquelle il fallait défiler sur téléphone. On change
             de liste par le titre, qui est un menu. */}
-        <aside className="hidden lg:sticky lg:top-[calc(var(--nav-h)+0.5rem)] lg:block lg:h-[calc(100vh-var(--nav-h)-3rem)]">
+        <aside
+          className={`${
+            showDetail ? "hidden" : "block"
+          } lg:sticky lg:top-[calc(var(--nav-h)+0.5rem)] lg:block lg:h-[calc(100vh-var(--nav-h)-3rem)]`}
+        >
+          {/* Sur téléphone ce panneau EST la page : il lui faut son titre.
+              Au-delà de 1024 px il n'est qu'une colonne à côté des mots, et
+              le titre y ferait double emploi avec le nom de la liste
+              ouverte. */}
+          <h2 className="mb-4 font-display text-2xl font-extrabold tracking-tight lg:hidden">
+            Vocabulaire
+          </h2>
           {lists === null ? (
             <div className="space-y-2">
               {[0, 1, 2, 3].map((i) => (
@@ -341,7 +401,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
         </aside>
 
         {/* ── Les mots ───────────────────────────────────────────── */}
-        <section className="min-w-0">
+        <section className={`min-w-0 ${showDetail ? "block" : "hidden"} lg:block`}>
           {lists !== null && lists.length === 0 ? (
             <EmptyState onCreate={() => setShowCreate(true)} />
           ) : !activeList ? (
@@ -386,6 +446,22 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
                 </div>
               ) : (
                 <div className="sticky top-[calc(var(--nav-h)+0.5rem)] z-30 mb-4 flex flex-col gap-1.5 rounded-2xl surface px-2.5 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg2/85 sm:flex-row sm:items-center sm:gap-2 sm:px-3 sm:py-2.5">
+                  {/* LE RETOUR N'EXISTE QUE LÀ OÙ IL Y A QUELQUE CHOSE À
+                      QUITTER. Au-delà de 1024 px les listes sont déjà à
+                      gauche, en permanence : une flèche qui « remonte » vers
+                      une colonne visible ne veut rien dire. Elle vide la
+                      sélection, donc l'adresse perd son `?list=` et un
+                      rechargement rouvre bien les listes. */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveId(null)}
+                    aria-label="Revenir à mes listes"
+                    title="Mes listes"
+                    className="hover-surface flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-muted sm:h-9 sm:w-9 lg:hidden"
+                  >
+                    <BackGlyph />
+                  </button>
+
                   <div className="relative min-w-0 flex-1">
                     <SearchGlyph className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                     <input
@@ -760,6 +836,24 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
         </form>
       </Modal>
     </div>
+  );
+}
+
+/** La flèche de retour vers la liste des listes, sur téléphone. */
+function BackGlyph() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+    >
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
   );
 }
 
