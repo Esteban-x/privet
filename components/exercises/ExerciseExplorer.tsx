@@ -73,7 +73,7 @@ export default function ExerciseExplorer({
   return (
     <div>
       {/* ── Filtres ──────────────────────────────────────────────── */}
-      <div className="sticky top-2 z-20 mb-8 rounded-3xl surface/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-bg2/80">
+      <div className="sticky top-[calc(var(--nav-h)+0.5rem)] z-20 mb-8 rounded-3xl surface/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-bg2/80">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}

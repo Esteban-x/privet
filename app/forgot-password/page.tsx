@@ -31,7 +31,7 @@ export default async function ForgotPasswordPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md flex-col justify-center px-6 py-10">
+    <div className="mx-auto flex min-h-[calc(100vh-var(--nav-h))] max-w-md flex-col justify-center px-6 py-10">
       <div className="rounded-[20px] surface p-8 shadow-float">
         <div className="mb-7 text-center">
           <Logo className="mx-auto h-9 w-9" />

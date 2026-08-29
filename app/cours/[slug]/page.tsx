@@ -205,7 +205,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           {/* ── Sommaire ─────────────────────────────────────────── */}
           {toc.length > 1 && (
             <aside className="hidden lg:block">
-              <div className="sticky top-6">
+              <div className="sticky top-[calc(var(--nav-h)+1.5rem)]">
                 <p className="mb-3 font-display text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                   Dans cette leçon
                 </p>

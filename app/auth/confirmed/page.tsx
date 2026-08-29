@@ -18,7 +18,7 @@ export default async function ConfirmedPage({
   const continueHref = safeNext(next);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md flex-col justify-center px-6 py-10">
+    <div className="mx-auto flex min-h-[calc(100vh-var(--nav-h))] max-w-md flex-col justify-center px-6 py-10">
       <div className="rounded-[20px] surface p-8 text-center shadow-float">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/15 text-2xl text-success">
           ✓

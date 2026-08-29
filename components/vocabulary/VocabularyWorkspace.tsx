@@ -332,7 +332,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         {/* ── Colonne des listes ─────────────────────────────────── */}
-        <aside className="lg:sticky lg:top-6 lg:h-[calc(100vh-8rem)]">
+        <aside className="lg:sticky lg:top-[calc(var(--nav-h)+1.5rem)] lg:h-[calc(100vh-var(--nav-h)-4rem)]">
           {lists === null ? (
             <div className="space-y-2">
               {[0, 1, 2, 3].map((i) => (

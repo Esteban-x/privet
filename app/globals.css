@@ -42,6 +42,17 @@
 :root {
   color-scheme: dark;
 
+  /* LA HAUTEUR DE LA BARRE DE NAVIGATION, en un seul endroit.
+     Elle est `sticky top-0` et fait 64 px (`h-16` dans NavBar.tsx) : tout
+     ce qui se colle en haut de l'écran doit donc partir d'ici, sinon ça se
+     colle DERRIÈRE elle. C'est ce qui arrivait aux barres de recherche de
+     /cours et /exercices, calées à `top-2` avec un z-index inférieur : 56
+     de leurs 64 premiers pixels disparaissaient au défilement, la barre de
+     recherche avec.
+     Elle ne dépend pas du thème, d'où sa place ici plutôt que dans les
+     blocs de couleur — les thèmes clairs ne la redéfinissent pas. */
+  --nav-h: 4rem;
+
   --color-bg: #0a0a0a;
   --color-bg2: #131313;
   --color-bg3: #1b1b1c;

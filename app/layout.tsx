@@ -173,7 +173,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             compris pendant qu'une page l'occupe entièrement. */}
         <NavProgress />
         <NavBar initialUser={initialUser} initialPro={initialPro} />
-        <main className="min-h-[calc(100vh-64px)]">{children}</main>
+        <main className="min-h-[calc(100vh-var(--nav-h))]">{children}</main>
         {/* APRÈS <main>, pas avant : le bandeau pose dans le flux un jumeau
             de sa propre hauteur, qui ne réserve la place voulue que s'il
             vient à la suite du contenu. */}
