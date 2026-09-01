@@ -6,7 +6,7 @@ import { CaseTrigger, PROPER_NOUN_TRIGGER_ID, triggersForCase } from "./triggers
 import { CASES } from "./cases";
 import { CountForm, countFormFor, randomCountNumber } from "./numerals";
 import { fillFrenchBlank, frenchNounPhrase } from "./french-article";
-import { categoryOf, type NounCategory } from "./noun-categories";
+import { categoryOf, countableNouns, type NounCategory } from "./noun-categories";
 import { TRIGGER_NOUNS } from "./trigger-nouns.generated";
 
 // Pool unique de tous les exercices : la banque importée, dont chaque forme
@@ -207,7 +207,9 @@ export function generateMcqExercise(
 export function generateNumeralExercise(pool: Noun[] = DECLINABLE_NOUNS): CaseExercise {
   const numeral = randomCountNumber();
   const countForm = countFormFor(numeral);
-  const noun = pickRandom(pool);
+  // Seulement des noms qu'on compte : « 10 + нача́ло » (dix débuts) était
+  // grammaticalement juste et sans aucun sens. Voir countableNouns.
+  const noun = pickRandom(countableNouns(pool));
 
   // Un nombre en 1 (1, 21, 31…) laisse le nom au NOMINATIF singulier, même
   // si l'onglet vit sur la page du génitif — d'où `targetCase` porté par

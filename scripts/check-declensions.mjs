@@ -34,7 +34,7 @@ const { NOUNS, nounsForLevel } = await jiti.import("../lib/grammar/nouns-data.ts
 const { RUSSIAN_NAMES } = await jiti.import("../lib/grammar/names-data.ts");
 const { ADJECTIVES } = await jiti.import("../lib/grammar/adjectives-data.ts");
 const { CASE_ORDER } = await jiti.import("../lib/grammar/types.ts");
-const { generateSentenceExercise, poolFor } = await jiti.import(
+const { generateSentenceExercise, generateNumeralExercise, poolFor } = await jiti.import(
   "../lib/grammar/exercise-generator.ts"
 );
 const { TRIGGERS, PROPER_NOUN_TRIGGER_ID } = await jiti.import("../lib/grammar/triggers.ts");
@@ -44,9 +44,8 @@ const { validateSentence, validateFrenchSentence } = await jiti.import(
 const { fillFrenchBlank, frenchNounPhrase } = await jiti.import(
   "../lib/grammar/french-article.ts"
 );
-const { categoryOf, DECLARED_CATEGORIES } = await jiti.import(
-  "../lib/grammar/noun-categories.ts"
-);
+const { categoryOf, DECLARED_CATEGORIES, DECLARED_UNCOUNTABLE, isCountable, countableNouns } =
+  await jiti.import("../lib/grammar/noun-categories.ts");
 const { TRIGGER_NOUNS } = await jiti.import("../lib/grammar/trigger-nouns.generated.ts");
 
 const failures = [];
@@ -622,6 +621,52 @@ let demandingTriggers = 0;
         `${verdict.reason ? ` — ${verdict.reason}` : ""}`,
       verdict.ok,
       shouldPass
+    );
+  }
+}
+
+// ─── 10. Ce qu'on met derrière un chiffre ──────────────────────────
+// L'onglet « Chiffres » colle un cardinal devant un nom tiré au hasard. Sans
+// filtre, il servait « 10 + нача́ло » — dix débuts : désinence juste, énoncé
+// sans aucun sens. La liste d'exclusion vit dans noun-categories.ts ; ici on
+// vérifie qu'elle mord et qu'elle ne dérive pas.
+{
+  // a) Chaque mot exclu existe dans la banque. Une traduction retouchée à
+  //    l'import (« début » -> « commencement ») désactiverait sinon
+  //    l'exclusion sans un mot.
+  const translations = new Set(NOUNS.map((n) => n.translation));
+  for (const word of DECLARED_UNCOUNTABLE) {
+    require_(
+      translations.has(word),
+      `exclusion « ${word} » : aucun nom de la banque n'a cette traduction`
+    );
+  }
+
+  // b) Et elle mord vraiment, sur un vrai tirage.
+  let counted = 0;
+  const offenders = new Set();
+  for (let i = 0; i < 3000; i += 1) {
+    const ex = generateNumeralExercise();
+    counted += 1;
+    if (!isCountable(ex.noun.id)) offenders.add(ex.noun.translation);
+  }
+  expect(
+    `noms non dénombrables servis avec un chiffre (${counted} tirages)` +
+      `${offenders.size ? ` — ex. ${[...offenders][0]}` : ""}`,
+    offenders.size,
+    0
+  );
+
+  // c) Le filtre laisse de quoi jouer à tous les niveaux — sinon
+  //    countableNouns rend le pool tel quel et l'exclusion ne sert plus.
+  for (const level of ["A0", "A1", "A2", "B1", "B2"]) {
+    const served = countableNouns(nounsForLevel(level));
+    const leaked = served.filter((n) => !isCountable(n.id));
+    expect(
+      `pool des chiffres (${level}) : ${leaked.length} non dénombrable(s)` +
+        `${leaked.length ? ` — ex. ${leaked[0].translation}` : ""}`,
+      leaked.length,
+      0
     );
   }
 }

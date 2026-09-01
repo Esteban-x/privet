@@ -204,3 +204,67 @@ export function categoryOf(nounId: string): NounCategory | undefined {
 
 /** Pour les contrôles : ce que ce fichier déclare, avant croisement. */
 export const DECLARED_CATEGORIES = LISTS;
+
+// ─── Ce qui ne se compte pas ────────────────────────────────────────
+//
+// Deux exercices collent un CHIFFRE devant un nom tiré au hasard : l'onglet
+// « Chiffres » des cas (generateNumeralExercise) et l'accord après un nombre
+// du module Nombres. Sans filtre, ils servaient « 10 + нача́ло » — « dix
+// débuts ». La désinence attendue (нача́л) est juste, la phrase ne veut rien
+// dire, et l'apprenant se demande ce qu'il a mal lu plutôt que de réviser
+// son génitif pluriel. Même famille de défaut que « je mange cet assistant »,
+// que les classes sémantiques ci-dessus corrigent pour les phrases à trou.
+//
+// LISTE D'EXCLUSION, pas de sélection. Les noms dénombrables sont l'immense
+// majorité de la banque : les énumérer serait plus long, et surtout un
+// nouveau mot importé arriverait dénombrable par défaut — le bon défaut,
+// puisque c'est le cas courant. check:grammar vérifie que chaque entrée
+// existe dans la banque, donc une traduction retouchée à l'import ne peut
+// pas désactiver une exclusion en silence.
+//
+// Le critère est « est-ce qu'on dit *dix X* en russe », pas la comptabilité
+// du français : masses (вода, сахар, кровь), abstraits qu'on ne dénombre pas
+// (счастье, свобода, внимание), référents uniques (со́лнце, луна́, не́бо),
+// noms de jours et de saisons, et les quelques mots dont le pluriel existe
+// mais ne se compte pas (вре́мя, у́тро). En cas d'hésitation le mot est
+// exclu : un exercice en moins ne coûte rien, un exercice absurde si.
+//
+// À noter : ces mots restent parfaitement bons AILLEURS, y compris après une
+// expression de quantité — « мно́го воды́ », « ма́ло вре́мени » sont exactement
+// ce que le génitif enseigne. Seul le comptage par un cardinal les exclut.
+const UNCOUNTABLE_TRANSLATIONS = [
+  "amour", "art", "attention", "automne", "beurre", "bonheur", "bruit",
+  "caractère", "chocolat", "ciel", "colère", "congé", "croissance",
+  "dimanche", "douleur", "début", "eau", "espace", "espoir", "expérience",
+  "feu", "fin", "football", "force", "formation", "fromage", "goût", "hiver",
+  "humeur", "information", "intérêt", "jeudi", "joie", "jus", "liberté",
+  "literie", "lundi", "lune", "mardi", "matin", "mort", "musique", "météo",
+  "nature", "neige", "pain", "papier", "peau", "peur", "pluie", "police",
+  "pouvoir", "printemps", "quantité", "repos", "rire", "riz", "sang",
+  "santé", "sel", "sol", "soleil", "succès", "sucre", "temps", "terre",
+  "thé", "viande", "vie", "vin", "vérité", "âge", "été",
+];
+
+const UNCOUNTABLE_IDS = new Set<string>();
+for (const noun of NOUNS) {
+  if (UNCOUNTABLE_TRANSLATIONS.includes(noun.translation)) UNCOUNTABLE_IDS.add(noun.id);
+}
+
+/** Pour les contrôles : la liste brute, avant croisement avec la banque. */
+export const DECLARED_UNCOUNTABLE = UNCOUNTABLE_TRANSLATIONS;
+
+/** Peut-on mettre un chiffre devant ce nom sans écrire une absurdité ? */
+export function isCountable(nounId: string): boolean {
+  return !UNCOUNTABLE_IDS.has(nounId);
+}
+
+/**
+ * Le sous-ensemble comptable d'un pool. Si le filtre ne laisse rien (pool
+ * déjà très réduit par le niveau), on rend le pool tel quel : un exercice
+ * bancal reste préférable à un écran vide, et le cas ne se produit pas avec
+ * la banque actuelle — check:grammar le vérifie à chaque niveau.
+ */
+export function countableNouns<T extends { id: string }>(pool: T[]): T[] {
+  const kept = pool.filter((n) => isCountable(n.id));
+  return kept.length > 0 ? kept : pool;
+}

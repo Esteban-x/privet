@@ -1,4 +1,5 @@
 import { NOUNS } from "@/lib/grammar/nouns-data";
+import { isCountable } from "@/lib/grammar/noun-categories";
 import type { Noun } from "@/lib/grammar/types";
 import { buildOptions, pick, type PracticeExercise, type Rng, type Skill } from "@/lib/exercises/types";
 
@@ -88,9 +89,23 @@ const AGREEMENT_NUMBERS = [
 
 type AgreementZone = (typeof AGREEMENT_NUMBERS)[number]["zone"];
 
-/** Une centaine de noms concrets et dénombrables suffisent : les abstraits se comptent mal. */
+/**
+ * Une centaine de noms concrets et dénombrables suffisent : les abstraits se
+ * comptent mal.
+ *
+ * Le rang de fréquence ne dit RIEN de la dénombrabilité, et le laisser
+ * décider seul faisait servir « 5 + вода », « 12 + вре́мя », « 7 + кровь » —
+ * des mots parmi les plus courants de la langue, et qu'on ne compte jamais.
+ * La liste d'exclusion curée (isCountable) tranche ; le rang ne fait plus que
+ * ce qu'il sait faire, garder l'exercice dans le vocabulaire fréquent.
+ */
 const COUNTABLE = NOUNS.filter(
-  (n) => n.animacy === "inanimate" && n.forms.plural && n.rank !== undefined && n.rank < 2500
+  (n) =>
+    n.animacy === "inanimate" &&
+    n.forms.plural &&
+    n.rank !== undefined &&
+    n.rank < 2500 &&
+    isCountable(n.id)
 ).slice(0, 120);
 
 function formFor(noun: Noun, zone: AgreementZone): string {
