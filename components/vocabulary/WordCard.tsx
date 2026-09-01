@@ -54,6 +54,17 @@ export default function WordCard({
   onFocusChange: (wordId: string, focus: Focus) => void;
 }) {
   const [explaining, setExplaining] = useState(false);
+  /**
+   * La fiche a-t-elle DÉJÀ été demandée ?
+   *
+   * Une fois ouverte, elle reste montée et on se contente de la cacher. La
+   * démonter à chaque repli relançait la requête à chaque réouverture : le
+   * serveur la sert de son cache, mais l'écran repassait quand même par
+   * « Le professeur rédige… » pour finir par réafficher exactement le même
+   * texte. Replier et déplier doit être instantané — c'est un geste de
+   * lecture, pas un rechargement.
+   */
+  const [everExplained, setEverExplained] = useState(false);
   // Confirmation en deux temps : la suppression emporte aussi l'historique
   // de révision du mot, qui ne se récupère pas. Elle se joue dans la même
   // rangée, sans déplier la carte ni ouvrir de fenêtre.
@@ -130,10 +141,15 @@ export default function WordCard({
           <div className="flex shrink-0 items-center justify-end gap-1.5">
             <button
               type="button"
-              onClick={() => setExplaining((e) => !e)}
+              onClick={() => {
+                setEverExplained(true);
+                setExplaining((e) => !e);
+              }}
               aria-expanded={explaining}
-              aria-label={`Expliquer ${word.ru}`}
-              title="Expliquer ce mot avec l'IA"
+              aria-label={
+                explaining ? `Masquer l'explication de ${word.ru}` : `Expliquer ${word.ru}`
+              }
+              title={explaining ? "Masquer l'explication" : "Expliquer ce mot avec l'IA"}
               className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2 font-display text-[11px] font-bold transition-colors lg:px-2.5 ${
                 explaining
                   ? "border-accent2 bg-accent2/20 text-accent2"
@@ -144,7 +160,7 @@ export default function WordCard({
               {/* Le mot n'apparaît qu'au-delà de 1024 px : entre 640 et 1024,
                   la carte a deux colonnes de texte à loger et c'est lui qui
                   les compresse en premier. */}
-              <span className="hidden lg:inline">Expliquer</span>
+              <span className="hidden lg:inline">{explaining ? "Masquer" : "Expliquer"}</span>
             </button>
 
             {/* LE BOUTON PORTE LE RANGEMENT COURANT, il ne se contente pas
@@ -240,9 +256,17 @@ export default function WordCard({
         </div>
       </div>
 
-      {explaining && (
-        <div className="animate-fade-in border-t border-border px-4 py-4">
-          <WordExplanation wordId={word.id} autoLoad />
+      {/* Montée dès la première demande, cachée ensuite plutôt que démontée :
+          voir `everExplained`. */}
+      {everExplained && (
+        <div
+          className={`animate-fade-in border-t border-border px-4 py-4 ${explaining ? "" : "hidden"}`}
+        >
+          <WordExplanation
+            wordId={word.id}
+            autoLoad
+            onHide={() => setExplaining(false)}
+          />
         </div>
       )}
     </div>

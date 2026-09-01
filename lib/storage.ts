@@ -11,6 +11,7 @@ const KEYS = {
   direction: "ru-app:vocab-direction", // + `:${mode}`
   addWordFirstSide: "ru-app:add-word-first-side",
   coursesRead: "ru-app:courses-read",
+  lastVocabList: "ru-app:vocab-last-list",
 };
 
 /** Exposée pour lib/courses/use-read-lessons.ts, qui lit le brut sans le parser. */
@@ -80,6 +81,35 @@ export function saveAddWordFirstSide(side: "ru" | "fr") {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(KEYS.addWordFirstSide, side);
+  } catch {}
+}
+
+// --- Vocabulaire : la dernière liste ouverte ---
+//
+// UN MARQUE-PAGE, PAS UNE SÉLECTION. Sous 1024 px le module est deux écrans
+// successifs — les listes, puis la liste ouverte — et revenir de n'importe
+// quelle autre page ramenait toujours au premier : on repartait de la
+// sélection des listes après un aller-retour vers les cas ou la lecture,
+// alors qu'on était en train de travailler une liste précise.
+//
+// Local et pas en base : c'est l'état d'un écran sur un appareil, pas une
+// donnée d'apprentissage. Sur le téléphone et sur l'ordinateur, on n'est pas
+// forcément au même endroit, et c'est très bien.
+
+export function loadLastVocabList(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(KEYS.lastVocabList);
+  } catch {
+    return null;
+  }
+}
+
+export function saveLastVocabList(listId: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (listId) localStorage.setItem(KEYS.lastVocabList, listId);
+    else localStorage.removeItem(KEYS.lastVocabList);
   } catch {}
 }
 

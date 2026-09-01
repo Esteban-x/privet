@@ -5,6 +5,7 @@ import { consumeQuota, recordTokens } from "@/lib/ai/quota";
 import { translationSuggestionPrompt } from "@/lib/ai/prompts";
 import { NOUNS, getNoun } from "@/lib/grammar/nouns-data";
 import { exactEntry } from "@/lib/vocabulary/autocomplete";
+import { transliterate } from "@/lib/vocabulary/transliterate";
 
 /**
  * L'autre moitié d'un mot, proposée pendant la saisie.
@@ -103,7 +104,11 @@ export async function POST(req: Request) {
         // Le français saisi n'est jamais réécrit : si l'apprenant a tapé
         // « la table », c'est « la table » qu'il veut dans sa liste.
         fr: from === "fr" ? raw : known.translation,
-        transliteration: null,
+        // Calculée par règle, pas demandée au modèle : la banque porte
+        // l'accent tonique, donc la lecture se déduit (voir transliterate).
+        // Ce champ valait `null` ici, ce qui privait de prononciation
+        // écrite exactement les mots les mieux vérifiés de l'app.
+        transliteration: transliterate(known.forms.singular[0]) || null,
         partOfSpeech: GENDER_LABEL[known.gender] ?? null,
         confident: true,
         source: "bank" as const,
@@ -132,7 +137,7 @@ export async function POST(req: Request) {
       suggestion: {
         ru: indexed.ru,
         fr: from === "fr" ? raw : indexed.fr,
-        transliteration: null,
+        transliteration: transliterate(indexed.ru) || null,
         partOfSpeech: null,
         confident: true,
         source: indexed.verified ? ("bank" as const) : ("ai" as const),
@@ -189,8 +194,14 @@ export async function POST(req: Request) {
       suggestion: {
         ru,
         fr,
+        // Le modèle d'abord, la règle en repli : sur un mot hors banque il
+        // connaît des irrégularités que la règle ignore, mais il lui arrive
+        // d'omettre le champ — et une prononciation calculée vaut mieux que
+        // pas de prononciation du tout.
         transliteration:
-          typeof ai.transliteration === "string" ? ai.transliteration.trim().slice(0, 100) : null,
+          (typeof ai.transliteration === "string" && ai.transliteration.trim()
+            ? ai.transliteration.trim().slice(0, 100)
+            : transliterate(ru)) || null,
         partOfSpeech:
           typeof ai.partOfSpeech === "string" ? ai.partOfSpeech.trim().slice(0, 40) : null,
         confident: ai.confident === true,

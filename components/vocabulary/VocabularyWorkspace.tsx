@@ -24,6 +24,7 @@ import { PlusIcon, TrashIcon } from "@/components/ui/icons";
 import { ListRowsSkeleton } from "@/components/ui/Skeleton";
 import Modal from "@/components/ui/Modal";
 import Dropdown from "@/components/ui/Dropdown";
+import { loadLastVocabList, saveLastVocabList } from "@/lib/storage";
 
 /**
    * Le module vocabulaire, en deux panneaux.
@@ -110,6 +111,17 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
         setActiveId((current) => {
           if (current && d.lists.some((l) => l.id === current)) return current;
           if (d.lists.length === 0) return null;
+
+          // LE MARQUE-PAGE D'ABORD. On revient du module des cas ou d'un
+          // texte de lecture : le composant a été démonté, donc `current` est
+          // vide, et sans ceci on retombait sur l'écran de sélection des
+          // listes — alors qu'on travaillait une liste précise trente
+          // secondes plus tôt. Il ne prend la main QUE dans ce cas : une
+          // navigation vers /vocabulary pendant que l'écran est déjà là
+          // (le bandeau du bas) passe par la comparaison d'URL ci-dessus et
+          // ramène bien les listes, puisque c'est le geste qu'on a fait.
+          const remembered = loadLastVocabList();
+          if (remembered && d.lists.some((l) => l.id === remembered)) return remembered;
           // SOUS 1024 px, ON N'OUVRE RIEN. Les deux panneaux ne tiennent pas
           // côte à côte sur un téléphone : ils y deviennent deux écrans
           // successifs, et le premier est la liste des listes. Ouvrir la
@@ -165,6 +177,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
     if (activeId) url.searchParams.set("list", activeId);
     else url.searchParams.delete("list");
     window.history.replaceState(null, "", url);
+    saveLastVocabList(activeId);
   }, [activeId]);
 
   const totals = useMemo(() => {
@@ -731,8 +744,12 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
           virtuel en cachait la moitié. En feuille, il a l'écran entier et
           le clavier ne fait que pousser son contenu.
 
-          Il reste ouvert après chaque ajout — le formulaire annonce « ✓ mot
-          ajouté » et se vide — parce qu'on ajoute rarement un seul mot. */}
+          IL SE REFERME SUR UN AJOUT RÉUSSI. Il restait ouvert et se vidait,
+          pour enchaîner plusieurs mots sans rouvrir — sauf que sur un
+          téléphone on se retrouvait devant un formulaire vide, clavier
+          toujours ouvert, et qu'il fallait viser la croix pour revenir à sa
+          liste et voir le mot qu'on venait d'ajouter. Le mot apparaît en tête
+          de liste : la feuille qui se referme dessus est la confirmation. */}
       <Modal
         open={showAdd}
         onClose={() => setShowAdd(false)}
@@ -740,7 +757,7 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
         title="Ajouter un mot"
         description="Tape en russe ou en français — la traduction, l'accent tonique et la prononciation suivent."
       >
-        <AddWordForm bare onAdd={handleAdd} />
+        <AddWordForm bare onAdd={handleAdd} onDone={() => setShowAdd(false)} />
       </Modal>
 
       {/* LA SUPPRESSION D'UNE LISTE PASSE PAR UN DIALOGUE, depuis qu'elle est

@@ -14,6 +14,10 @@ import Link from "next/link";
 import { NOUNS } from "@/lib/grammar/nouns-data";
 import CompletionList from "@/components/vocabulary/CompletionList";
 import { completeFr, completeRu, type Completion } from "@/lib/vocabulary/autocomplete";
+import { transliterate } from "@/lib/vocabulary/transliterate";
+import { speakFr, speakRu } from "@/lib/vocabulary/speech";
+import SpeakButton from "@/components/vocabulary/SpeakButton";
+import DictateButton from "@/components/vocabulary/DictateButton";
 
 /**
    * Ajout d'un mot, dans le sens qu'on veut.
@@ -51,6 +55,20 @@ export default function AddWordForm({
    * à trois centimètres d'intervalle.
    */
   bare = false,
+  /**
+   * Appelé après un ajout RÉUSSI — la feuille se referme dessus.
+   *
+   * Le formulaire restait ouvert et se vidait, pour enchaîner sans rouvrir.
+   * Sur un téléphone, ça laissait l'apprenant devant un formulaire vide avec
+   * le clavier toujours là : il fallait viser la croix pour revenir à sa
+   * liste et vérifier que le mot y était. Refermer répond au geste — le mot
+   * apparaît en tête de liste, ce qui est la meilleure confirmation
+   * possible.
+   *
+   * Facultatif : sans lui le formulaire garde l'ancien comportement, et
+   * c'est alors la ligne « ✓ ajouté » du pied qui accuse réception.
+   */
+  onDone,
 }: {
   onAdd: (word: {
     ru: string;
@@ -58,6 +76,7 @@ export default function AddWordForm({
     transliteration?: string;
   }) => Promise<CustomVocabWord | null>;
   bare?: boolean;
+  onDone?: () => void;
 }) {
   const [ru, setRu] = useState("");
   const [fr, setFr] = useState("");
@@ -124,6 +143,11 @@ export default function AddWordForm({
   function pick(item: Completion) {
     setRu(item.ru);
     setFr(item.fr);
+    // La banque porte l'accent tonique : la prononciation se calcule, elle ne
+    // se demande à personne. Sans ça, les mots CONNUS étaient les seuls à
+    // n'avoir aucune version phonétique — le serveur les servait avec
+    // `transliteration: null`, et le menu de complétion n'en posait aucune.
+    if (!translitOwned) setTransliteration(transliterate(item.ru));
     setPickedPair(`${item.ru}|${item.fr}`);
     setFilled(null);
     setSuggestion(null);
@@ -193,7 +217,16 @@ export default function AddWordForm({
   // sans le relancer à chaque frappe.
   const ruTouched = useRef(false);
   const frTouched = useRef(false);
-  const translitTouched = useRef(false);
+  /**
+   * La translittération est-elle CELLE DE L'APPRENANT ?
+   *
+   * En état et non en ref, contrairement à ses deux voisines, et pour la même
+   * raison que `pickedPair` : elle est lue depuis `pick`, appelée par le menu
+   * de complétion — un composant enfant. Le compilateur React considère alors
+   * la ref comme figée PARTOUT et refuse la construction. L'état, lui, se lit
+   * et s'écrit d'où l'on veut.
+   */
+  const [translitOwned, setTranslitOwned] = useState(false);
   /** Dernière requête émise, pour ne pas la rejouer quand elle se remplit. */
   const lastQuery = useRef("");
   /**
@@ -304,7 +337,7 @@ export default function AddWordForm({
         setRu(data.suggestion.ru);
         setFilled("ru");
       }
-      if (data.suggestion.transliteration && !translitTouched.current) {
+      if (data.suggestion.transliteration && !translitOwned) {
         setTransliteration(data.suggestion.transliteration);
       }
     }, DEBOUNCE_MS);
@@ -316,7 +349,7 @@ export default function AddWordForm({
       // le rejet.
       requestId.current += 1;
     };
-  }, [ru, fr, pickedPair]);
+  }, [ru, fr, pickedPair, translitOwned]);
 
   function reset() {
     setRu("");
@@ -330,7 +363,7 @@ export default function AddWordForm({
     setShowTranslit(false);
     ruTouched.current = false;
     frTouched.current = false;
-    translitTouched.current = false;
+    setTranslitOwned(false);
     autoDetect.current = true;
     lastQuery.current = "";
     firstInput.current?.focus();
@@ -360,6 +393,9 @@ export default function AddWordForm({
       }
       ruTouched.current = moved === "ru";
       frTouched.current = moved === "fr";
+      if (!translitOwned) {
+        setTransliteration(moved === "ru" ? transliterate(value) : "");
+      }
       // On NE MÉMORISE PAS ce sens comme préférence (`saveAddWordFirstSide`) :
       // c'est une correction sur ce mot-ci, pas un choix sur les suivants.
       setFrFirst(moved === "fr");
@@ -389,6 +425,10 @@ export default function AddWordForm({
     touched.current = value.length > 0;
     if (side === "ru") setRu(value);
     else setFr(value);
+    // La prononciation suit la frappe côté russe. Elle reste une PROPOSITION :
+    // la première frappe dans le champ de translittération l'y fige (voir
+    // `translitOwned`), exactement comme pour la traduction.
+    if (side === "ru" && !translitOwned) setTransliteration(transliterate(value));
     // Le champ redevient celui de l'apprenant dès qu'il y écrit.
     if (filled === side) setFilled(null);
     setDriver(
@@ -419,6 +459,11 @@ export default function AddWordForm({
     if (added) {
       setJustAdded(added.ru);
       reset();
+      // APRÈS `reset()`, pas avant : le formulaire doit repartir vide s'il
+      // est rouvert. `reset()` redonne le focus au premier champ ; la modale
+      // le reprendra en se démontant pour le rendre au bouton qui l'a
+      // ouverte, ce qui referme aussi le clavier.
+      onDone?.();
     }
   }
 
@@ -483,6 +528,23 @@ export default function AddWordForm({
           />
         ) : undefined
       }
+      actions={
+        <>
+          <DictateButton
+            lang="ru-RU"
+            label="Dicter le mot en russe"
+            onResult={(text) => edit("ru", text)}
+          />
+          {ru.trim() && (
+            <SpeakButton
+              label={`Écouter ${ru.trim()} en russe`}
+              title="Écouter la prononciation"
+              onSpeak={() => speakRu(ru.trim())}
+              className="flex h-7 w-7 items-center justify-center"
+            />
+          )}
+        </>
+      }
       spellCheck={false}
     />
   );
@@ -514,6 +576,23 @@ export default function AddWordForm({
           />
         ) : undefined
       }
+      actions={
+        <>
+          <DictateButton
+            lang="fr-FR"
+            label="Dicter le mot en français"
+            onResult={(text) => edit("fr", text)}
+          />
+          {fr.trim() && (
+            <SpeakButton
+              label={`Écouter ${fr.trim()} en français`}
+              title="Écouter la prononciation"
+              onSpeak={() => speakFr(fr.trim())}
+              className="flex h-7 w-7 items-center justify-center"
+            />
+          )}
+        </>
+      }
     />
   );
 
@@ -527,16 +606,7 @@ export default function AddWordForm({
       onSubmit={submit}
       className={bare ? "flex min-h-full flex-col" : "surface rounded-2xl p-6"}
     >
-      {bare ? (
-        // Le dialogue porte le titre ; il ne reste à annoncer que le
-        // résultat du dernier ajout, qui est ce qui dit qu'on peut
-        // enchaîner sans refermer.
-        justAdded && (
-          <p className="animate-fade-in mb-4 font-display text-sm text-success">
-            ✓ « {justAdded} » ajouté
-          </p>
-        )
-      ) : (
+      {bare ? null : (
         <div className="mb-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span
@@ -620,7 +690,7 @@ export default function AddWordForm({
           <input
             value={transliteration}
             onChange={(e) => {
-              translitTouched.current = e.target.value.length > 0;
+              setTranslitOwned(e.target.value.length > 0);
               setTransliteration(e.target.value);
             }}
             placeholder="spassiba"
@@ -658,38 +728,71 @@ export default function AddWordForm({
 
          Sorti du flux, il ne reste qu'un seul enfant à centrer, et c'est
          `.btn` lui-même qui s'en charge. */}
-      {/* `mt-auto` colle le bouton en bas ; cet espaceur garantit l'écart
-          minimal avec ce qui précède quand le formulaire est court. */}
+      {/* Le pied ci-dessous se cale en bas (`mt-auto`) ; cet espaceur garantit
+          l'écart minimal avec ce qui précède quand le formulaire est court. */}
       {bare && <div aria-hidden className="h-6 shrink-0" />}
 
-      <button
-        type="submit"
-        disabled={submitting || !ru.trim() || !fr.trim()}
-        aria-busy={submitting}
-        className={`btn btn-primary btn-sheen h-12 w-full rounded-xl px-4 font-display text-sm ${
-          bare ? "mt-auto" : "mt-5"
-        } ${
-          submitting ? "cursor-wait" : "disabled:cursor-not-allowed disabled:opacity-40"
-        }`}
+      {/* UN PIED COLLANT, PAS UN BOUTON EN BAS DE PAGE.
+          `mt-auto` seul le posait au bas du FORMULAIRE : très bien tant que
+          le formulaire tenait dans la feuille, faux dès qu'il la dépassait.
+          Sur un iPhone, clavier ouvert, il restait deux champs de 112 px, la
+          barre des langues et l'en-tête du dialogue au-dessus de lui — le
+          bouton passait sous la ligne de flottaison, et il fallait faire
+          défiler pour valider un mot de six lettres. Pire, la validation au
+          clavier (« retour ») marchait mais ne se voyait pas : les points
+          d'attente et le « ✓ ajouté » étaient eux aussi hors de l'écran, si
+          bien que rien ne répondait au geste.
+
+          `sticky bottom-0` garde les deux comportements : en bas quand la
+          feuille est courte, épinglé au-dessus du clavier quand elle ne l'est
+          pas. Les marges négatives vont chercher le rembourrage de la
+          feuille, pour que le fond du pied file jusqu'aux bords. */}
+      <div
+        className={
+          bare
+            ? "sticky bottom-0 z-10 mt-auto -mx-5 -mb-8 border-t border-border bg-bg2 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-7 sm:-mb-7 sm:px-7 sm:pb-5"
+            : "mt-5"
+        }
       >
-        <span
-          className={`transition-[opacity,transform] duration-200 ${
-            submitting ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100"
+        {/* Le résultat du dernier ajout est ANNONCÉ ICI, à côté du bouton qui
+            vient de servir — c'est là que le regard est. En tête de
+            formulaire, il se retrouvait hors champ au moment précis où il
+            avait quelque chose à dire. */}
+        {bare && justAdded && (
+          <p
+            role="status"
+            className="animate-fade-in mb-2 text-center font-display text-sm text-success"
+          >
+            ✓ « {justAdded} » ajouté
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={submitting || !ru.trim() || !fr.trim()}
+          aria-busy={submitting}
+          className={`btn btn-primary btn-sheen h-12 w-full rounded-xl px-4 font-display text-sm ${
+            submitting ? "cursor-wait" : "disabled:cursor-not-allowed disabled:opacity-40"
           }`}
         >
-          Ajouter le mot
-        </span>
-        <span
-          aria-hidden
-          className={`absolute inset-0 flex items-center justify-center gap-1.5 transition-[opacity,transform] duration-200 ${
-            submitting ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
-          }`}
-        >
-          <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-white [animation-delay:0ms]" />
-          <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-white [animation-delay:160ms]" />
-          <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-white [animation-delay:320ms]" />
-        </span>
-      </button>
+          <span
+            className={`transition-[opacity,transform] duration-200 ${
+              submitting ? "-translate-y-1 opacity-0" : "translate-y-0 opacity-100"
+            }`}
+          >
+            Ajouter le mot
+          </span>
+          <span
+            aria-hidden
+            className={`absolute inset-0 flex items-center justify-center gap-1.5 transition-[opacity,transform] duration-200 ${
+              submitting ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+            }`}
+          >
+            <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-white [animation-delay:0ms]" />
+            <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-white [animation-delay:160ms]" />
+            <span className="dot-pulse h-1.5 w-1.5 rounded-full bg-white [animation-delay:320ms]" />
+          </span>
+        </button>
+      </div>
     </form>
   );
 }
@@ -803,6 +906,7 @@ function Field({
   onBlur,
   onFocus,
   menu,
+  actions,
   activeId,
   listId,
   spellCheck = true,
@@ -820,6 +924,8 @@ function Field({
   onFocus?: () => void;
   /** Le menu de complétion, positionné par le <label> relatif. */
   menu?: React.ReactNode;
+  /** Micro et haut-parleur, en bas à droite du champ. */
+  actions?: React.ReactNode;
   activeId?: string;
   listId?: string;
   spellCheck?: boolean;
@@ -873,9 +979,12 @@ function Field({
            `min-h-[112px]` : la taille d'un champ dit ce qu'on attend dedans.
            À 48 px il annonçait un mot ; les gens y collent des expressions
            entières, et c'est très bien. */
-        className={`block max-h-64 min-h-[112px] w-full resize-none overflow-hidden px-4 py-3.5 font-display leading-snug text-text placeholder:text-muted/50 focus:bg-accent/[0.045] focus:outline-none ${sizeFor(value)} ${
-          suggested ? "bg-accent2/[0.06]" : "bg-transparent"
-        }`}
+        /* `pb-11` quand le champ porte des commandes : elles flottent en bas
+           à droite, et sans cette réserve une expression longue passerait
+           dessous. */
+        className={`block max-h-64 min-h-[112px] w-full resize-none overflow-hidden px-4 pt-3.5 font-display leading-snug text-text placeholder:text-muted/50 focus:bg-accent/[0.045] focus:outline-none ${
+          actions ? "pb-11" : "pb-3.5"
+        } ${sizeFor(value)} ${suggested ? "bg-accent2/[0.06]" : "bg-transparent"}`}
       />
       {/* Le badge — « proposé », ou les points d'attente — flotte en haut à
           droite du champ. Dans le flux, il aurait poussé le texte ou réservé
@@ -884,6 +993,12 @@ function Field({
         <span className="pointer-events-none absolute right-3 top-3 font-display text-[11px]">
           {loading ? <LoadingDots label="" /> : badge}
         </span>
+      )}
+      {/* Micro et haut-parleur EN BAS DU CHAMP, pas dans une barre d'outils
+          commune : chacun agit sur SA langue, et à deux champs une barre
+          unique obligerait à dire laquelle à chaque fois. */}
+      {actions && (
+        <span className="absolute bottom-2 right-2 flex items-center gap-0.5">{actions}</span>
       )}
       {menu}
     </label>

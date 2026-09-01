@@ -22,9 +22,19 @@ export default function WordExplanation({
   wordId,
   /** Déclenche le chargement sans clic — le bouton « Expliquer » de la carte. */
   autoLoad = false,
+  /**
+   * Replie la fiche. Fourni par la carte, qui garde le composant MONTÉ pour
+   * que la réouverture soit instantanée — voir WordCard.
+   *
+   * Le bouton vit ici, dans l'en-tête de la fiche, et pas seulement sur la
+   * carte : une fois la fiche dépliée elle fait plusieurs écrans de haut, et
+   * le bouton qui l'a ouverte est loin au-dessus. On referme là où on lit.
+   */
+  onHide,
 }: {
   wordId: string;
   autoLoad?: boolean;
+  onHide?: () => void;
 }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error" | "quota">("idle");
   const [explanation, setExplanation] = useState<Explanation | null>(null);
@@ -125,6 +135,14 @@ export default function WordExplanation({
         >
           Régénérer
         </button>
+        {onHide && (
+          <button
+            onClick={onHide}
+            className="font-display text-[11px] font-semibold text-muted transition-colors hover:text-accent2"
+          >
+            Masquer
+          </button>
+        )}
       </div>
 
       <div className="px-4 py-3.5 text-left">

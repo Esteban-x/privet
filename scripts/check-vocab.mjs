@@ -25,6 +25,9 @@ const A = await jiti.import("../lib/vocabulary/answer-check.ts");
 const V = await jiti.import("../lib/reading/verify-cases.ts");
 const T = await jiti.import("../lib/reading/texts.ts");
 const E = await jiti.import("../lib/vocabulary/explanation.ts");
+const { transliterate } = await jiti.import("../lib/vocabulary/transliterate.ts");
+const { NOUNS } = await jiti.import("../lib/grammar/nouns-data.ts");
+const { LEXICON } = await jiti.import("../lib/vocabulary/lexicon.generated.ts");
 
 const failures = [];
 let checks = 0;
@@ -205,6 +208,66 @@ require_(E.toWordExplanation(null, "книга") === null, "une réponse non-obj
 require_(
   E.toWordExplanation({ meaning: "court" }, "книга") === null,
   "un sens quasi vide doit être refusé"
+);
+
+// ─── 5. Translittération ───────────────────────────────────────────
+// Elle est CALCULÉE, pas demandée au modèle (lib/vocabulary/transliterate.ts) :
+// les mots de la banque et de l'index sortaient sans aucune prononciation
+// écrite, puisque seul le chemin IA en produisait une. Une règle qui se
+// trompe se trompe sur des milliers de mots à la fois — d'où des témoins
+// recopiés à la main, un par difficulté.
+const TRANSLIT = [
+  // [mot russe accentué, lecture attendue, ce que ce témoin protège]
+  ["спаси́бо", "spassiba", "s intervocalique doublé + о atone"],
+  ["хорошо́", "kharacho", "deux о atones, х = kh, ш = ch"],
+  ["кни́га", "kniga", "cas simple, aucune réduction"],
+  ["де́вушка", "dévouchka", "е accentué, у = ou"],
+  ["чай", "tchaï", "ч = tch, й après voyelle = ï"],
+  ["мужчи́на", "moujtchina", "ж = j"],
+  ["ещё", "iechtcho", "е initial mouillé, щ = chtch, ё après chuintante"],
+  ["я́блоко", "yablaka", "я initial, deux о atones"],
+  ["друзья́", "drouzya", "signe mou : la voyelle suivante se mouille"],
+  ["де́ньги", "déngui", "г dur devant и"],
+  ["жена́", "jena", "е après chuintante, non mouillé"],
+  ["что", "chto", "exception : l'orthographe ment"],
+  ["э́то", "èta", "э ouvert, о atone"],
+  ["по́езд", "poiezd", "е après voyelle : mouillé"],
+  ["стол", "stol", "monosyllabe : l'accent est connu sans être marqué"],
+  ["добрый", "dobryï", "accent INCONNU : aucune réduction, о reste о"],
+  ["Росси́я", "Rassiya", "majuscule conservée"],
+];
+for (const [ru, want, why] of TRANSLIT) {
+  const got = transliterate(ru);
+  require_(got === want, `translittération de « ${ru} » : « ${got} » au lieu de « ${want} » (${why})`);
+}
+
+// Rien de latin ne doit ressortir : un champ français n'a pas de
+// prononciation à écrire, et le formulaire s'en sert pour ne rien proposer.
+require_(transliterate("merci") === "", "un mot latin ne doit pas être translittéré");
+require_(transliterate("") === "", "une chaîne vide reste vide");
+
+// Et surtout : la règle rend quelque chose pour CHAQUE mot des deux banques.
+// C'est la promesse tenue à l'apprenant — les mots connus sont ceux qui ont
+// la meilleure prononciation, pas ceux qui n'en ont aucune.
+let silent = 0;
+let firstSilent = "";
+for (const noun of NOUNS) {
+  const out = transliterate(noun.forms.singular[0]);
+  if (!out || /[Ѐ-ӿ]/.test(out)) {
+    silent += 1;
+    if (!firstSilent) firstSilent = noun.lemma;
+  }
+}
+for (const entry of LEXICON) {
+  const out = transliterate(entry[0]);
+  if (!out || /[Ѐ-ӿ]/.test(out)) {
+    silent += 1;
+    if (!firstSilent) firstSilent = entry[0];
+  }
+}
+require_(
+  silent === 0,
+  `${silent} mot(s) des banques sans translittération complète — ex. « ${firstSilent} »`
 );
 
 // ─── Rapport ───────────────────────────────────────────────────────
