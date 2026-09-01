@@ -9,6 +9,8 @@ import { getCase } from "@/lib/grammar/cases";
 import { CaseTrigger, getTrigger, PROPER_NOUN_TRIGGER_ID } from "@/lib/grammar/triggers";
 import { DECLINABLE_NOUNS, poolFor } from "@/lib/grammar/exercise-generator";
 import { nounsForLevel } from "@/lib/grammar/nouns-data";
+import { declineNoun } from "@/lib/grammar/decline";
+import { validateFrenchSentence, validateSentence } from "@/lib/grammar/sentence-guard";
 
 // La banque compte plusieurs centaines de mots : l'envoyer entière à chaque
 // exercice coûterait ~2 000 tokens de prompt et pousserait le modèle vers
@@ -117,54 +119,108 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Génération non disponible." }, { status: 429 });
     }
 
-    const msg = await getAnthropic().messages.create({
-      model: MODEL_FAST,
-      // Marge au-delà d'une phrase RU+FR + quelques champs courts, même
-      // logique que le fix sur ai/reading : un JSON tronqué en plein milieu
-      // d'une chaîne fait échouer parseJsonResponse plutôt que de juste
-      // raccourcir la réponse.
-      max_tokens: 700,
-      system: exerciseSystemPrompt(
-        caseId,
-        profile?.level ?? "A1",
-        candidates.map((n) => ({ ru: n.lemma, fr: n.translation })),
-        trigger,
-        recentLemmas
-      ),
-      messages: [{ role: "user", content: "Génère un exercice." }],
-    });
-    await recordTokens(supabase, "exercise_ai", msg.usage);
-    const exercise = parseJsonResponse<AiExercise>(textFromMessage(msg));
-
-    // Le lemme doit appartenir à la banque : un modèle peut dévier vers un
-    // mot hors liste malgré la consigne, et on le rejette alors (le client
-    // retombe sur le gabarit fixe, qui lui est curé).
-    //
-    // La vérification porte sur ce que le DÉCLENCHEUR admet, pas seulement
-    // sur la banque : un mot hors échantillon mais admis par le déclencheur
-    // reste parfaitement sûr (toutes ses formes sont vérifiées), un mot
-    // qu'il n'admet pas produit une phrase que personne ne dirait, même
-    // parfaitement déclinée. On ne renvoie ensuite que l'ID — c'est le
-    // client qui recharge l'objet complet (paradigme, genre, animacité)
-    // plutôt que de reconstruire un mot à partir de ce que l'IA en dit.
+    // Le NOMBRE vient du déclencheur, jamais du modèle : c'est lui qui entre
+    // dans le calcul de la forme attendue, côté client comme côté serveur.
+    const plural = trigger?.plural ?? false;
     const allowed = trigger ? poolFor(trigger, DECLINABLE_NOUNS) : DECLINABLE_NOUNS;
-    const poolMatch = allowed.find((n) => n.lemma === exercise.lemma);
-    if (!poolMatch) {
-      console.error(
-        "exercise route: lemme hors pool du déclencheur",
-        exercise.lemma,
-        trigger?.id
-      );
-      return NextResponse.json({ error: "Mot hors banque vérifiée" }, { status: 502 });
+
+    // Deux tentatives au plus. Le contrôle grammatical (sentence-guard) refuse
+    // une phrase dont le trou n'est pas gouverné comme l'exercice le suppose ;
+    // relancer une fois en disant POURQUOI corrige la quasi-totalité des cas,
+    // et coûte moins qu'une retombée sur le gabarit fixe, toujours le même.
+    // Au-delà, on renonce : le client retombe alors sur ce gabarit, qui est
+    // curé et juste par construction. Une seule unité de quota est consommée
+    // pour l'exercice ; seuls les tokens réellement dépensés sont comptés.
+    let rejectedReason: string | undefined;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const msg = await getAnthropic().messages.create({
+        model: MODEL_FAST,
+        // Marge au-delà d'une phrase RU+FR + quelques champs courts, même
+        // logique que le fix sur ai/reading : un JSON tronqué en plein milieu
+        // d'une chaîne fait échouer parseJsonResponse plutôt que de juste
+        // raccourcir la réponse.
+        max_tokens: 700,
+        system: exerciseSystemPrompt({
+          caseId,
+          level: profile?.level ?? "A1",
+          candidatePool: candidates.map((n) => ({ ru: n.lemma, fr: n.translation })),
+          plural,
+          trigger,
+          recentLemmas,
+          rejectedReason,
+        }),
+        messages: [{ role: "user", content: "Génère un exercice." }],
+      });
+      await recordTokens(supabase, "exercise_ai", msg.usage);
+      const exercise = parseJsonResponse<AiExercise>(textFromMessage(msg));
+
+      // Le lemme doit appartenir à la banque : un modèle peut dévier vers un
+      // mot hors liste malgré la consigne, et on le rejette alors (le client
+      // retombe sur le gabarit fixe, qui lui est curé).
+      //
+      // La vérification porte sur ce que le DÉCLENCHEUR admet, pas seulement
+      // sur la banque : un mot hors échantillon mais admis par le déclencheur
+      // reste parfaitement sûr (toutes ses formes sont vérifiées), un mot
+      // qu'il n'admet pas produit une phrase que personne ne dirait, même
+      // parfaitement déclinée. On ne renvoie ensuite que l'ID — c'est le
+      // client qui recharge l'objet complet (paradigme, genre, animacité)
+      // plutôt que de reconstruire un mot à partir de ce que l'IA en dit.
+      const poolMatch = allowed.find((n) => n.lemma === exercise.lemma);
+      if (!poolMatch) {
+        rejectedReason = `le mot "${exercise.lemma}" ne figure pas dans la liste fermée`;
+        console.error("exercise route: lemme hors pool du déclencheur", exercise.lemma, trigger?.id);
+        continue;
+      }
+
+      // Contrôle grammatical de la phrase elle-même — le cœur du correctif.
+      // Le moteur de règles calcule la réponse à partir de (cas, nombre) sans
+      // jamais lire la phrase : si la phrase impose un autre cas, la « bonne
+      // réponse » affichée est fausse dans cette phrase-là. Voir
+      // lib/grammar/sentence-guard.ts.
+      const expected = declineNoun(poolMatch, caseId, plural);
+      const verdict = validateSentence({
+        sentence: exercise.sentence_ru,
+        targetCase: caseId,
+        plural,
+        trigger,
+        forbiddenForms: [expected.form],
+      });
+      // Et le versant français : la traduction doit nommer le mot du trou.
+      // Le modèle a déjà bâti une phrase sur « l'homme » pour un exercice
+      // dont la réponse était « герой » — мужчина s'imposait à la lecture,
+      // et était compté faux.
+      const frenchVerdict = verdict.ok
+        ? validateFrenchSentence({
+            sentenceFr: exercise.sentence_fr,
+            translation: poolMatch.translation,
+          })
+        : verdict;
+      if (!frenchVerdict.ok) {
+        rejectedReason = frenchVerdict.reason;
+        console.error(
+          "exercise route: phrase refusée",
+          JSON.stringify({
+            trigger: trigger?.id,
+            caseId,
+            lemma: poolMatch.lemma,
+            sentence: exercise.sentence_ru,
+            sentenceFr: exercise.sentence_fr,
+            reason: frenchVerdict.reason,
+          })
+        );
+        continue;
+      }
+
+      return NextResponse.json({
+        sentence_ru: exercise.sentence_ru,
+        sentence_fr: exercise.sentence_fr,
+        noun_id: poolMatch.id,
+        lemma: poolMatch.lemma,
+        hint: poolMatch.translation,
+      });
     }
 
-    return NextResponse.json({
-      sentence_ru: exercise.sentence_ru,
-      sentence_fr: exercise.sentence_fr,
-      noun_id: poolMatch.id,
-      lemma: poolMatch.lemma,
-      hint: poolMatch.translation,
-    });
+    return NextResponse.json({ error: "Phrase générée non conforme" }, { status: 502 });
   } catch (err) {
     console.error("exercise route error", err);
     return NextResponse.json(

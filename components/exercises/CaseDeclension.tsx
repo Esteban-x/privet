@@ -15,6 +15,7 @@ import {
   generateSentenceExercise,
 } from "@/lib/grammar/exercise-generator";
 import { PROPER_NOUN_TRIGGER_ID, triggersForCase } from "@/lib/grammar/triggers";
+import { validateFrenchSentence, validateSentence } from "@/lib/grammar/sentence-guard";
 import { getNoun, nounsForLevel } from "@/lib/grammar/nouns-data";
 import type { Noun } from "@/lib/grammar/types";
 import { pickWeightedTrigger } from "@/lib/grammar/exercise-selector";
@@ -112,6 +113,34 @@ async function buildExercise(
 
     const plural = trigger.plural ?? false;
     const result = declineNoun(noun, caseInfo.id, plural);
+
+    // Dernier filet : la phrase doit vraiment appeler ce cas-ci. La route la
+    // contrôle déjà (et en redemande une), mais c'est ICI que la « bonne
+    // réponse » est calculée à partir du cas de la page, sans lire la phrase
+    // — donc ici aussi qu'on refuse une phrase qui la contredirait. Un
+    // exercice mal formé n'est pas un défaut d'affichage : c'est une faute
+    // comptée à l'apprenant alors qu'il a raison. Voir sentence-guard.ts.
+    if (
+      !validateSentence({
+        sentence: typeof ai.sentence_ru === "string" ? ai.sentence_ru : "",
+        targetCase: caseInfo.id,
+        plural,
+        trigger,
+        forbiddenForms: [result.form],
+      }).ok
+    ) {
+      throw new Error("phrase non conforme au cas");
+    }
+    // Même filet côté français : la traduction est la seule chose qui dise
+    // QUEL mot chercher. Une phrase parlant de « l'homme » pour un exercice
+    // dont la réponse est « герой » (héros) fait répondre мужчина, et compte
+    // une faute.
+    if (
+      !validateFrenchSentence({ sentenceFr: ai.sentence_fr, translation: noun.translation }).ok
+    ) {
+      throw new Error("traduction française hors sujet");
+    }
+
     // Filet de sécurité : le prompt demande une traduction française sans
     // trou, mais si le modèle en laisse quand même un (ambiguïté du style
     // "sans ___"— impossible de deviner sucre/lait sans indice), on le
@@ -302,6 +331,9 @@ export default function CaseDeclension({
       plural: exercise.plural,
       userAnswer,
       revealed,
+      // Contexte de la seconde lecture IA uniquement : le verdict, lui, est
+      // recalculé côté serveur à partir du nom, du cas et du nombre.
+      sentence: exercise.sentenceTemplate,
       // En QCM, la réponse est une des formes proposées : inutile de payer
       // une vérification IA pour un choix qu'on sait faux.
       multipleChoice,

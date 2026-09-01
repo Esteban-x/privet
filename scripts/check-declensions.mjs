@@ -38,6 +38,12 @@ const { generateSentenceExercise, poolFor } = await jiti.import(
   "../lib/grammar/exercise-generator.ts"
 );
 const { TRIGGERS, PROPER_NOUN_TRIGGER_ID } = await jiti.import("../lib/grammar/triggers.ts");
+const { validateSentence, validateFrenchSentence } = await jiti.import(
+  "../lib/grammar/sentence-guard.ts"
+);
+const { fillFrenchBlank, frenchNounPhrase } = await jiti.import(
+  "../lib/grammar/french-article.ts"
+);
 const { categoryOf, DECLARED_CATEGORIES } = await jiti.import(
   "../lib/grammar/noun-categories.ts"
 );
@@ -501,6 +507,121 @@ let demandingTriggers = 0;
       `« ${noun.translation} » (${noun.lemma}) est une personne/un animal mais marqué inanimé`,
       noun.animacy,
       "animate"
+    );
+  }
+}
+
+// ─── 9. Garde-fou des phrases à trou ───────────────────────────────
+// Le mode « Phrase » calcule la bonne réponse depuis (cas de la page,
+// nombre du déclencheur) sans jamais relire la phrase. Tant qu'elle venait
+// d'un gabarit curé, l'accord était garanti ; depuis que l'IA la rédige, il
+// ne l'est plus : elle a servi « Не́сколько ___ сиде́ли на дива́не » pour
+// illustrer le NOMINATIF pluriel, alors que « несколько » impose le
+// génitif — l'apprenant tapait « детей », juste dans cette phrase, et
+// l'exercice comptait une faute en lui enseignant l'inverse.
+// lib/grammar/sentence-guard.ts refuse ces phrases (route IA + client).
+//
+// Deux choses à tenir ici :
+//   a) le garde-fou accepte TOUS les gabarits curés — sinon il ferait
+//      retomber le mode « Phrase » sur des phrases qu'il refuse lui-même ;
+//   b) il refuse bien les phrases fautives observées en production, et
+//      accepte des phrases justes de même forme (pas un refus global).
+{
+  for (const trigger of TRIGGERS) {
+    const verdict = validateSentence({
+      sentence: trigger.template.ru,
+      targetCase: trigger.caseId,
+      plural: trigger.plural ?? false,
+      trigger,
+    });
+    expect(
+      `gabarit « ${trigger.id} » (${trigger.template.ru}) refusé par le garde-fou` +
+        `${verdict.reason ? ` : ${verdict.reason}` : ""}`,
+      verdict.ok,
+      true
+    );
+  }
+
+  // Témoins. Les trois premiers sont les phrases réellement servies à
+  // l'apprenant et signalées comme fautives ; les suivants vérifient que le
+  // contrôle ne refuse pas tout ce qui lui ressemble.
+  const WITNESSES = [
+    // [phrase, cas, pluriel, id du déclencheur, doit être acceptée]
+    ["Несколько ___ сидели на диване и читали журнал.", "nominative", true, "expr-nom-pluriel", false],
+    ["Несколько ___ сидели в магазине и читали газету.", "nominative", true, "expr-nom-pluriel", false],
+    ["Много ___ гуляют в парке.", "nominative", true, "expr-nom-pluriel", false],
+    ["В парке гуляют ___.", "nominative", true, "expr-nom-pluriel", true],
+    ["На столе лежат красивые ___.", "nominative", true, "expr-nom-pluriel", true],
+    ["На столе лежит красивая ___.", "nominative", true, "expr-nom-pluriel", false],
+    ["У меня есть несколько ___.", "genitive", true, "expr-gen-neskolko", true],
+    ["Я думаю о моей новой большой ___.", "prepositional", false, "prep-prep-o", true],
+    ["Я иду к ___.", "dative", false, "prep-dat-k", true],
+    ["Я говорю с ___.", "dative", false, "prep-dat-k", false],
+    ["Я помогаю моему ___.", "dative", false, "verb-dat-pomogat", true],
+    ["Школа находится в ___.", "prepositional", false, "expr-prep-nakhoditsya", true],
+    ["Здесь 21 ___.", "genitive", true, undefined, false],
+    ["Здесь пять ___.", "genitive", true, undefined, true],
+  ];
+  for (const [sentence, targetCase, plural, triggerId, shouldPass] of WITNESSES) {
+    const trigger = triggerId ? TRIGGERS.find((t) => t.id === triggerId) : undefined;
+    require_(!triggerId || trigger, `témoin garde-fou : déclencheur inconnu « ${triggerId} »`);
+    const verdict = validateSentence({ sentence, targetCase, plural, trigger });
+    expect(
+      `garde-fou sur « ${sentence} » (${targetCase}${plural ? " pluriel" : ""})` +
+        `${verdict.reason ? ` — ${verdict.reason}` : ""}`,
+      verdict.ok,
+      shouldPass
+    );
+  }
+
+  // c) Versant français. La traduction est la seule chose qui dise QUEL mot
+  //    chercher : une phrase française parlant de « l'homme » pour un
+  //    exercice dont la réponse est « герой » fait répondre мужчина, et
+  //    compte une faute. Deux choses à tenir, symétriques du russe.
+  //
+  //    D'abord la banque entière : pour CHAQUE nom, la phrase française
+  //    construite comme le fait le mode « Phrase » (gabarit + article
+  //    accordé) doit être reconnue comme nommant ce mot-là. Un faux refus
+  //    ici ferait retomber le mode IA sur le gabarit fixe en boucle.
+  for (const trigger of TRIGGERS) {
+    if (trigger.id === PROPER_NOUN_TRIGGER_ID) continue;
+    for (const noun of poolFor(trigger, NOUNS)) {
+      for (const plural of [false, true]) {
+        const sentenceFr = fillFrenchBlank(
+          trigger.template.fr,
+          frenchNounPhrase(noun.translation, noun.frenchGender, trigger.article, plural)
+        );
+        const verdict = validateFrenchSentence({ sentenceFr, translation: noun.translation });
+        expect(
+          `garde-fou français : « ${sentenceFr} » ne reconnaît pas « ${noun.translation} »`,
+          verdict.ok,
+          true
+        );
+      }
+    }
+  }
+
+  //    Ensuite les vrais refus : une traduction qui parle d'autre chose.
+  const FRENCH_WITNESSES = [
+    ["L'homme lit un journal.", "héros", false],
+    ["Le héros lit un journal.", "héros", true],
+    ["Ces héros lisent un journal.", "héros", true],
+    ["Je pense à cette jeune fille.", "jeune fille", true],
+    ["Je pense à cette fille.", "jeune fille", false],
+    ["Il travaille dans ce bureau.", "bureau (pièce)", true],
+    ["Il aime son travail.", "travail", true],
+    ["Il aime ses travaux.", "travail", true],
+    ["Je bois de l'eau.", "eau", true],
+    ["Je bois du lait.", "eau", false],
+    ["Voici ___ .", "héros", true], // trou conservé : comblé depuis la banque
+  ];
+  for (const [sentenceFr, translation, shouldPass] of FRENCH_WITNESSES) {
+    const verdict = validateFrenchSentence({ sentenceFr, translation });
+    expect(
+      `garde-fou français sur « ${sentenceFr} » / « ${translation} »` +
+        `${verdict.reason ? ` — ${verdict.reason}` : ""}`,
+      verdict.ok,
+      shouldPass
     );
   }
 }

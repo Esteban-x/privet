@@ -1,0 +1,635 @@
+import { CaseId } from "./types";
+import { CaseTrigger } from "./triggers";
+
+/**
+ * Garde-fou : une phrase à trou est-elle réellement une phrase de CE cas ?
+ *
+ * Le moteur de règles calcule la bonne réponse à partir du cas de la page
+ * (`caseInfo.id`) et du nombre du déclencheur, jamais à partir de la phrase.
+ * Tant que la phrase venait d'un gabarit curé, l'accord était garanti par
+ * construction. Depuis que l'IA rédige la phrase, il ne l'est plus : elle a
+ * écrit « Не́сколько ___ сиде́ли на дива́не » pour illustrer le NOMINATIF
+ * pluriel — sauf que « несколько » impose le génitif. L'apprenant tapait
+ * « детей » (juste dans cette phrase) et l'exercice comptait une faute, en
+ * lui expliquant par-dessus le marché que le nominatif pluriel de ребёнок
+ * est дети. Une erreur de ce type n'est pas un défaut d'affichage : c'est
+ * une faute enseignée, et elle décrédibilise tout le module.
+ *
+ * D'où ce module : un contrôle DÉTERMINISTE, en amont de l'apprenant, qui
+ * regarde ce qui GOUVERNE le trou dans la phrase proposée et refuse la
+ * phrase si ce gouverneur n'admet pas le cas demandé. Pas d'IA ici — c'est
+ * précisément l'IA qu'on surveille.
+ *
+ * Il sert à trois endroits, avec la même table :
+ *   - app/api/ai/exercise/route.ts : refuse la phrase IA (et en redemande une) ;
+ *   - components/exercises/CaseDeclension.tsx : dernier filet côté client ;
+ *   - scripts/check-declensions.mjs : vérifie les gabarits curés eux-mêmes,
+ *     pour que la règle et les données ne puissent pas diverger en silence.
+ *
+ * Ce que le module NE fait PAS : juger si la phrase est naturelle, ni valider
+ * une construction sans gouverneur lexical (objet direct d'un verbe, datif
+ * d'attribution). Il attrape ce qui se voit dans les mots — c'est-à-dire
+ * toute cette famille d'erreurs : prépositions, quantificateurs, numéraux.
+ *
+ * Il garde aussi le versant FRANÇAIS de l'exercice, pour une raison voisine :
+ * la traduction est la seule chose qui dise quel mot chercher, et le modèle
+ * peut la rédiger autour d'un autre sens que celui du lemme qu'il a choisi.
+ * Voir validateFrenchSentence, en bas de fichier.
+ */
+
+/** Cas admis par chaque mot qui gouverne le nom qui le suit. */
+const GOVERNORS: Record<string, CaseId[]> = {
+  // ─── Prépositions du génitif ───
+  без: ["genitive"],
+  безо: ["genitive"],
+  близ: ["genitive"],
+  вблизи: ["genitive"],
+  вдоль: ["genitive"],
+  вместо: ["genitive"],
+  вне: ["genitive"],
+  внутри: ["genitive"],
+  возле: ["genitive"],
+  вокруг: ["genitive"],
+  впереди: ["genitive"],
+  вроде: ["genitive"],
+  для: ["genitive"],
+  до: ["genitive"],
+  из: ["genitive"],
+  изо: ["genitive"],
+  "из-за": ["genitive"],
+  "из-под": ["genitive"],
+  кроме: ["genitive"],
+  мимо: ["genitive"],
+  накануне: ["genitive"],
+  напротив: ["genitive"],
+  насчёт: ["genitive"],
+  около: ["genitive"],
+  от: ["genitive"],
+  ото: ["genitive"],
+  подле: ["genitive"],
+  позади: ["genitive"],
+  помимо: ["genitive"],
+  после: ["genitive"],
+  посреди: ["genitive"],
+  против: ["genitive"],
+  ради: ["genitive"],
+  сверх: ["genitive"],
+  снаружи: ["genitive"],
+  среди: ["genitive"],
+  сзади: ["genitive"],
+  у: ["genitive"],
+
+  // ─── Prépositions du datif ───
+  к: ["dative"],
+  ко: ["dative"],
+  благодаря: ["dative"],
+  вопреки: ["dative"],
+  согласно: ["dative"],
+  навстречу: ["dative"],
+  подобно: ["dative"],
+  // "по" a des emplois marginaux à l'accusatif ("по пояс") et au
+  // prépositionnel ("по приезде") — hors de portée d'un exercice A1-B1, et
+  // les admettre rouvrirait exactement le trou qu'on ferme ici.
+  по: ["dative"],
+
+  // ─── Prépositions de l'accusatif ───
+  про: ["accusative"],
+  сквозь: ["accusative"],
+  спустя: ["accusative"],
+  через: ["accusative"],
+
+  // ─── Prépositions de l'instrumental ───
+  над: ["instrumental"],
+  надо: ["instrumental"],
+  перед: ["instrumental"],
+  передо: ["instrumental"],
+  меж: ["instrumental"],
+
+  // ─── Préposition du prépositionnel ───
+  при: ["prepositional"],
+
+  // ─── Prépositions à double régime ───
+  // Les deux cas sont légitimes : c'est le sens (mouvement / localisation)
+  // qui tranche, et ça, une table de mots ne peut pas le savoir. On les
+  // laisse donc passer pour leurs DEUX cas — et pour eux seulement.
+  в: ["accusative", "prepositional"],
+  во: ["accusative", "prepositional"],
+  на: ["accusative", "prepositional"],
+  за: ["accusative", "instrumental"],
+  под: ["accusative", "instrumental"],
+  подо: ["accusative", "instrumental"],
+  о: ["prepositional", "accusative"],
+  об: ["prepositional", "accusative"],
+  обо: ["prepositional", "accusative"],
+  с: ["genitive", "instrumental"],
+  со: ["genitive", "instrumental"],
+  между: ["instrumental", "genitive"],
+
+  // ─── Quantité, mesure, absence : génitif ───
+  нет: ["genitive"],
+  много: ["genitive"],
+  немного: ["genitive"],
+  мало: ["genitive"],
+  немало: ["genitive"],
+  несколько: ["genitive"],
+  сколько: ["genitive"],
+  столько: ["genitive"],
+  больше: ["genitive"],
+  меньше: ["genitive"],
+  достаточно: ["genitive"],
+  множество: ["genitive"],
+  большинство: ["genitive"],
+  меньшинство: ["genitive"],
+  полно: ["genitive"],
+  пара: ["genitive"],
+  куча: ["genitive"],
+  масса: ["genitive"],
+  половина: ["genitive"],
+  треть: ["genitive"],
+  четверть: ["genitive"],
+  количество: ["genitive"],
+  кусок: ["genitive"],
+  стакан: ["genitive"],
+  чашка: ["genitive"],
+  бутылка: ["genitive"],
+  банка: ["genitive"],
+  пачка: ["genitive"],
+  коробка: ["genitive"],
+  бокал: ["genitive"],
+  ложка: ["genitive"],
+  тарелка: ["genitive"],
+  килограмм: ["genitive"],
+  грамм: ["genitive"],
+  литр: ["genitive"],
+  полный: ["genitive"],
+  полное: ["genitive"],
+  полные: ["genitive"],
+  полон: ["genitive"],
+  полна: ["genitive"],
+  полны: ["genitive"],
+  достоин: ["genitive"],
+  достойна: ["genitive"],
+  достойно: ["genitive"],
+  достойны: ["genitive"],
+  жаль: ["genitive"],
+  // « нет » au passé et au futur : « не было ___ », « не будет ___ ».
+  // Reconnus en deux mots (voir findGovernor) pour ne pas confondre avec le
+  // simple passé d'un verbe.
+  "не было": ["genitive"],
+  "не будет": ["genitive"],
+
+  // ─── Numéraux cardinaux : ils imposent le cas du nom compté ───
+  два: ["genitive"],
+  две: ["genitive"],
+  три: ["genitive"],
+  четыре: ["genitive"],
+  оба: ["genitive"],
+  обе: ["genitive"],
+  полтора: ["genitive"],
+  полторы: ["genitive"],
+  пять: ["genitive"],
+  шесть: ["genitive"],
+  семь: ["genitive"],
+  восемь: ["genitive"],
+  девять: ["genitive"],
+  десять: ["genitive"],
+  одиннадцать: ["genitive"],
+  двенадцать: ["genitive"],
+  тринадцать: ["genitive"],
+  четырнадцать: ["genitive"],
+  пятнадцать: ["genitive"],
+  шестнадцать: ["genitive"],
+  семнадцать: ["genitive"],
+  восемнадцать: ["genitive"],
+  девятнадцать: ["genitive"],
+  двадцать: ["genitive"],
+  тридцать: ["genitive"],
+  сорок: ["genitive"],
+  пятьдесят: ["genitive"],
+  шестьдесят: ["genitive"],
+  семьдесят: ["genitive"],
+  восемьдесят: ["genitive"],
+  девяносто: ["genitive"],
+  сто: ["genitive"],
+  тысяча: ["genitive"],
+  миллион: ["genitive"],
+};
+
+/** Étiquette lisible d'un cas, pour les motifs de refus. */
+export const CASE_LABEL: Record<CaseId, string> = {
+  nominative: "nominatif",
+  genitive: "génitif",
+  dative: "datif",
+  accusative: "accusatif",
+  instrumental: "instrumental",
+  prepositional: "prépositionnel",
+};
+
+/**
+ * Variantes orthographiques d'une même préposition (в/во, с/со…). Le
+ * déclencheur est écrit sous sa forme de citation ("в"), la phrase peut
+ * légitimement porter l'autre ("во вто́рник", "со мной") : les confondre
+ * ferait refuser des phrases justes.
+ */
+const PREPOSITION_VARIANTS: Record<string, string[]> = {
+  в: ["в", "во"],
+  во: ["в", "во"],
+  с: ["с", "со"],
+  со: ["с", "со"],
+  к: ["к", "ко"],
+  ко: ["к", "ко"],
+  о: ["о", "об", "обо"],
+  об: ["о", "об", "обо"],
+  обо: ["о", "об", "обо"],
+  под: ["под", "подо"],
+  над: ["над", "надо"],
+  перед: ["перед", "передо"],
+  из: ["из", "изо"],
+  от: ["от", "ото"],
+  без: ["без", "безо"],
+  // Mêmes déclencheurs, autres formes : le libellé cite « нет », « полный »
+  // ou « достоин », la phrase peut légitimement porter « не было »,
+  // « полна », « достойны ».
+  нет: ["нет", "не было", "не будет"],
+  полный: ["полный", "полное", "полные", "полон", "полна", "полно", "полны"],
+  достоин: ["достоин", "достойна", "достойно", "достойны"],
+};
+
+/**
+ * Mots qui peuvent légitimement s'intercaler entre le gouverneur et le nom
+ * du trou : adjectifs, possessifs, démonstratifs. On les saute pour aller
+ * chercher le vrai gouverneur — « в большо́м но́вом ___ » est gouverné par
+ * « в », pas par « новом ».
+ */
+const ADJECTIVAL_ENDING =
+  /(ый|ий|ой|ая|яя|ое|ее|ые|ие|ого|его|ому|ему|ым|им|ых|их|ую|юю|ыми|ими|ом|ем|ей)$/;
+
+const DETERMINERS = new Set([
+  "мой", "моя", "моё", "мои", "моего", "моему", "моим", "моих", "моими", "моей", "мою", "моём",
+  "твой", "твоя", "твоё", "твои", "твоего", "твоему", "твоим", "твоих", "твоими", "твоей", "твою", "твоём",
+  "наш", "наша", "наше", "наши", "нашего", "нашему", "нашим", "наших", "нашими", "нашей", "нашу", "нашем",
+  "ваш", "ваша", "ваше", "ваши", "вашего", "вашему", "вашим", "ваших", "вашими", "вашей", "вашу", "вашем",
+  "свой", "своя", "своё", "свои", "своего", "своему", "своим", "своих", "своими", "своей", "свою", "своём",
+  "его", "её", "их",
+  "этот", "эта", "это", "эти", "этого", "этому", "этом", "этой", "эту", "этим", "этих", "этими",
+  "тот", "та", "те", "того", "тому", "том", "той", "ту", "тем", "тех", "теми",
+  "весь", "вся", "всё", "все", "всего", "всему", "всем", "всех", "всеми",
+  "один", "одна", "одно", "одни", "одного", "одному", "одним", "одних", "одной", "одну",
+  "какой", "какая", "какое", "какие", "чей", "чья", "чьё", "чьи",
+  "самый", "самая", "самое", "самые", "любой", "каждый", "другой",
+]);
+
+/**
+ * Terminaisons qui marquent le nombre SANS ambiguïté.
+ *
+ * Plus étroit que ADJECTIVAL_ENDING, et pour une raison précise : sauter un
+ * mot qu'on prend à tort pour une épithète est sans conséquence (on continue
+ * de chercher le gouverneur), mais en DÉDUIRE un nombre l'a. Sont donc
+ * écartées les finales qu'un nom porte couramment — -ом / -ем / -ой / -ей
+ * (столо́м, мо́рем, стено́й) — ainsi que -ым / -им (instrumental singulier ET
+ * datif pluriel). Un marqueur ambigu ne dit rien, et le faire parler
+ * produirait des refus faux.
+ */
+const PLURAL_ENDING = /(ые|ие|ых|их|ыми|ими)$/;
+const SINGULAR_ENDING = /(ый|ий|ая|яя|ое|ее|ого|его|ому|ему|ую|юю)$/;
+
+const PLURAL_DETERMINERS = new Set([
+  "эти", "этих", "этими", "те", "тех", "теми", "все", "всех", "всеми",
+  "мои", "моих", "моими", "твои", "твоих", "твоими", "наши", "наших", "нашими",
+  "ваши", "ваших", "вашими", "свои", "своих", "своими", "одни", "одних", "какие", "чьи",
+  "самые",
+]);
+const SINGULAR_DETERMINERS = new Set([
+  "этот", "эта", "это", "этого", "этому", "этом", "этой", "эту",
+  "тот", "та", "того", "тому", "том", "той", "ту",
+  "весь", "вся", "всё", "всего", "всему",
+  "мой", "моя", "моё", "моего", "моему", "моей", "мою", "моём",
+  "твой", "твоя", "твоё", "твоего", "твоему", "твоей", "твою", "твоём",
+  "наш", "наша", "наше", "нашего", "нашему", "нашей", "нашу", "нашем",
+  "ваш", "ваша", "ваше", "вашего", "вашему", "вашей", "вашу", "вашем",
+  "свой", "своя", "своё", "своего", "своему", "своей", "свою", "своём",
+  "один", "одна", "одно", "одного", "одному", "одной", "одну",
+  "какой", "какая", "какое", "чей", "чья", "чьё",
+  "самый", "самая", "самое",
+]);
+
+export const BLANK = "___";
+
+/** Minuscules, ё → е, accent tonique retiré : la table est lue ainsi. */
+function normalize(text: string): string {
+  return text.toLowerCase().replace(/́/g, "").replace(/ё/g, "е");
+}
+
+// Les tables ci-dessus s'écrivent avec des ё ("насчёт", "моё") : on les
+// normalise une fois au chargement plutôt que d'imposer une orthographe
+// artificielle aux littéraux.
+function normalizedKeys<T>(source: Record<string, T>): Record<string, T> {
+  const out: Record<string, T> = {};
+  for (const [key, value] of Object.entries(source)) out[normalize(key)] = value;
+  return out;
+}
+function normalizedSet(source: Set<string>): Set<string> {
+  return new Set([...source].map(normalize));
+}
+const GOVERNORS_N = normalizedKeys(GOVERNORS);
+const VARIANTS_N = normalizedKeys(PREPOSITION_VARIANTS);
+const DETERMINERS_N = normalizedSet(DETERMINERS);
+const PLURAL_DETERMINERS_N = normalizedSet(PLURAL_DETERMINERS);
+const SINGULAR_DETERMINERS_N = normalizedSet(SINGULAR_DETERMINERS);
+
+type Token = { kind: "word"; text: string } | { kind: "punct"; text: string };
+
+/** Découpe en gardant la ponctuation : une virgule coupe la gouvernance. */
+function tokenize(text: string): Token[] {
+  const tokens: Token[] = [];
+  const re = /([а-я0-9]+(?:-[а-я0-9]+)*)|([^\sа-я0-9])/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m[1]) tokens.push({ kind: "word", text: m[1] });
+    else tokens.push({ kind: "punct", text: m[2] });
+  }
+  return tokens;
+}
+
+function isAdjectival(word: string): boolean {
+  return DETERMINERS_N.has(word) || ADJECTIVAL_ENDING.test(word);
+}
+
+/** Cas imposé par un nombre écrit en chiffres (5 книг, 21 книга, 22 книги). */
+function casesForDigits(word: string): CaseId[] | undefined {
+  if (!/^\d+$/.test(word)) return undefined;
+  const n = Number(word);
+  if (!Number.isFinite(n)) return undefined;
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 14) return ["genitive"];
+  return n % 10 === 1 ? ["nominative"] : ["genitive"];
+}
+
+export interface Governor {
+  /** Le mot tel qu'il apparaît, normalisé. */
+  word: string;
+  /** Cas qu'il admet pour le nom qu'il gouverne. */
+  cases: CaseId[];
+}
+
+/**
+ * Le mot qui gouverne le trou, s'il y en a un. On remonte depuis le trou en
+ * sautant au plus trois épithètes ; une ponctuation forte, ou un mot qui
+ * n'est ni gouverneur ni épithète, arrête la remontée — c'est alors un verbe
+ * ou un sujet, et la gouvernance n'est plus lexicale (objet direct, datif
+ * d'attribution) : il n'y a rien à vérifier de ce côté.
+ */
+export function findGovernor(sentence: string): Governor | undefined {
+  const blankAt = sentence.indexOf(BLANK);
+  const before = normalize(blankAt >= 0 ? sentence.slice(0, blankAt) : sentence);
+  const tokens = tokenize(before);
+
+  let skipped = 0;
+  for (let i = tokens.length - 1; i >= 0; i -= 1) {
+    const token = tokens[i];
+    if (token.kind === "punct") {
+      // Le tiret d'incise et les guillemets ne coupent rien d'utile ; une
+      // virgule ou un point séparent bel et bien deux syntagmes.
+      if (/[,.;:!?…]/.test(token.text)) return undefined;
+      continue;
+    }
+    const word = token.text;
+    const previous = tokens[i - 1]?.kind === "word" ? tokens[i - 1].text : "";
+
+    // Locutions en deux mots : le second mot seul dirait autre chose.
+    if (word === "время" && previous === "во") return { word: "во время", cases: ["genitive"] };
+    if (word === "на" && previous === "несмотря") {
+      return { word: "несмотря на", cases: ["accusative"] };
+    }
+    if ((word === "было" || word === "будет") && previous === "не") {
+      return { word: `не ${word}`, cases: ["genitive"] };
+    }
+
+    const digits = casesForDigits(word);
+    if (digits) return { word, cases: digits };
+
+    const cases = GOVERNORS_N[word];
+    if (cases) return { word, cases };
+
+    if (isAdjectival(word) && skipped < 3) {
+      skipped += 1;
+      continue;
+    }
+    return undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Nombre exigé par l'épithète collée au trou, quand elle le marque sans
+ * ambiguïté. Attrape « Здесь только но́вые ___ » servi pour une réponse au
+ * singulier (et l'inverse) : la désinence attendue serait alors en désaccord
+ * avec la phrase que l'apprenant a sous les yeux.
+ */
+function attributeNumber(sentence: string): "singular" | "plural" | undefined {
+  const blankAt = sentence.indexOf(BLANK);
+  if (blankAt < 0) return undefined;
+  const tokens = tokenize(normalize(sentence.slice(0, blankAt)));
+  const last = tokens[tokens.length - 1];
+  if (!last || last.kind !== "word") return undefined;
+  const word = last.text;
+  if (PLURAL_DETERMINERS_N.has(word)) return "plural";
+  if (SINGULAR_DETERMINERS_N.has(word)) return "singular";
+  if (DETERMINERS_N.has(word)) return undefined; // déterminant ambigu : on se tait
+  if (GOVERNORS_N[word] || casesForDigits(word)) return undefined;
+  if (PLURAL_ENDING.test(word)) return "plural";
+  if (SINGULAR_ENDING.test(word)) return "singular";
+  return undefined;
+}
+
+/**
+ * Gouverneur(s) attendu(s) d'après le déclencheur qu'on a demandé à
+ * illustrer. `undefined` = ce déclencheur n'impose aucun mot devant le trou
+ * (verbe à régime, « это », « мн. число »…) : on ne peut rien exiger, et
+ * exiger quand même ferait refuser des phrases justes.
+ */
+export function expectedGovernors(trigger: CaseTrigger): string[] | undefined {
+  // "у ... есть" → "у" ; "говорить о" → "о" ; "несмотря на" → "на" ;
+  // "работать +" → rien. On lit les mots du libellé et on garde le premier
+  // qui soit un gouverneur connu.
+  const words = normalize(trigger.ru)
+    .replace(/\(.*?\)/g, " ")
+    .split(/[^а-я0-9-]+/)
+    .filter(Boolean);
+
+  if (words.includes("несмотря")) return ["несмотря на"];
+  if (words.includes("во") && words.includes("время")) return ["во время"];
+
+  for (const word of words) {
+    if (GOVERNORS_N[word]) return VARIANTS_N[word] ?? [word];
+  }
+  return undefined;
+}
+
+export interface GuardInput {
+  sentence: string;
+  targetCase: CaseId;
+  plural: boolean;
+  trigger?: CaseTrigger;
+  /**
+   * Formes que la phrase ne doit pas déjà contenir : la réponse attendue et
+   * le lemme. Une phrase qui les donne rend l'exercice sans objet.
+   */
+  forbiddenForms?: string[];
+}
+
+export interface GuardVerdict {
+  ok: boolean;
+  /** Motif du refus, en français — journalisé côté serveur, jamais affiché. */
+  reason?: string;
+}
+
+/** Le contrôle complet. Voir l'en-tête du module pour le pourquoi. */
+export function validateSentence(input: GuardInput): GuardVerdict {
+  const { sentence, targetCase, plural, trigger, forbiddenForms } = input;
+
+  if (typeof sentence !== "string" || !sentence.trim()) {
+    return { ok: false, reason: "phrase vide" };
+  }
+  const blanks = sentence.split(BLANK).length - 1;
+  if (blanks !== 1) {
+    return { ok: false, reason: `${blanks} trou(s) au lieu d'un seul` };
+  }
+  if (!/[а-яё]/i.test(sentence)) {
+    return { ok: false, reason: "phrase sans cyrillique" };
+  }
+  // Un trou suivi d'une désinence recollée ("___ой") laisserait croire à
+  // l'apprenant qu'il ne doit taper qu'un morceau du mot.
+  const after = sentence.slice(sentence.indexOf(BLANK) + BLANK.length);
+  if (/^[а-яёa-z]/i.test(after)) {
+    return { ok: false, reason: "le trou est collé à un morceau de mot" };
+  }
+
+  const normalized = normalize(sentence);
+  for (const form of forbiddenForms ?? []) {
+    const target = normalize(form);
+    if (!target) continue;
+    if (new RegExp(`(^|[^а-я])${target}([^а-я]|$)`).test(normalized)) {
+      return { ok: false, reason: `la phrase contient déjà « ${form} »` };
+    }
+  }
+
+  const governor = findGovernor(sentence);
+
+  // ── Contrôle 1 : le gouverneur trouvé admet-il le cas demandé ? ──
+  // C'est celui qui attrape « Несколько ___ » servi pour du nominatif.
+  if (governor && !governor.cases.includes(targetCase)) {
+    return {
+      ok: false,
+      reason:
+        `« ${governor.word} » gouverne le trou et impose ` +
+        `${governor.cases.map((c) => CASE_LABEL[c]).join(" ou ")}, ` +
+        `pas ${CASE_LABEL[targetCase]}`,
+    };
+  }
+
+  // ── Contrôle 2 : la phrase illustre-t-elle LE déclencheur annoncé ? ──
+  // Sans lui, une phrase au bon cas mais bâtie sur une autre préposition
+  // afficherait un intitulé de déclencheur faux au-dessus de l'exercice.
+  if (trigger) {
+    const expected = expectedGovernors(trigger);
+    if (expected && (!governor || !expected.includes(governor.word))) {
+      return {
+        ok: false,
+        reason: governor
+          ? `le trou est gouverné par « ${governor.word} », pas par « ${expected[0]} »`
+          : `« ${expected[0]} » ne précède pas le trou`,
+      };
+    }
+  }
+
+  // ── Contrôle 3 : le nombre de la phrase et celui de la réponse ──
+  const marked = attributeNumber(sentence);
+  if (marked && marked !== (plural ? "plural" : "singular")) {
+    return {
+      ok: false,
+      reason:
+        `l'épithète devant le trou est au ${marked === "plural" ? "pluriel" : "singulier"}, ` +
+        `la réponse attendue au ${plural ? "pluriel" : "singulier"}`,
+    };
+  }
+
+  return { ok: true };
+}
+
+// ─── Côté français : la traduction doit désigner LE mot du trou ──────
+//
+// Deuxième façon de rendre un exercice insoluble, et elle n'a rien à voir
+// avec les cas. La phrase française est la seule chose qui dise à
+// l'apprenant QUEL mot chercher ; le modèle la rédige librement et peut la
+// bâtir autour d'un autre sens que celui du lemme qu'il a choisi. Observé :
+// une phrase française parlant de « l'homme » pour un exercice dont la
+// réponse était герой (héros) — мужчина et человек s'imposaient à la
+// lecture, et étaient comptés faux.
+//
+// Le contrôle est volontairement lexical, pas sémantique : la traduction de
+// la banque (« héros ») doit littéralement apparaître dans la phrase. C'est
+// la banque qui fait foi pour le sens du mot, ici comme pour ses formes.
+
+/** Minuscules, sans diacritiques, apostrophes et traits d'union en espaces. */
+function normalizeFrench(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/['’\-]/g, " ");
+}
+
+/** Mots-outils : leur présence ne dit rien, leur absence non plus. */
+const FRENCH_STOPWORDS = new Set([
+  "de", "du", "des", "d", "le", "la", "les", "l", "un", "une", "a", "au", "aux", "en",
+]);
+
+const FRENCH_IRREGULAR_PLURALS: Record<string, string> = { travail: "travaux" };
+
+export interface FrenchGuardInput {
+  /** La phrase française produite par le modèle. */
+  sentenceFr: unknown;
+  /** La traduction du lemme, telle que la banque la donne. */
+  translation: string;
+}
+
+/**
+ * La phrase française nomme-t-elle bien le mot à deviner ?
+ *
+ * Une phrase qui a gardé son "___" est acceptée : le trou est comblé avec
+ * la traduction de la banque (fillFrenchBlank), donc l'accord est garanti
+ * par construction.
+ *
+ * Les précisions entre parenthèses de la banque (« bureau (pièce) ») ne sont
+ * pas exigées — ce sont des désambiguïsations pour l'auteur, pas des mots à
+ * écrire. Tout le reste l'est, y compris les traductions en plusieurs mots :
+ * « jeune fille » sans « jeune » désignerait « дочь », pas « девушка ».
+ */
+export function validateFrenchSentence(input: FrenchGuardInput): GuardVerdict {
+  const { sentenceFr, translation } = input;
+  if (typeof sentenceFr !== "string" || !sentenceFr.trim()) {
+    return { ok: false, reason: "traduction française vide" };
+  }
+  if (sentenceFr.includes(BLANK)) return { ok: true };
+
+  const required = normalizeFrench(translation.replace(/\(.*?\)/g, " "))
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length >= 2 && !FRENCH_STOPWORDS.has(word));
+  if (required.length === 0) return { ok: true };
+
+  const haystack = normalizeFrench(sentenceFr);
+  for (const word of required) {
+    const irregular = FRENCH_IRREGULAR_PLURALS[word];
+    // Pluriel français toléré (livre/livres, couteau/couteaux, travail/travaux) :
+    // c'est le mot qu'on cherche, pas son nombre.
+    const alternatives = irregular ? `${word}(s|x)?|${irregular}` : `${word}(s|x)?`;
+    if (!new RegExp(`(^|[^a-z])(${alternatives})([^a-z]|$)`).test(haystack)) {
+      return {
+        ok: false,
+        reason: `la traduction française ne contient pas « ${translation} » (le mot du trou)`,
+      };
+    }
+  }
+  return { ok: true };
+}

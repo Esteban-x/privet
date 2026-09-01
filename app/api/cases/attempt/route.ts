@@ -45,6 +45,7 @@ async function aiSecondOpinion(
     plural: boolean;
     computedForm: string;
     userAnswer: string;
+    sentence?: string;
   }
 ): Promise<VerificationResult> {
   // Hors quota, le verdict déterministe (« faux ») tient. C'est déjà ce
@@ -92,6 +93,14 @@ export async function POST(req: Request) {
   const userAnswer = typeof body.userAnswer === "string" ? body.userAnswer.slice(0, 200) : "";
   const plural = body.plural === true;
   const revealed = body.revealed === true;
+  // La phrase de l'exercice, quand il y en a une. Elle ne sert QU'À la
+  // seconde lecture IA : le verdict déterministe, lui, ne dépend que du nom,
+  // du cas et du nombre — un client ne peut donc rien s'accorder en la
+  // trafiquant. Voir answerVerificationPrompt pour ce qu'elle y apporte.
+  const sentence =
+    typeof body.sentence === "string" && body.sentence.includes("___")
+      ? body.sentence.slice(0, 300)
+      : undefined;
   // En QCM l'apprenant clique une des formes proposées : une réponse fausse
   // l'est franchement, la seconde lecture IA n'a rien à rattraper.
   const multipleChoice = body.multipleChoice === true;
@@ -142,6 +151,7 @@ export async function POST(req: Request) {
         plural,
         computedForm: expectedForm,
         userAnswer,
+        sentence,
       });
       correct = verdict.acceptable;
       reason = verdict.reason ?? null;
