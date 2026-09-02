@@ -47,6 +47,7 @@ export default function Modal({
   children: React.ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
   // `onClose` est presque toujours une lambda recréée à chaque rendu : la
   // mettre en dépendance ferait rejouer l'effet en boucle, et le focus
@@ -106,6 +107,52 @@ export default function Modal({
     };
   }, [open]);
 
+  /**
+   * LE DIALOGUE SE CALE SUR LA FENÊTRE VISIBLE, PAS SUR LA FENÊTRE DE MISE EN
+   * PAGE — c'est la seule façon de garder son pied au-dessus du clavier.
+   *
+   * `position: fixed` se réfère à la fenêtre de MISE EN PAGE, et sur iOS
+   * celle-ci ne rétrécit pas d'un pixel quand le clavier monte : elle est
+   * simplement recouverte. Un `inset-0` s'étend donc SOUS le clavier, et tout
+   * ce qui est calé en bas — ici le bouton « Ajouter le mot », `sticky
+   * bottom-0` dans le formulaire — se retrouve derrière lui. Rien dans le CSS
+   * ne le rattrape : ni `100dvh`, ni `100svh`, ni `env(keyboard-inset-*)`, qui
+   * ne parle qu'aux claviers virtuels déclarés par l'application.
+   *
+   * `visualViewport`, lui, décrit exactement la zone restée visible — sa
+   * hauteur retranche le clavier, et `offsetTop` dit de combien iOS a fait
+   * glisser cette zone pour montrer le champ actif. Recopier les quatre
+   * mesures sur le conteneur le remet pile dans le cadre visible.
+   *
+   * ÉCRIT DIRECTEMENT DANS LE STYLE DU NŒUD, pas via un état : `scroll` se
+   * déclenche à chaque image pendant que le clavier glisse, et un rendu React
+   * par image ferait traîner le panneau derrière le clavier.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const view = window.visualViewport;
+    const el = rootRef.current;
+    if (!view || !el) return;
+
+    function sync() {
+      if (!view || !el) return;
+      el.style.top = `${view.offsetTop}px`;
+      el.style.left = `${view.offsetLeft}px`;
+      el.style.right = "auto";
+      el.style.bottom = "auto";
+      el.style.width = `${view.width}px`;
+      el.style.height = `${view.height}px`;
+    }
+
+    sync();
+    view.addEventListener("resize", sync);
+    view.addEventListener("scroll", sync);
+    return () => {
+      view.removeEventListener("resize", sync);
+      view.removeEventListener("scroll", sync);
+    };
+  }, [open]);
+
   // Pas d'état « monté » : `createPortal` n'a pas de sens au rendu serveur,
   // et une modale ne s'ouvre que sur une action de l'utilisateur — donc
   // toujours APRÈS l'hydratation.
@@ -119,6 +166,7 @@ export default function Modal({
 
   return createPortal(
     <div
+      ref={rootRef}
       className={`fixed inset-0 z-50 flex justify-center ${
         sheet ? "items-stretch sm:items-center sm:p-4" : "items-center p-4"
       }`}
@@ -184,8 +232,12 @@ export default function Modal({
           )}
         </div>
         <div
+          /* `scroll-pb-28` : quand le navigateur amène de lui-même le champ
+             qu'on vient de toucher dans la zone visible, il le colle au bas
+             du conteneur — c'est-à-dire derrière le pied collant du
+             formulaire. Cette réserve de défilement lui dit où s'arrêter. */
           className={`relative pt-5 ${
-            sheet ? "flex-1 overflow-y-auto px-5 pb-8 sm:px-7 sm:pb-7" : "px-7 pb-7"
+            sheet ? "flex-1 scroll-pb-28 overflow-y-auto px-5 pb-8 sm:px-7 sm:pb-7" : "px-7 pb-7"
           }`}
         >
           {children}

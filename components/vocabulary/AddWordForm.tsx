@@ -524,6 +524,7 @@ export default function AddWordForm({
             activeIndex={activeIndex}
             onPick={(item) => pick(item)}
             onHover={setActiveIndex}
+            onDismiss={() => setOpenList(null)}
             listId="ru-completions"
           />
         ) : undefined
@@ -572,6 +573,7 @@ export default function AddWordForm({
             activeIndex={activeIndex}
             onPick={(item) => pick(item)}
             onHover={setActiveIndex}
+            onDismiss={() => setOpenList(null)}
             listId="fr-completions"
           />
         ) : undefined
@@ -935,6 +937,14 @@ function Field({
   return (
     // `relative` : c'est ce bloc qui ancre le menu de complétion.
     //
+    // UN <div>, PLUS UN <label>, et c'est ce qui rend le menu utilisable au
+    // doigt. Un <label> renvoie TOUT clic reçu vers son champ : le bouton
+    // « Fermer » du menu, qui vit dedans, refocalisait donc le textarea —
+    // dont le `onFocus` rouvre aussitôt la liste qu'on venait de fermer. Ce
+    // <label> n'avait de toute façon aucun texte à porter : le libellé de
+    // chaque champ est en en-tête du cadre, et l'accessibilité passe par
+    // l'`aria-label` du textarea.
+    //
     // NI BORDURE NI LIBELLÉ ICI. Les deux champs vivent maintenant dans un
     // cadre commun, avec les deux langues et le bouton d'inversion dans une
     // barre au-dessus — la disposition de Yandex Traducteur. Chaque champ
@@ -942,7 +952,7 @@ function Field({
     // faisait quatre traits et deux titres pour une seule paire, et rien
     // n'alignait le bouton d'inversion, coincé entre deux boîtes de hauteurs
     // différentes.
-    <label className="relative block">
+    <div className="relative">
       <textarea
         ref={mergeRefs(inputRef, box)}
         rows={1}
@@ -1001,6 +1011,6 @@ function Field({
         <span className="absolute bottom-2 right-2 flex items-center gap-0.5">{actions}</span>
       )}
       {menu}
-    </label>
+    </div>
   );
 }
