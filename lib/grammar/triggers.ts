@@ -61,7 +61,7 @@ export interface CaseTrigger {
   caseId: CaseId;
   kind: TriggerKind;
   tier: TriggerTier;
-  ru: string; // ex. "у", "помогать (+ дат.)"
+  ru: string; // ex. "у", "помога́ть (+ дат.)"
   meaningFr: string;
   template: { ru: string; fr: string }; // "___" = trou
   /**
@@ -90,8 +90,8 @@ export interface CaseTrigger {
   accepts?: NounCategory[];
 }
 
-// "Меня зовут ___" n'a de sens qu'avec un prénom, jamais un nom commun de
-// la banque générale ("Меня зовут музыка" est absurde) — repéré par id
+// "Меня́ зову́т ___" n'a de sens qu'avec un prénom, jamais un nom commun de
+// la banque générale ("Меня́ зову́т му́зыка" est absurde) — repéré par id
 // plutôt qu'un champ générique sur CaseTrigger puisque c'est, à ce jour, le
 // seul déclencheur dans ce cas. Utilisé à la fois pour réserver le tirage
 // du nom (lib/grammar/exercise-generator.ts) et pour adapter le prompt IA
@@ -106,9 +106,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "basic",
     article: "indefinite",
-    ru: "это",
+    ru: "э́то",
     meaningFr: "Identifier quelqu'un ou quelque chose.",
-    template: { ru: "Это ___.", fr: "C'est ___." },
+    template: { ru: "Э́то ___.", fr: "C'est ___." },
     number: "singular", // « C'est ___ » demanderait « Ce sont » au pluriel
   },
   {
@@ -142,9 +142,9 @@ export const TRIGGERS: CaseTrigger[] = [
     // prénoms (RUSSIAN_NAMES) dans exercise-generator.ts pour ce
     // déclencheur précis.
     article: "none",
-    ru: "зовут",
-    meaningFr: "Se présenter : le nom reste au nominatif après \"меня зовут\".",
-    template: { ru: "Меня зовут ___.", fr: "Je m'appelle ___." },
+    ru: "зову́т",
+    meaningFr: "Se présenter : le nom reste au nominatif après \"меня́ зову́т\".",
+    template: { ru: "Меня́ зову́т ___.", fr: "Je m'appelle ___." },
     number: "singular", // un prénom, jamais un pluriel
   },
   {
@@ -154,9 +154,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "basic",
     article: "none",
-    ru: "мн. число",
+    ru: "мн. число́",
     meaningFr: "Le sujet est au pluriel.",
-    template: { ru: "Здесь только ___.", fr: "Ici il n'y a que des ___." },
+    template: { ru: "Здесь то́лько ___.", fr: "Ici il n'y a que des ___." },
     number: "plural",
   },
 
@@ -170,7 +170,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "none",
     ru: "нет",
     meaningFr: "Absence : нет + génitif.",
-    template: { ru: "У меня нет ___.", fr: "Je n'ai pas de ___." },
+    template: { ru: "У меня́ нет ___.", fr: "Je n'ai pas de ___." },
   },
   // Quantité et mesure
   {
@@ -179,9 +179,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "basic",
     article: "none",
-    ru: "много",
+    ru: "мно́го",
     meaningFr: "Quantité importante (+ génitif pluriel).",
-    template: { ru: "У меня много ___.", fr: "J'ai beaucoup de ___." },
+    template: { ru: "У меня́ мно́го ___.", fr: "J'ai beaucoup de ___." },
     number: "plural",
   },
   {
@@ -190,9 +190,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "basic",
     article: "none",
-    ru: "мало",
+    ru: "ма́ло",
     meaningFr: "Quantité insuffisante (+ génitif pluriel).",
-    template: { ru: "У меня мало ___.", fr: "J'ai peu de ___." },
+    template: { ru: "У меня́ ма́ло ___.", fr: "J'ai peu de ___." },
     number: "plural",
   },
   {
@@ -202,9 +202,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "intermediate",
     article: "none",
-    ru: "несколько",
+    ru: "не́сколько",
     meaningFr: "\"Plusieurs\" (+ génitif pluriel).",
-    template: { ru: "У меня есть несколько ___.", fr: "J'ai plusieurs ___." },
+    template: { ru: "У меня́ есть не́сколько ___.", fr: "J'ai plusieurs ___." },
     number: "plural",
   },
   {
@@ -214,9 +214,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "basic",
     article: "none",
-    ru: "сколько",
+    ru: "ско́лько",
     meaningFr: "\"Combien de\" (+ génitif).",
-    template: { ru: "Сколько ___ у тебя?", fr: "Combien de ___ as-tu ?" },
+    template: { ru: "Ско́лько ___ у тебя́?", fr: "Combien de ___ as-tu ?" },
     number: "plural",
   },
   {
@@ -226,9 +226,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "intermediate",
     article: "none",
-    ru: "кусок",
+    ru: "кусо́к",
     meaningFr: "Unité de mesure : \"un morceau de\".",
-    template: { ru: "Дай мне кусок ___.", fr: "Donne-moi un morceau de ___." },
+    template: { ru: "Дай мне кусо́к ___.", fr: "Donne-moi un morceau de ___." },
     number: "singular", // un morceau se prend dans une matière, au singulier
   },
   {
@@ -238,9 +238,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "intermediate",
     article: "none",
-    ru: "стакан",
+    ru: "стака́н",
     meaningFr: "Unité de mesure : \"un verre de\".",
-    template: { ru: "Я хочу стакан ___.", fr: "Je veux un verre de ___." },
+    template: { ru: "Я хочу́ стака́н ___.", fr: "Je veux un verre de ___." },
     number: "singular", // un verre se remplit d'une matière, au singulier
   },
   // Possession
@@ -253,7 +253,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "у",
     meaningFr: "Possession, \"chez\" : у + génitif.",
-    template: { ru: "Я живу у ___.", fr: "Je vis chez ___." },
+    template: { ru: "Я живу́ у ___.", fr: "Je vis chez ___." },
   },
   {
     id: "expr-gen-u-est",
@@ -264,7 +264,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "у ... есть",
     meaningFr: "Possession : \"chez X il y a Y\" = \"X a Y\" — le possesseur (X) est au génitif après у.",
-    template: { ru: "У ___ есть машина.", fr: "___ a une voiture." },
+    template: { ru: "У ___ есть маши́на.", fr: "___ a une voiture." },
     number: "singular", // le trou est le sujet : « ___ ont une voiture » au pluriel
   },
   {
@@ -276,7 +276,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "сущ. + сущ.",
     meaningFr: "Possession : \"le X de Y\" — le possesseur se met au génitif juste après le nom possédé.",
-    template: { ru: "Это машина ___.", fr: "C'est la voiture de ___." },
+    template: { ru: "Э́то маши́на ___.", fr: "C'est la voiture de ___." },
   },
   // Prépositions
   {
@@ -288,7 +288,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "из",
     meaningFr: "Provenance, origine.",
-    template: { ru: "Я приехал из ___.", fr: "Je suis venu de ___." },
+    template: { ru: "Я прие́хал из ___.", fr: "Je suis venu de ___." },
   },
   {
     id: "prep-gen-ot",
@@ -299,7 +299,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "от",
     meaningFr: "En provenance de (personne, source).",
-    template: { ru: "Это письмо от ___.", fr: "Cette lettre vient de ___." },
+    template: { ru: "Э́то письмо́ от ___.", fr: "Cette lettre vient de ___." },
   },
   {
     id: "prep-gen-s",
@@ -321,7 +321,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "до",
     meaningFr: "\"Jusqu'à\".",
-    template: { ru: "Мы едем до ___.", fr: "Nous allons jusqu'à ___." },
+    template: { ru: "Мы е́дем до ___.", fr: "Nous allons jusqu'à ___." },
   },
   {
     id: "prep-gen-posle",
@@ -330,9 +330,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "basic",
     article: "demonstrative",
-    ru: "после",
+    ru: "по́сле",
     meaningFr: "\"Après\".",
-    template: { ru: "Я приду после ___.", fr: "Je viendrai après ___." },
+    template: { ru: "Я приду́ по́сле ___.", fr: "Je viendrai après ___." },
   },
   {
     id: "prep-gen-vovremya",
@@ -341,9 +341,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "во время",
+    ru: "во вре́мя",
     meaningFr: "\"Pendant\".",
-    template: { ru: "Я молчал во время ___.", fr: "Je me suis tu pendant ___." },
+    template: { ru: "Я молча́л во вре́мя ___.", fr: "Je me suis tu pendant ___." },
   },
   {
     id: "prep-gen-okolo",
@@ -352,9 +352,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "около",
+    ru: "о́коло",
     meaningFr: "\"Près de\", \"environ\".",
-    template: { ru: "Магазин около ___.", fr: "Le magasin est près de ___." },
+    template: { ru: "Магази́н о́коло ___.", fr: "Le magasin est près de ___." },
   },
   {
     id: "prep-gen-vokrug",
@@ -363,9 +363,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "вокруг",
+    ru: "вокру́г",
     meaningFr: "\"Autour de\".",
-    template: { ru: "Дети бегали вокруг ___.", fr: "Les enfants couraient autour de ___." },
+    template: { ru: "Де́ти бе́гали вокру́г ___.", fr: "Les enfants couraient autour de ___." },
   },
   {
     id: "prep-gen-vdol",
@@ -376,7 +376,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "вдоль",
     meaningFr: "\"Le long de\".",
-    template: { ru: "Мы гуляли вдоль ___.", fr: "Nous nous sommes promenés le long de ___." },
+    template: { ru: "Мы гуля́ли вдоль ___.", fr: "Nous nous sommes promenés le long de ___." },
   },
   {
     id: "prep-gen-mimo",
@@ -385,9 +385,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "мимо",
+    ru: "ми́мо",
     meaningFr: "\"Devant\", \"en passant par\" (mouvement).",
-    template: { ru: "Я прошёл мимо ___.", fr: "Je suis passé devant ___." },
+    template: { ru: "Я прошёл ми́мо ___.", fr: "Je suis passé devant ___." },
   },
   {
     id: "prep-gen-naprotiv",
@@ -396,9 +396,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "напротив",
+    ru: "напро́тив",
     meaningFr: "\"En face de\".",
-    template: { ru: "Кафе напротив ___.", fr: "Le café est en face de ___." },
+    template: { ru: "Кафе́ напро́тив ___.", fr: "Le café est en face de ___." },
   },
   {
     id: "prep-gen-sredi",
@@ -407,9 +407,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "среди",
+    ru: "среди́",
     meaningFr: "\"Parmi\".",
-    template: { ru: "Я чувствую себя одиноко среди ___.", fr: "Je me sens seul parmi ___." },
+    template: { ru: "Я чу́вствую себя́ одино́ко среди́ ___.", fr: "Je me sens seul parmi ___." },
     number: "plural",
   },
   {
@@ -419,9 +419,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "против",
+    ru: "про́тив",
     meaningFr: "\"Contre\".",
-    template: { ru: "Я ничего не имею против ___.", fr: "Je n'ai rien contre ___." },
+    template: { ru: "Я ничего́ не име́ю про́тив ___.", fr: "Je n'ai rien contre ___." },
   },
   {
     id: "prep-gen-krome",
@@ -430,9 +430,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "кроме",
+    ru: "кро́ме",
     meaningFr: "\"Sauf\", \"à part\".",
-    template: { ru: "Все пришли, кроме ___.", fr: "Tout le monde est venu, sauf ___." },
+    template: { ru: "Все пришли́, кро́ме ___.", fr: "Tout le monde est venu, sauf ___." },
   },
   {
     id: "prep-gen-vmesto",
@@ -441,9 +441,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "none",
-    ru: "вместо",
+    ru: "вме́сто",
     meaningFr: "\"Au lieu de\".",
-    template: { ru: "Возьми чай вместо ___.", fr: "Prends du thé au lieu de ___." },
+    template: { ru: "Возьми́ чай вме́сто ___.", fr: "Prends du thé au lieu de ___." },
   },
   {
     id: "prep-gen-izza",
@@ -454,7 +454,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "из-за",
     meaningFr: "\"À cause de\".",
-    template: { ru: "Я опоздал из-за ___.", fr: "Je suis arrivé en retard à cause de ___." },
+    template: { ru: "Я опозда́л из-за ___.", fr: "Je suis arrivé en retard à cause de ___." },
   },
   {
     id: "prep-gen-izpod",
@@ -465,7 +465,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "из-под",
     meaningFr: "\"De dessous\".",
-    template: { ru: "Кот вылез из-под ___.", fr: "Le chat est sorti de dessous ___." },
+    template: { ru: "Кот вы́лез из-под ___.", fr: "Le chat est sorti de dessous ___." },
   },
   {
     id: "prep-gen-bez",
@@ -475,7 +475,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "без",
     meaningFr: "Absence, \"sans\".",
-    template: { ru: "Я не могу жить без ___.", fr: "Je ne peux pas vivre sans ___." },
+    template: { ru: "Я не могу́ жить без ___.", fr: "Je ne peux pas vivre sans ___." },
   },
   {
     id: "prep-gen-dlya",
@@ -486,7 +486,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "для",
     meaningFr: "Destination, \"pour\".",
-    template: { ru: "Это подарок для ___.", fr: "C'est un cadeau pour ___." },
+    template: { ru: "Э́то пода́рок для ___.", fr: "C'est un cadeau pour ___." },
   },
   {
     id: "prep-gen-vnutri",
@@ -495,9 +495,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "advanced",
     article: "demonstrative",
-    ru: "внутри",
+    ru: "внутри́",
     meaningFr: "\"À l'intérieur de\".",
-    template: { ru: "Кот сидит внутри ___.", fr: "Le chat est assis à l'intérieur de ___." },
+    template: { ru: "Кот сиди́т внутри́ ___.", fr: "Le chat est assis à l'intérieur de ___." },
   },
   {
     id: "prep-gen-radi",
@@ -506,9 +506,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "advanced",
     article: "demonstrative",
-    ru: "ради",
+    ru: "ра́ди",
     meaningFr: "\"Pour l'amour de\", \"pour le bien de\".",
-    template: { ru: "Я сделал это ради ___.", fr: "J'ai fait ça pour ___." },
+    template: { ru: "Я сде́лал э́то ра́ди ___.", fr: "J'ai fait ça pour ___." },
   },
   {
     id: "prep-gen-nakanune",
@@ -517,9 +517,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "advanced",
     article: "demonstrative",
-    ru: "накануне",
+    ru: "накану́не",
     meaningFr: "\"La veille de\".",
-    template: { ru: "Я пришёл накануне ___.", fr: "Je suis venu la veille de ___." },
+    template: { ru: "Я пришёл накану́не ___.", fr: "Je suis venu la veille de ___." },
     number: "singular", // la veille d'UN événement
   },
   {
@@ -529,9 +529,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "advanced",
     article: "demonstrative",
-    ru: "вроде",
+    ru: "вро́де",
     meaningFr: "\"Une sorte de\", \"comme\" (familier).",
-    template: { ru: "Это что-то вроде ___.", fr: "C'est une sorte de ___." },
+    template: { ru: "Э́то что-то вро́де ___.", fr: "C'est une sorte de ___." },
     number: "singular", // « une sorte de » appelle un singulier
   },
   // Verbes
@@ -542,9 +542,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "бояться",
+    ru: "боя́ться",
     meaningFr: "\"Avoir peur de\" se construit au génitif.",
-    template: { ru: "Я боюсь ___.", fr: "J'ai peur de ___." },
+    template: { ru: "Я бою́сь ___.", fr: "J'ai peur de ___." },
   },
   {
     id: "verb-gen-izbegat",
@@ -553,9 +553,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "избегать",
+    ru: "избега́ть",
     meaningFr: "\"Éviter\" se construit au génitif.",
-    template: { ru: "Я избегаю ___.", fr: "J'évite ___." },
+    template: { ru: "Я избега́ю ___.", fr: "J'évite ___." },
   },
   {
     id: "verb-gen-zhelat",
@@ -564,9 +564,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "желать",
+    ru: "жела́ть",
     meaningFr: "\"Souhaiter\" se construit au génitif (surtout dans les vœux).",
-    template: { ru: "Желаю тебе ___.", fr: "Je te souhaite ___." },
+    template: { ru: "Жела́ю тебе́ ___.", fr: "Je te souhaite ___." },
   },
   {
     id: "verb-gen-trebovat",
@@ -575,9 +575,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "требовать",
+    ru: "тре́бовать",
     meaningFr: "\"Exiger\" se construit au génitif.",
-    template: { ru: "Я требую ___.", fr: "J'exige ___." },
+    template: { ru: "Я тре́бую ___.", fr: "J'exige ___." },
   },
   {
     id: "verb-gen-kasatsya",
@@ -586,9 +586,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "касаться",
+    ru: "каса́ться",
     meaningFr: "\"Concerner\" se construit au génitif.",
-    template: { ru: "Это касается ___.", fr: "Ça concerne ___." },
+    template: { ru: "Э́то каса́ется ___.", fr: "Ça concerne ___." },
   },
   {
     id: "verb-gen-dostigat",
@@ -597,9 +597,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "достигать",
+    ru: "достига́ть",
     meaningFr: "\"Atteindre, parvenir à\" se construit au génitif.",
-    template: { ru: "Мы достигли ___.", fr: "Nous avons atteint ___." },
+    template: { ru: "Мы дости́гли ___.", fr: "Nous avons atteint ___." },
   },
   {
     id: "verb-gen-vypit",
@@ -608,9 +608,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "none",
-    ru: "выпить",
+    ru: "вы́пить",
     meaningFr: "Génitif partitif : boire UNE PARTIE de (contraste avec l'accusatif пить qui boit la chose entière/précise).",
-    template: { ru: "Я хочу выпить ___.", fr: "Je veux boire un peu de ___." },
+    template: { ru: "Я хочу́ вы́пить ___.", fr: "Je veux boire un peu de ___." },
     number: "singular", // on boit un peu d'une matière, au singulier
   },
   {
@@ -620,9 +620,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "лишиться",
+    ru: "лиши́ться",
     meaningFr: "\"Perdre, être privé de\" se construit au génitif.",
-    template: { ru: "Он лишился ___.", fr: "Il a perdu ___." },
+    template: { ru: "Он лиши́лся ___.", fr: "Il a perdu ___." },
   },
   {
     id: "verb-gen-stesnyatsya",
@@ -631,9 +631,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "стесняться",
+    ru: "стесня́ться",
     meaningFr: "\"Avoir honte de, être gêné par\" se construit au génitif.",
-    template: { ru: "Не стесняйся ___.", fr: "N'aie pas honte de ___." },
+    template: { ru: "Не стесня́йся ___.", fr: "N'aie pas honte de ___." },
   },
   {
     id: "verb-gen-slushatsya",
@@ -642,9 +642,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "слушаться",
+    ru: "слу́шаться",
     meaningFr: "\"Obéir à\" se construit au génitif.",
-    template: { ru: "Дети слушаются ___.", fr: "Les enfants obéissent à ___." },
+    template: { ru: "Де́ти слу́шаются ___.", fr: "Les enfants obéissent à ___." },
   },
   // Adjectifs / expressions figées
   {
@@ -654,9 +654,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "intermediate",
     article: "none",
-    ru: "полный",
+    ru: "по́лный",
     meaningFr: "\"Plein de\" se construit au génitif.",
-    template: { ru: "Стакан полный ___.", fr: "Le verre est plein de ___." },
+    template: { ru: "Стака́н по́лный ___.", fr: "Le verre est plein de ___." },
     number: "singular", // plein d'une matière, au singulier
   },
   {
@@ -666,9 +666,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "advanced",
     article: "demonstrative",
-    ru: "достоин",
+    ru: "досто́ин",
     meaningFr: "\"Digne de\" se construit au génitif.",
-    template: { ru: "Он достоин ___.", fr: "Il est digne de ___." },
+    template: { ru: "Он досто́ин ___.", fr: "Il est digne de ___." },
   },
   {
     id: "expr-gen-zhal",
@@ -692,7 +692,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "к",
     meaningFr: "Direction vers quelqu'un/quelque chose.",
-    template: { ru: "Я иду к ___.", fr: "Je vais vers ___." },
+    template: { ru: "Я иду́ к ___.", fr: "Je vais vers ___." },
   },
   {
     id: "prep-dat-po",
@@ -703,7 +703,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "по",
     meaningFr: "\"Le long de\", \"selon\".",
-    template: { ru: "Я гуляю по ___.", fr: "Je me promène le long de ___." },
+    template: { ru: "Я гуля́ю по ___.", fr: "Je me promène le long de ___." },
   },
   {
     id: "prep-dat-blagodarya",
@@ -712,9 +712,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "благодаря",
+    ru: "благодаря́",
     meaningFr: "\"Grâce à\".",
-    template: { ru: "Мы победили благодаря ___.", fr: "Nous avons gagné grâce à ___." },
+    template: { ru: "Мы победи́ли благодаря́ ___.", fr: "Nous avons gagné grâce à ___." },
   },
   {
     id: "prep-dat-vopreki",
@@ -723,9 +723,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "advanced",
     article: "demonstrative",
-    ru: "вопреки",
+    ru: "вопреки́",
     meaningFr: "\"Malgré\", \"contrairement à\".",
-    template: { ru: "Мы выиграли вопреки ___.", fr: "Nous avons gagné malgré ___." },
+    template: { ru: "Мы вы́играли вопреки́ ___.", fr: "Nous avons gagné malgré ___." },
   },
   {
     id: "prep-dat-soglasno",
@@ -734,9 +734,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "advanced",
     article: "demonstrative",
-    ru: "согласно",
+    ru: "согла́сно",
     meaningFr: "\"Selon\", \"conformément à\" (registre plutôt formel).",
-    template: { ru: "Согласно ___, это правда.", fr: "Selon ___, c'est vrai." },
+    template: { ru: "Согла́сно ___, э́то пра́вда.", fr: "Selon ___, c'est vrai." },
   },
   {
     id: "verb-dat-pomogat",
@@ -745,9 +745,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "помогать",
+    ru: "помога́ть",
     meaningFr: "\"Aider quelqu'un\" se construit au datif.",
-    template: { ru: "Я помогаю ___.", fr: "J'aide ___." },
+    template: { ru: "Я помога́ю ___.", fr: "J'aide ___." },
   },
   {
     id: "verb-dat-zvonit",
@@ -756,9 +756,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "звонить",
+    ru: "звони́ть",
     meaningFr: "\"Téléphoner à quelqu'un\" se construit au datif.",
-    template: { ru: "Я звоню ___.", fr: "J'appelle ___." },
+    template: { ru: "Я звоню́ ___.", fr: "J'appelle ___." },
   },
   {
     id: "verb-dat-nravitsya",
@@ -767,9 +767,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "нравиться",
+    ru: "нра́виться",
     meaningFr: "\"Plaire à quelqu'un\" se construit au datif.",
-    template: { ru: "Эта музыка нравится ___.", fr: "Cette musique plaît à ___." },
+    template: { ru: "Э́та му́зыка нра́вится ___.", fr: "Cette musique plaît à ___." },
   },
   {
     id: "verb-dat-davat",
@@ -778,9 +778,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "давать",
+    ru: "дава́ть",
     meaningFr: "\"Donner à quelqu'un\" se construit au datif.",
-    template: { ru: "Я даю подарок ___.", fr: "Je donne un cadeau à ___." },
+    template: { ru: "Я даю́ пода́рок ___.", fr: "Je donne un cadeau à ___." },
   },
   {
     id: "verb-dat-verit",
@@ -789,9 +789,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "верить",
+    ru: "ве́рить",
     meaningFr: "\"Croire quelqu'un\" se construit au datif.",
-    template: { ru: "Я верю ___.", fr: "Je crois ___." },
+    template: { ru: "Я ве́рю ___.", fr: "Je crois ___." },
   },
   {
     id: "verb-dat-doveryat",
@@ -800,9 +800,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "доверять",
+    ru: "доверя́ть",
     meaningFr: "\"Faire confiance à\" se construit au datif.",
-    template: { ru: "Я доверяю ___.", fr: "Je fais confiance à ___." },
+    template: { ru: "Я доверя́ю ___.", fr: "Je fais confiance à ___." },
   },
   {
     id: "verb-dat-sovetovat",
@@ -811,9 +811,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "советовать",
+    ru: "сове́товать",
     meaningFr: "\"Conseiller à quelqu'un\" se construit au datif.",
-    template: { ru: "Я советую ___.", fr: "Je conseille ___." },
+    template: { ru: "Я сове́тую ___.", fr: "Je conseille ___." },
   },
   {
     id: "verb-dat-zavidovat",
@@ -822,9 +822,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "завидовать",
+    ru: "зави́довать",
     meaningFr: "\"Envier quelqu'un\" se construit au datif.",
-    template: { ru: "Я завидую ___.", fr: "J'envie ___." },
+    template: { ru: "Я зави́дую ___.", fr: "J'envie ___." },
   },
   {
     id: "verb-dat-otvechat",
@@ -833,9 +833,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "отвечать",
+    ru: "отвеча́ть",
     meaningFr: "\"Répondre à quelqu'un\" se construit au datif.",
-    template: { ru: "Я отвечаю ___.", fr: "Je réponds à ___." },
+    template: { ru: "Я отвеча́ю ___.", fr: "Je réponds à ___." },
   },
   {
     id: "verb-dat-meshat",
@@ -844,9 +844,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "мешать",
+    ru: "меша́ть",
     meaningFr: "\"Déranger quelqu'un\" se construit au datif.",
-    template: { ru: "Не мешай ___.", fr: "Ne dérange pas ___." },
+    template: { ru: "Не меша́й ___.", fr: "Ne dérange pas ___." },
   },
   {
     id: "verb-dat-razreshat",
@@ -855,9 +855,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "разрешать",
+    ru: "разреша́ть",
     meaningFr: "\"Permettre à quelqu'un\" se construit au datif.",
-    template: { ru: "Мама разрешает ___.", fr: "Maman donne la permission à ___." },
+    template: { ru: "Ма́ма разреша́ет ___.", fr: "Maman donne la permission à ___." },
   },
   {
     id: "verb-dat-udivlyatsya",
@@ -866,9 +866,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "удивляться",
+    ru: "удивля́ться",
     meaningFr: "\"Être surpris de\" se construit au datif.",
-    template: { ru: "Я удивляюсь ___.", fr: "Je suis surpris de ___." },
+    template: { ru: "Я удивля́юсь ___.", fr: "Je suis surpris de ___." },
   },
   {
     id: "verb-dat-radovatsya",
@@ -877,9 +877,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "радоваться",
+    ru: "ра́доваться",
     meaningFr: "\"Se réjouir de\" se construit au datif.",
-    template: { ru: "Я радуюсь ___.", fr: "Je me réjouis de ___." },
+    template: { ru: "Я ра́дуюсь ___.", fr: "Je me réjouis de ___." },
   },
   {
     id: "verb-dat-prinadlezhat",
@@ -888,9 +888,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "принадлежать",
+    ru: "принадлежа́ть",
     meaningFr: "\"Appartenir à\" se construit au datif.",
-    template: { ru: "Эта идея принадлежит ___.", fr: "Cette idée appartient à ___." },
+    template: { ru: "Э́та иде́я принадлежи́т ___.", fr: "Cette idée appartient à ___." },
   },
   {
     id: "verb-dat-sochuvstvovat",
@@ -899,9 +899,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "сочувствовать",
+    ru: "сочу́вствовать",
     meaningFr: "\"Compatir avec\" se construit au datif.",
-    template: { ru: "Я сочувствую ___.", fr: "Je compatis avec ___." },
+    template: { ru: "Я сочу́вствую ___.", fr: "Je compatis avec ___." },
   },
   {
     id: "verb-dat-ugrozhat",
@@ -910,9 +910,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "угрожать",
+    ru: "угрожа́ть",
     meaningFr: "\"Menacer\" se construit au datif.",
-    template: { ru: "Он угрожает ___.", fr: "Il menace ___." },
+    template: { ru: "Он угрожа́ет ___.", fr: "Il menace ___." },
   },
   {
     id: "verb-dat-podchinyatsya",
@@ -921,9 +921,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "подчиняться",
+    ru: "подчиня́ться",
     meaningFr: "\"Obéir à, se soumettre à\" se construit au datif.",
-    template: { ru: "Мы подчиняемся ___.", fr: "Nous obéissons à ___." },
+    template: { ru: "Мы подчиня́емся ___.", fr: "Nous obéissons à ___." },
   },
   {
     id: "verb-dat-soprotivlyatsya",
@@ -932,9 +932,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "сопротивляться",
+    ru: "сопротивля́ться",
     meaningFr: "\"Résister à\" se construit au datif.",
-    template: { ru: "Я сопротивляюсь ___.", fr: "Je résiste à ___." },
+    template: { ru: "Я сопротивля́юсь ___.", fr: "Je résiste à ___." },
   },
   {
     id: "verb-dat-aplodirovat",
@@ -943,9 +943,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "аплодировать",
+    ru: "аплоди́ровать",
     meaningFr: "\"Applaudir\" se construit au datif.",
-    template: { ru: "Зрители аплодируют ___.", fr: "Les spectateurs applaudissent ___." },
+    template: { ru: "Зри́тели аплоди́руют ___.", fr: "Les spectateurs applaudissent ___." },
   },
   {
     id: "verb-dat-sluzhit",
@@ -954,9 +954,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "служить",
+    ru: "служи́ть",
     meaningFr: "\"Servir\" se construit au datif.",
-    template: { ru: "Я служу ___.", fr: "Je sers ___." },
+    template: { ru: "Я служу́ ___.", fr: "Je sers ___." },
   },
 
   // ─── Accusatif ──────────────────────────────────────────────────
@@ -967,9 +967,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "видеть",
+    ru: "ви́деть",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я вижу ___.", fr: "Je vois ___." },
+    template: { ru: "Я ви́жу ___.", fr: "Je vois ___." },
   },
   {
     id: "verb-acc-lyubit",
@@ -977,9 +977,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "любить",
+    ru: "люби́ть",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я люблю ___.", fr: "J'aime ___." },
+    template: { ru: "Я люблю́ ___.", fr: "J'aime ___." },
   },
   {
     id: "verb-acc-chitat",
@@ -988,9 +988,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "читать",
+    ru: "чита́ть",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я читаю ___.", fr: "Je lis ___." },
+    template: { ru: "Я чита́ю ___.", fr: "Je lis ___." },
   },
   {
     id: "verb-acc-znat",
@@ -1001,7 +1001,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "знать",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я хорошо знаю ___.", fr: "Je connais bien ___." },
+    template: { ru: "Я хорошо́ зна́ю ___.", fr: "Je connais bien ___." },
   },
   {
     id: "verb-acc-pokupat",
@@ -1010,9 +1010,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "покупать",
+    ru: "покупа́ть",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я покупаю ___.", fr: "J'achète ___." },
+    template: { ru: "Я покупа́ю ___.", fr: "J'achète ___." },
   },
   {
     id: "verb-acc-pisat",
@@ -1021,9 +1021,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "писать",
+    ru: "писа́ть",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я пишу ___.", fr: "J'écris ___." },
+    template: { ru: "Я пишу́ ___.", fr: "J'écris ___." },
   },
   {
     id: "verb-acc-ponimat",
@@ -1032,9 +1032,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "понимать",
+    ru: "понима́ть",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я понимаю ___.", fr: "Je comprends ___." },
+    template: { ru: "Я понима́ю ___.", fr: "Je comprends ___." },
   },
   {
     id: "verb-acc-slushat",
@@ -1043,9 +1043,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "слушать",
+    ru: "слу́шать",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я слушаю ___.", fr: "J'écoute ___." },
+    template: { ru: "Я слу́шаю ___.", fr: "J'écoute ___." },
   },
   {
     id: "verb-acc-est",
@@ -1066,7 +1066,7 @@ export const TRIGGERS: CaseTrigger[] = [
     tier: "basic",
     article: "demonstrative",
     ru: "пить",
-    meaningFr: "Complément d'objet direct (contraste avec выпить + génitif pour \"boire un peu de\").",
+    meaningFr: "Complément d'objet direct (contraste avec вы́пить + génitif pour \"boire un peu de\").",
     template: { ru: "Я пью ___.", fr: "Je bois ___." },
   },
   {
@@ -1076,9 +1076,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "делать",
+    ru: "де́лать",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я делаю ___.", fr: "Je fais ___." },
+    template: { ru: "Я де́лаю ___.", fr: "Je fais ___." },
   },
   {
     id: "verb-acc-vstrechat",
@@ -1087,9 +1087,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "встречать",
+    ru: "встреча́ть",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я встречаю ___.", fr: "Je rencontre ___." },
+    template: { ru: "Я встреча́ю ___.", fr: "Je rencontre ___." },
   },
   {
     id: "verb-acc-brat",
@@ -1100,7 +1100,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "брать",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я беру ___.", fr: "Je prends ___." },
+    template: { ru: "Я беру́ ___.", fr: "Je prends ___." },
   },
   {
     id: "verb-acc-izuchat",
@@ -1109,9 +1109,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "изучать",
+    ru: "изуча́ть",
     meaningFr: "Complément d'objet direct (étudier une matière, une langue).",
-    template: { ru: "Я изучаю ___.", fr: "J'étudie ___." },
+    template: { ru: "Я изуча́ю ___.", fr: "J'étudie ___." },
   },
   {
     id: "verb-acc-nenavidet",
@@ -1119,9 +1119,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "ненавидеть",
+    ru: "ненави́деть",
     meaningFr: "Complément d'objet direct.",
-    template: { ru: "Я ненавижу ___.", fr: "Je déteste ___." },
+    template: { ru: "Я ненави́жу ___.", fr: "Je déteste ___." },
   },
   {
     id: "prep-acc-v",
@@ -1132,7 +1132,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "в",
     meaningFr: "Mouvement vers l'intérieur (\"dans\").",
-    template: { ru: "Я иду в ___.", fr: "Je vais dans ___." },
+    template: { ru: "Я иду́ в ___.", fr: "Je vais dans ___." },
   },
   {
     id: "prep-acc-na",
@@ -1143,7 +1143,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "на",
     meaningFr: "Mouvement vers une surface (\"sur\") ou \"regarder qqch\".",
-    template: { ru: "Я смотрю на ___.", fr: "Je regarde ___." },
+    template: { ru: "Я смотрю́ на ___.", fr: "Je regarde ___." },
   },
   {
     id: "prep-acc-za",
@@ -1154,7 +1154,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "за",
     meaningFr: "\"En échange de\", \"merci pour\".",
-    template: { ru: "Спасибо за ___.", fr: "Merci pour ___." },
+    template: { ru: "Спаси́бо за ___.", fr: "Merci pour ___." },
   },
   {
     id: "prep-acc-cherez",
@@ -1163,9 +1163,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "через",
+    ru: "че́рез",
     meaningFr: "\"À travers\", \"en passant par\".",
-    template: { ru: "Мы едем через ___.", fr: "Nous passons par ___." },
+    template: { ru: "Мы е́дем че́рез ___.", fr: "Nous passons par ___." },
   },
   {
     id: "prep-acc-pro",
@@ -1175,7 +1175,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "про",
     meaningFr: "\"À propos de\" (familier, équivalent oral de о + prépositionnel).",
-    template: { ru: "Расскажи мне про ___.", fr: "Raconte-moi à propos de ___." },
+    template: { ru: "Расскажи́ мне про ___.", fr: "Raconte-moi à propos de ___." },
   },
   {
     id: "prep-acc-skvoz",
@@ -1185,8 +1185,8 @@ export const TRIGGERS: CaseTrigger[] = [
     tier: "advanced",
     article: "demonstrative",
     ru: "сквозь",
-    meaningFr: "\"À travers\" (sens physique, plus fort que через).",
-    template: { ru: "Я вижу свет сквозь ___.", fr: "Je vois la lumière à travers ___." },
+    meaningFr: "\"À travers\" (sens physique, plus fort que че́рез).",
+    template: { ru: "Я ви́жу свет сквозь ___.", fr: "Je vois la lumière à travers ___." },
   },
   {
     id: "prep-acc-nesmotrya-na",
@@ -1195,9 +1195,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "advanced",
     article: "demonstrative",
-    ru: "несмотря на",
+    ru: "несмотря́ на",
     meaningFr: "\"Malgré\".",
-    template: { ru: "Несмотря на ___, мы пошли гулять.", fr: "Malgré ___, nous sommes sortis nous promener." },
+    template: { ru: "Несмотря́ на ___, мы пошли́ гуля́ть.", fr: "Malgré ___, nous sommes sortis nous promener." },
   },
 
   // ─── Instrumental ───────────────────────────────────────────────
@@ -1232,7 +1232,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "над",
     meaningFr: "Lieu statique, \"au-dessus de\".",
-    template: { ru: "Лампа висит над ___.", fr: "La lampe est suspendue au-dessus de ___." },
+    template: { ru: "Ла́мпа виси́т над ___.", fr: "La lampe est suspendue au-dessus de ___." },
   },
   {
     id: "prep-instr-pered",
@@ -1241,9 +1241,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "preposition",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "перед",
+    ru: "пе́ред",
     meaningFr: "Lieu statique, \"devant\".",
-    template: { ru: "Мы встретимся перед ___.", fr: "On se retrouve devant ___." },
+    template: { ru: "Мы встре́тимся пе́ред ___.", fr: "On se retrouve devant ___." },
   },
   {
     id: "expr-instr-rabotat",
@@ -1252,9 +1252,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "expression",
     tier: "basic",
     article: "none", // « Il travaille comme juge » — un métier ne prend pas d'article
-    ru: "работать +",
+    ru: "рабо́тать +",
     meaningFr: "Métier, profession exercée.",
-    template: { ru: "Он работает ___.", fr: "Il travaille comme ___." },
+    template: { ru: "Он рабо́тает ___.", fr: "Il travaille comme ___." },
     number: "singular", // attribut du sujet « он » : « Он работает судьёй », pas « судьями »
   },
   {
@@ -1266,7 +1266,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "none", // « Il veut devenir médecin » — idem
     ru: "стать +",
     meaningFr: "Devenir quelque chose.",
-    template: { ru: "Он хочет стать ___.", fr: "Il veut devenir ___." },
+    template: { ru: "Он хо́чет стать ___.", fr: "Il veut devenir ___." },
     number: "singular", // attribut du sujet « он »
   },
   {
@@ -1276,9 +1276,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "являться",
+    ru: "явля́ться",
     meaningFr: "\"Être, constituer\" (registre formel) se construit à l'instrumental.",
-    template: { ru: "Это является ___.", fr: "Ceci constitue ___." },
+    template: { ru: "Э́то явля́ется ___.", fr: "Ceci constitue ___." },
     number: "singular", // attribut du sujet « это »
   },
   {
@@ -1288,9 +1288,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "казаться",
+    ru: "каза́ться",
     meaningFr: "\"Sembler être\" se construit à l'instrumental.",
-    template: { ru: "Он кажется ___.", fr: "Il semble être ___." },
+    template: { ru: "Он ка́жется ___.", fr: "Il semble être ___." },
     number: "singular", // attribut du sujet « он »
   },
   {
@@ -1300,9 +1300,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "indefinite", // « Il est considéré comme un spécialiste »
-    ru: "считаться",
+    ru: "счита́ться",
     meaningFr: "\"Être considéré comme\" se construit à l'instrumental.",
-    template: { ru: "Он считается ___.", fr: "Il est considéré comme ___." },
+    template: { ru: "Он счита́ется ___.", fr: "Il est considéré comme ___." },
     number: "singular", // attribut du sujet « он »
   },
   {
@@ -1312,9 +1312,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "интересоваться",
+    ru: "интересова́ться",
     meaningFr: "\"S'intéresser à\" se construit à l'instrumental.",
-    template: { ru: "Я интересуюсь ___.", fr: "Je m'intéresse à ___." },
+    template: { ru: "Я интересу́юсь ___.", fr: "Je m'intéresse à ___." },
   },
   {
     id: "verb-instr-gorditsya",
@@ -1323,9 +1323,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "гордиться",
+    ru: "горди́ться",
     meaningFr: "\"Être fier de\" se construit à l'instrumental.",
-    template: { ru: "Я горжусь ___.", fr: "Je suis fier de ___." },
+    template: { ru: "Я горжу́сь ___.", fr: "Je suis fier de ___." },
   },
   {
     id: "verb-instr-zanimatsya",
@@ -1334,9 +1334,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "заниматься",
+    ru: "занима́ться",
     meaningFr: "\"Pratiquer, s'occuper de\" se construit à l'instrumental.",
-    template: { ru: "Я занимаюсь ___.", fr: "Je pratique ___." },
+    template: { ru: "Я занима́юсь ___.", fr: "Je pratique ___." },
   },
   {
     id: "verb-instr-uvlekatsya",
@@ -1345,9 +1345,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "увлекаться",
+    ru: "увлека́ться",
     meaningFr: "\"Être passionné par\" se construit à l'instrumental.",
-    template: { ru: "Он увлекается ___.", fr: "Il est passionné par ___." },
+    template: { ru: "Он увлека́ется ___.", fr: "Il est passionné par ___." },
   },
   {
     id: "verb-instr-polzovatsya",
@@ -1356,9 +1356,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "пользоваться",
+    ru: "по́льзоваться",
     meaningFr: "\"Utiliser, se servir de\" se construit à l'instrumental.",
-    template: { ru: "Я пользуюсь ___.", fr: "J'utilise ___." },
+    template: { ru: "Я по́льзуюсь ___.", fr: "J'utilise ___." },
   },
   {
     id: "verb-instr-vladet",
@@ -1367,9 +1367,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "владеть",
+    ru: "владе́ть",
     meaningFr: "\"Maîtriser, posséder\" (une langue, un bien) se construit à l'instrumental.",
-    template: { ru: "Я владею ___.", fr: "Je maîtrise ___." },
+    template: { ru: "Я владе́ю ___.", fr: "Je maîtrise ___." },
   },
   {
     id: "verb-instr-upravlyat",
@@ -1378,9 +1378,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "управлять",
+    ru: "управля́ть",
     meaningFr: "\"Diriger, conduire\" se construit à l'instrumental.",
-    template: { ru: "Он управляет ___.", fr: "Il dirige ___." },
+    template: { ru: "Он управля́ет ___.", fr: "Il dirige ___." },
   },
   {
     id: "verb-instr-voskhishchatsya",
@@ -1389,9 +1389,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "восхищаться",
+    ru: "восхища́ться",
     meaningFr: "\"Admirer\" se construit à l'instrumental.",
-    template: { ru: "Я восхищаюсь ___.", fr: "J'admire ___." },
+    template: { ru: "Я восхища́юсь ___.", fr: "J'admire ___." },
   },
   {
     id: "verb-instr-riskovat",
@@ -1400,9 +1400,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "рисковать",
+    ru: "рискова́ть",
     meaningFr: "\"Risquer\" se construit à l'instrumental.",
-    template: { ru: "Не рискуй ___.", fr: "Ne risque pas ___." },
+    template: { ru: "Не риску́й ___.", fr: "Ne risque pas ___." },
   },
   {
     id: "verb-instr-torgovat",
@@ -1411,9 +1411,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "торговать",
+    ru: "торгова́ть",
     meaningFr: "\"Faire le commerce de\" se construit à l'instrumental.",
-    template: { ru: "Он торгует ___.", fr: "Il fait le commerce de ___." },
+    template: { ru: "Он торгу́ет ___.", fr: "Il fait le commerce de ___." },
   },
   {
     id: "verb-instr-dorozhit",
@@ -1422,9 +1422,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "дорожить",
+    ru: "дорожи́ть",
     meaningFr: "\"Tenir à, accorder de la valeur à\" se construit à l'instrumental.",
-    template: { ru: "Я дорожу ___.", fr: "Je tiens à ___." },
+    template: { ru: "Я дорожу́ ___.", fr: "Je tiens à ___." },
   },
 
   // ─── Prépositionnel ─────────────────────────────────────────────
@@ -1439,7 +1439,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "в",
     meaningFr: "Lieu statique (\"dans\").",
-    template: { ru: "Я живу в ___.", fr: "J'habite dans ___." },
+    template: { ru: "Я живу́ в ___.", fr: "J'habite dans ___." },
   },
   {
     id: "prep-prep-na",
@@ -1450,7 +1450,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "на",
     meaningFr: "Lieu statique (\"sur\", \"à\").",
-    template: { ru: "Я работаю на ___.", fr: "Je travaille sur/à ___." },
+    template: { ru: "Я рабо́таю на ___.", fr: "Je travaille sur/à ___." },
   },
   {
     id: "prep-prep-o",
@@ -1460,7 +1460,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "о",
     meaningFr: "Sujet dont on parle, \"à propos de\".",
-    template: { ru: "Я думаю о ___.", fr: "Je pense à ___." },
+    template: { ru: "Я ду́маю о ___.", fr: "Je pense à ___." },
   },
   {
     id: "prep-prep-pri",
@@ -1471,7 +1471,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "при",
     meaningFr: "\"Rattaché à\", \"auprès de\".",
-    template: { ru: "Библиотека при ___.", fr: "La bibliothèque est rattachée à ___." },
+    template: { ru: "Библиоте́ка при ___.", fr: "La bibliothèque est rattachée à ___." },
   },
   {
     id: "expr-prep-nakhoditsya",
@@ -1480,9 +1480,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "находиться",
+    ru: "находи́ться",
     meaningFr: "\"Se trouver\" (registre soutenu de \"être quelque part\") se construit avec в/на + prépositionnel.",
-    template: { ru: "Дом находится в ___.", fr: "La maison se trouve dans ___." },
+    template: { ru: "Дом нахо́дится в ___.", fr: "La maison se trouve dans ___." },
   },
   {
     id: "verb-prep-govorit",
@@ -1490,9 +1490,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "basic",
     article: "demonstrative",
-    ru: "говорить о",
+    ru: "говори́ть о",
     meaningFr: "\"Parler de\" se construit au prépositionnel.",
-    template: { ru: "Мы говорим о ___.", fr: "Nous parlons de ___." },
+    template: { ru: "Мы говори́м о ___.", fr: "Nous parlons de ___." },
   },
   {
     id: "verb-prep-sporit",
@@ -1501,9 +1501,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "спорить о",
+    ru: "спо́рить о",
     meaningFr: "\"Discuter, se disputer à propos de\" se construit au prépositionnel.",
-    template: { ru: "Мы спорим о ___.", fr: "Nous discutons de ___." },
+    template: { ru: "Мы спо́рим о ___.", fr: "Nous discutons de ___." },
   },
   {
     id: "verb-prep-mechtat",
@@ -1512,9 +1512,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "мечтать о",
+    ru: "мечта́ть о",
     meaningFr: "\"Rêver de\" se construit au prépositionnel.",
-    template: { ru: "Я мечтаю о ___.", fr: "Je rêve de ___." },
+    template: { ru: "Я мечта́ю о ___.", fr: "Je rêve de ___." },
   },
   {
     id: "verb-prep-slyshat",
@@ -1522,9 +1522,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "слышать о",
+    ru: "слы́шать о",
     meaningFr: "\"Entendre parler de\" se construit au prépositionnel.",
-    template: { ru: "Я слышал о ___.", fr: "J'ai entendu parler de ___." },
+    template: { ru: "Я слы́шал о ___.", fr: "J'ai entendu parler de ___." },
   },
   {
     id: "verb-prep-chitat",
@@ -1532,9 +1532,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "читать о",
+    ru: "чита́ть о",
     meaningFr: "\"Lire à propos de\" se construit au prépositionnel.",
-    template: { ru: "Я читаю о ___.", fr: "Je lis à propos de ___." },
+    template: { ru: "Я чита́ю о ___.", fr: "Je lis à propos de ___." },
   },
   {
     id: "verb-prep-znat",
@@ -1545,7 +1545,7 @@ export const TRIGGERS: CaseTrigger[] = [
     article: "demonstrative",
     ru: "знать о",
     meaningFr: "\"Être au courant de\" se construit au prépositionnel.",
-    template: { ru: "Я знаю о ___.", fr: "Je suis au courant de ___." },
+    template: { ru: "Я зна́ю о ___.", fr: "Je suis au courant de ___." },
   },
   {
     id: "verb-prep-rasskazyvat",
@@ -1553,9 +1553,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "рассказывать о",
+    ru: "расска́зывать о",
     meaningFr: "\"Raconter à propos de\" se construit au prépositionnel.",
-    template: { ru: "Расскажи мне о ___.", fr: "Parle-moi de ___." },
+    template: { ru: "Расскажи́ мне о ___.", fr: "Parle-moi de ___." },
   },
   {
     id: "verb-prep-zabotitsya",
@@ -1564,9 +1564,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "заботиться о",
+    ru: "забо́титься о",
     meaningFr: "\"S'occuper de, prendre soin de\" se construit au prépositionnel.",
-    template: { ru: "Я забочусь о ___.", fr: "Je prends soin de ___." },
+    template: { ru: "Я забо́чусь о ___.", fr: "Je prends soin de ___." },
   },
   {
     id: "verb-prep-bespokoitsya",
@@ -1575,9 +1575,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "беспокоиться о",
+    ru: "беспоко́иться о",
     meaningFr: "\"S'inquiéter de\" se construit au prépositionnel.",
-    template: { ru: "Я беспокоюсь о ___.", fr: "Je m'inquiète pour ___." },
+    template: { ru: "Я беспоко́юсь о ___.", fr: "Je m'inquiète pour ___." },
   },
   {
     id: "verb-prep-soobshchat",
@@ -1586,9 +1586,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "сообщать о",
+    ru: "сообща́ть о",
     meaningFr: "\"Informer de, annoncer\" se construit au prépositionnel.",
-    template: { ru: "Я сообщаю о ___.", fr: "J'informe de ___." },
+    template: { ru: "Я сообща́ю о ___.", fr: "J'informe de ___." },
   },
   {
     id: "verb-prep-vspominat",
@@ -1596,9 +1596,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "вспоминать о",
+    ru: "вспомина́ть о",
     meaningFr: "\"Se souvenir de\" se construit au prépositionnel.",
-    template: { ru: "Я вспоминаю о ___.", fr: "Je me souviens de ___." },
+    template: { ru: "Я вспомина́ю о ___.", fr: "Je me souviens de ___." },
   },
   {
     id: "verb-prep-upominat",
@@ -1607,9 +1607,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "advanced",
     article: "demonstrative",
-    ru: "упоминать о",
+    ru: "упомина́ть о",
     meaningFr: "\"Mentionner\" se construit au prépositionnel.",
-    template: { ru: "Я упоминаю о ___.", fr: "Je mentionne ___." },
+    template: { ru: "Я упомина́ю о ___.", fr: "Je mentionne ___." },
   },
   {
     id: "verb-prep-zhalet",
@@ -1618,9 +1618,9 @@ export const TRIGGERS: CaseTrigger[] = [
     kind: "verb",
     tier: "intermediate",
     article: "demonstrative",
-    ru: "жалеть о",
+    ru: "жале́ть о",
     meaningFr: "\"Regretter\" se construit au prépositionnel.",
-    template: { ru: "Я жалею о ___.", fr: "Je regrette ___." },
+    template: { ru: "Я жале́ю о ___.", fr: "Je regrette ___." },
   },
 ];
 

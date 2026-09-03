@@ -206,7 +206,7 @@ const SPELLING_CONTEXTS: AdjectiveContext[] = [
     adjective: "malenkiy", noun: "stol", case: "nominative",
     ru: "В углу́ стои́т ___ {N}.",
     fr: "Il y a une petite table dans le coin.",
-    why: "Même règle : после -к, -ий et non -ый.",
+    why: "Même règle : по́сле -к, -ий et non -ый.",
   },
   {
     id: "khoroshiy-den",

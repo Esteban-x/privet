@@ -239,7 +239,12 @@ require_(X.checkAspectAnswer("", "") === null, "un identifiant vide doit être r
  * et qu'un contrôle écrit ainsi passe toujours, quoi qu'il vérifie.
  */
 const CYRILLIC_WORD = (alternatives) =>
-  new RegExp(`(^|[^а-яёА-ЯЁ])(${alternatives})([^а-яёА-ЯЁ]|$)`, "i");
+  // Deux pièges de l'accent combinant. Il faut l'exclure de la classe de
+  // BORNE — sinon la limite tombe entre « вы » et « ́учишь », et
+  // « вы́учишь » est lu comme un « вы » de politesse — et le retirer du
+  // TEXTE cherché, sinon « Она́ » ne correspond plus à « она ». Les deux
+  // se sont produits le jour où la banque a été accentuée.
+  new RegExp(`(^|[^а-яёА-ЯЁ\u0301])(${alternatives})([^а-яёА-ЯЁ\u0301]|$)`, "i");
 
 // ─── 6. La phrase et la forme attendue disent la même personne ────
 //
@@ -260,7 +265,7 @@ const CYRILLIC_WORD = (alternatives) =>
     // ATTENTION : \b ne marche PAS sur du cyrillique en JavaScript — il est
     // défini sur [A-Za-z0-9_], donc /\bона\b/ ne matche jamais « Она ».
     // D'où des bornes écrites à la main.
-    const feminine = CYRILLIC_WORD("она").test(context.template);
+    const feminine = CYRILLIC_WORD("она").test(stripAccent(context.template));
     const declared = context.subject === "f";
     require_(
       feminine === declared,
@@ -273,8 +278,8 @@ const CYRILLIC_WORD = (alternatives) =>
   for (const context of X.IMPERATIVE_CONTEXTS) {
     // Le russe du gabarit tutoie-t-il ? « ты », « тебя », « тебе », « твой »
     // et le « пожалуйста » d'une phrase sans вы sont les indices sûrs.
-    const tutoie = CYRILLIC_WORD("ты|тебя|тебе|твой|твоя|твоё|твои").test(context.template);
-    const vouvoie = CYRILLIC_WORD("вы|вас|вам|ваш|ваша|ваше|ваши").test(context.template);
+    const tutoie = CYRILLIC_WORD("ты|тебя|тебе|твой|твоя|твоё|твои").test(stripAccent(context.template));
+    const vouvoie = CYRILLIC_WORD("вы|вас|вам|ваш|ваша|ваше|ваши").test(stripAccent(context.template));
     if (tutoie) {
       require_(
         context.address === "ty",

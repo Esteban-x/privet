@@ -13,9 +13,16 @@
  *    donnait C1 à un candidat qui ratait la moitié des questions, sans que
  *    rien ne le signale.
  */
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
+import { inspect, vowelCount, carriesStress } from "./lib/cyrillic.mjs";
 
-const jiti = createJiti(import.meta.url);
+// L'alias "@" manquait : le jour où lib/leveltest importe par "@/..." —
+// ce que fait tout le reste du projet — ce script cesserait de charger,
+// et la seule chose qui vérifie la banque du test disparaîtrait.
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
 const Q = await jiti.import("../lib/leveltest/questions.ts");
 const E = await jiti.import("../lib/leveltest/engine.ts");
 
@@ -245,6 +252,36 @@ for (let i = 1; i < report.domains.length; i += 1) {
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────
+// ─── Accent tonique et typographie ────────────────────────────────
+//
+// La banque n'en portait aucun : 631 mots russes, dans les énoncés comme
+// dans les options, servis sans l'information qui dit comment les
+// prononcer — alors que les modules d'à côté l'affichaient. Une option de
+// QCM est une forme que l'apprenant choisit : elle doit se lire.
+{
+  const RUSSIAN_WORD = /[а-яёА-ЯЁ][а-яёА-ЯЁ\u0301]*/g;
+  for (const q of Q.LEVEL_QUESTIONS) {
+    for (const text of [q.question, ...q.options, q.explain]) {
+      if (typeof text !== "string" || !/[а-яёА-ЯЁ]/.test(text)) continue;
+      for (const word of text.match(RUSSIAN_WORD) ?? []) {
+        // L'hygiène se juge MOT PAR MOT : une explication française qui cite
+        // du russe (« противоре́чить » se construit avec le datif) mêle les
+        // deux alphabets tout à fait légitimement.
+        for (const problem of inspect(word, `${q.id} : « ${word} »`, { requireStress: false })) {
+          require_(false, problem);
+        }
+        // Une désinence citée dans une explication (« -ого ») n'est pas un
+        // mot : on ne l'accentue pas.
+        if (text.includes(`-${word}`)) continue;
+        require_(
+          vowelCount(word) <= 1 || carriesStress(word),
+          `${q.id} : « ${word} » est polysyllabique et non accentué`
+        );
+      }
+    }
+  }
+}
+
 if (failures.length) {
   console.error(`\n✗ ${failures.length} problème(s) sur ${checks} contrôles :\n`);
   for (const f of failures) console.error(`  ${f}`);

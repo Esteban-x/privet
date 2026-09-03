@@ -38,7 +38,7 @@ export const ALPHABET_SKILLS: Skill[] = [
     title: "Les lettres qui trompent",
     level: "A0",
     summary:
-      "В, Н, Р, С, У, Х ressemblent à des lettres latines et se lisent tout autrement. Tant que l'œil les lit à la française, « ресторан » reste un mot inconnu.",
+      "В, Н, Р, С, У, Х ressemblent à des lettres latines et se lisent tout autrement. Tant que l'œil les lit à la française, « рестора́н » reste un mot inconnu.",
   },
   {
     id: "stress",
@@ -372,7 +372,7 @@ const SOUND_ITEMS: SoundItem[] = [
     translation: "la sœur",
     heard: "sistra",
     wrong: ["sestra", "sietra", "chestra"],
-    why: "Le е atone se prononce i : c'est l'иканье, l'autre grande règle de réduction.",
+    why: "Le е atone se prononce i : c'est l'и́канье, l'autre grande règle de réduction.",
   },
   {
     id: "seychas",
