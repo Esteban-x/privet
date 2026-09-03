@@ -289,9 +289,17 @@ const DETERMINERS = new Set([
  * (столо́м, мо́рем, стено́й) — ainsi que -ым / -им (instrumental singulier ET
  * datif pluriel). Un marqueur ambigu ne dit rien, et le faire parler
  * produirait des refus faux.
+ *
+ * -ую / -юю relèvent de la même prudence, et ont été retirées : c'est aussi
+ * la 1re personne du présent des verbes en -овать / -евать. « Я тре́бую ___ »,
+ * « Я сове́тую ___ », « Я зави́дую ___ » se lisaient comme une épithète
+ * féminine à l'accusatif, et le gabarit était refusé dès qu'on lui demandait
+ * un pluriel — un refus faux sur une phrase parfaitement correcte, invisible
+ * tant que ces gabarits n'étaient servis qu'au singulier. Des noms la portent
+ * aussi (« ста́тую »), ce qui suffirait à elle seule.
  */
 const PLURAL_ENDING = /(ые|ие|ых|их|ыми|ими)$/;
-const SINGULAR_ENDING = /(ый|ий|ая|яя|ое|ее|ого|его|ому|ему|ую|юю)$/;
+const SINGULAR_ENDING = /(ый|ий|ая|яя|ое|ее|ого|его|ому|ему)$/;
 
 const PLURAL_DETERMINERS = new Set([
   "эти", "этих", "этими", "те", "тех", "теми", "все", "всех", "всеми",

@@ -21,11 +21,22 @@ const MODELS: { id: string; label: string }[] = [
   { id: "chelovek", label: "pluriel supplétif" },
 ];
 
+/**
+ * Le tableau montre les DEUX nombres, sur les six cas.
+ *
+ * Il n'en montrait qu'un : le pluriel au nominatif (où le singulier est la
+ * forme du dictionnaire et ne dirait rien), le singulier partout ailleurs.
+ * Ce choix suivait l'exercice, qui ne savait pas non plus demander de
+ * pluriel en dehors du nominatif et du génitif — et il laissait le lecteur
+ * sans le seul endroit où « стол → стола́ми » et « челове́к → людьми́ »
+ * s'expliquent d'un coup d'œil, en regard de leur singulier.
+ *
+ * Le modèle « pluriel supplétif » (челове́к → лю́ди) n'avait d'ailleurs de
+ * sens que sur la page du nominatif : ailleurs, sa colonne unique montrait
+ * un singulier parfaitement régulier sous une étiquette parlant du pluriel.
+ */
 export default function ReferenceTable({ targetCase }: { targetCase: CaseId }) {
-  // Au nominatif, le singulier EST la forme du dictionnaire : la colonne
-  // répéterait le mot tel quel. On montre le pluriel à la place — la seule
-  // vraie transformation de ce cas, et ce que l'exercice isolé demande.
-  const showPlural = targetCase === "nominative";
+  const nominative = targetCase === "nominative";
 
   return (
     <div>
@@ -37,11 +48,19 @@ export default function ReferenceTable({ targetCase }: { targetCase: CaseId }) {
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-muted">
                 Type
               </th>
+              {/* Au nominatif la colonne « Nominatif » répéterait la colonne
+                  « Singulier » : on la laisse tomber plutôt que d'afficher
+                  deux fois le même mot. */}
+              {!nominative && (
+                <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-muted">
+                  Nominatif
+                </th>
+              )}
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-muted">
-                Nominatif
+                Singulier
               </th>
               <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-muted">
-                {showPlural ? "Nominatif pluriel" : "Forme déclinée"}
+                Pluriel
               </th>
             </tr>
           </thead>
@@ -49,12 +68,16 @@ export default function ReferenceTable({ targetCase }: { targetCase: CaseId }) {
             {MODELS.map((m) => {
               const noun = getNoun(m.id);
               if (!noun) return null;
-              const result = declineNoun(noun, targetCase, showPlural);
+              const singular = declineNoun(noun, targetCase, false);
+              const plural = declineNoun(noun, targetCase, true);
               return (
                 <tr key={m.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 text-muted">{m.label}</td>
-                  <td className="px-4 py-3 font-bold">{noun.forms.singular[0]}</td>
-                  <td className="px-4 py-3 font-bold text-accent-ink">{result.accented}</td>
+                  {!nominative && (
+                    <td className="px-4 py-3 font-bold">{noun.forms.singular[0]}</td>
+                  )}
+                  <td className="px-4 py-3 font-bold text-accent-ink">{singular.accented}</td>
+                  <td className="px-4 py-3 font-bold text-accent-ink">{plural.accented}</td>
                 </tr>
               );
             })}

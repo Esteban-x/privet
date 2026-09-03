@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { CaseInfo } from "@/lib/grammar/types";
 import { CefrLevel } from "@/lib/supabase/types";
 import { declineNoun } from "@/lib/grammar/decline";
@@ -14,7 +14,12 @@ import {
   generateNumeralExercise,
   generateSentenceExercise,
 } from "@/lib/grammar/exercise-generator";
-import { PROPER_NOUN_TRIGGER_ID, triggersForCase } from "@/lib/grammar/triggers";
+import {
+  PROPER_NOUN_TRIGGER_ID,
+  resolveNumber,
+  triggerAllows,
+  triggersForCase,
+} from "@/lib/grammar/triggers";
 import { validateFrenchSentence, validateSentence } from "@/lib/grammar/sentence-guard";
 import { getNoun, nounsForLevel } from "@/lib/grammar/nouns-data";
 import type { Noun } from "@/lib/grammar/types";
@@ -23,6 +28,13 @@ import { BulbIcon } from "@/components/ui/icons";
 import AiSpark from "@/components/ui/AiSpark";
 import PaywallNotice from "@/components/ui/PaywallNotice";
 import { usePracticeAttempt } from "@/lib/practice/attempt-client";
+import {
+  CaseNumberMode,
+  getCaseNumber,
+  getCaseNumberOnServer,
+  setCaseNumber,
+  subscribeCaseNumber,
+} from "@/lib/storage";
 
 type Tab = "isolated" | "sentence" | "mcq" | "numeral";
 type Feedback = {
@@ -51,6 +63,26 @@ const TAB_LABEL: Record<Tab, { full: string; short: string }> = {
   numeral: { full: "Chiffres", short: "Chiffres" },
 };
 
+/**
+ * Le sélecteur de nombre.
+ *
+ * CE QU'IL DÉBLOQUE. La banque porte les douze formes de chaque nom, mais
+ * le nombre ne venait que du gabarit de phrase, et six gabarits sur 136
+ * demandaient le pluriel — tous au nominatif ou au génitif. Le datif,
+ * l'accusatif, l'instrumental et le prépositionnel n'avaient donc aucun
+ * exercice au pluriel : ni « стола́ми », ni « детьми́ », ni « друзья́ми »,
+ * les formes mêmes pour lesquelles on ouvre une grammaire.
+ *
+ * « Mélange » par défaut : c'est ce qu'on rencontre en lisant, et le
+ * contraste singulier/pluriel est justement ce qui s'apprend. Les deux
+ * autres servent à travailler un nombre qu'on rate.
+ */
+const NUMBER_LABEL: Record<CaseNumberMode, { full: string; short: string }> = {
+  singular: { full: "Singulier", short: "Sing." },
+  plural: { full: "Pluriel", short: "Plur." },
+  mixed: { full: "Mélange", short: "Mix" },
+};
+
 const GENDER_LABEL: Record<string, string> = {
   masculine: "masc.",
   feminine: "fém.",
@@ -76,13 +108,29 @@ async function buildExercise(
   userLevel: CefrLevel | undefined,
   recentLemmas: string[],
   pool: Noun[],
+  numberMode: CaseNumberMode,
 ): Promise<CaseExercise> {
-  if (tab === "isolated") return generateIsolatedExercise(caseInfo.id, false, pool);
+  // « Mélange » tire à chaque exercice, pas une fois pour la session : le
+  // contraste ne s'apprend qu'en alternant.
+  const wantPlural = numberMode === "plural" || (numberMode === "mixed" && Math.random() < 0.5);
+
+  if (tab === "isolated") return generateIsolatedExercise(caseInfo.id, wantPlural, pool);
   if (tab === "numeral") return generateNumeralExercise(pool);
 
-  const trigger = pickWeightedTrigger(triggersForCase(caseInfo.id), triggerStats, userLevel);
+  // Le nombre demandé restreint le tirage aux gabarits qui l'acceptent. En
+  // « Mélange » on ne restreint rien : chaque gabarit servira le nombre
+  // qu'il supporte, ce qui vaut mieux que d'écarter la moitié de la banque.
+  const eligible = triggersForCase(caseInfo.id).filter(
+    (t) => numberMode === "mixed" || triggerAllows(t, wantPlural),
+  );
+  const trigger = pickWeightedTrigger(
+    eligible.length > 0 ? eligible : triggersForCase(caseInfo.id),
+    triggerStats,
+    userLevel,
+  );
+  const plural = resolveNumber(trigger, wantPlural);
 
-  if (tab === "mcq") return generateMcqExercise(caseInfo.id, trigger, pool);
+  if (tab === "mcq") return generateMcqExercise(caseInfo.id, trigger, pool, plural);
 
   // "Phrase": IA en premier (phrase personnalisée, ciblée sur le
   // déclencheur choisi), repli SILENCIEUX sur le gabarit fixe si
@@ -93,14 +141,19 @@ async function buildExercise(
   // fixe + la banque de prénoms couvrent déjà l'exercice parfaitement,
   // aucune valeur à risquer une phrase IA imprévisible ici.
   if (trigger.id === PROPER_NOUN_TRIGGER_ID) {
-    return generateSentenceExercise(caseInfo.id, trigger, pool);
+    return generateSentenceExercise(caseInfo.id, trigger, pool, plural);
   }
 
   try {
     const res = await fetch("/api/ai/exercise", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ caseId: caseInfo.id, triggerId: trigger.id, recentLemmas }),
+      body: JSON.stringify({
+        caseId: caseInfo.id,
+        triggerId: trigger.id,
+        recentLemmas,
+        plural,
+      }),
     });
     if (!res.ok) throw new Error("ai unavailable");
     const ai = await res.json();
@@ -111,7 +164,6 @@ async function buildExercise(
     const noun = getNoun(ai.noun_id);
     if (!noun) throw new Error("mot hors banque");
 
-    const plural = trigger.plural ?? false;
     const result = declineNoun(noun, caseInfo.id, plural);
 
     // Dernier filet : la phrase doit vraiment appeler ce cas-ci. La route la
@@ -167,7 +219,7 @@ async function buildExercise(
       hint: noun.translation,
     };
   } catch {
-    return generateSentenceExercise(caseInfo.id, trigger, pool);
+    return generateSentenceExercise(caseInfo.id, trigger, pool, plural);
   }
 }
 
@@ -193,6 +245,11 @@ export default function CaseDeclension({
   );
 
   const [tab, setTab] = useState<Tab>("isolated");
+  const numberMode = useSyncExternalStore(
+    subscribeCaseNumber,
+    getCaseNumber,
+    getCaseNumberOnServer,
+  );
   const [round, setRound] = useState(0); // incrémenté à chaque "Suivant"pour relancer le tirage
   const [exercise, setExercise] = useState<CaseExercise | null>(null);
   const [input, setInput] = useState("");
@@ -264,7 +321,7 @@ export default function CaseDeclension({
   // qui relance cet effet et affiche le squelette entre-temps.
   useEffect(() => {
     let cancelled = false;
-    buildExercise(tab, caseInfo, triggerStats, userLevel, recentAiLemmas.current, pool)
+    buildExercise(tab, caseInfo, triggerStats, userLevel, recentAiLemmas.current, pool, numberMode)
       .then((ex) => {
         if (cancelled) return;
         if (ex.kind === "sentence-ai") {
@@ -282,7 +339,7 @@ export default function CaseDeclension({
     // ils biaisent le tirage suivant, ils ne doivent pas remplacer
     // l'exercice affiché quand la progression arrive du serveur.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, caseInfo.id, round, pool]);
+  }, [tab, caseInfo.id, round, pool, numberMode]);
 
   function nextExercise() {
     if (stopHere()) return;
@@ -291,6 +348,15 @@ export default function CaseDeclension({
     setVerifying(false);
     setExercise(null);
     setRound((r) => r + 1);
+  }
+
+  function selectNumber(next: CaseNumberMode) {
+    if (next === numberMode) return;
+    setFeedback(null);
+    setInput("");
+    setVerifying(false);
+    setExercise(null);
+    setCaseNumber(next);
   }
 
   function selectTab(next: Tab) {
@@ -488,6 +554,19 @@ export default function CaseDeclension({
             </ModeButton>
           ))}
         </div>
+        {/* Le nombre. Absent de l'onglet « Chiffres », dont le nombre est
+            dicté par le cardinal lui-même (« 2 стола́ », « 5 столо́в ») et
+            non par un choix d'entraînement. */}
+        {tab !== "numeral" && (
+          <div className="inline-flex flex-wrap rounded-2xl border border-border bg-bg p-1 sm:rounded-full">
+            {(["singular", "plural", "mixed"] as CaseNumberMode[]).map((m) => (
+              <ModeButton key={m} active={numberMode === m} onClick={() => selectNumber(m)}>
+                <span className="sm:hidden">{NUMBER_LABEL[m].short}</span>
+                <span className="hidden sm:inline">{NUMBER_LABEL[m].full}</span>
+              </ModeButton>
+            ))}
+          </div>
+        )}
         {exercise && accuracy !== undefined && (
           <span className="ml-auto shrink-0 font-display text-xs text-muted">
             Précision ({GENDER_LABEL[exercise.noun.gender]}) : {accuracy}%

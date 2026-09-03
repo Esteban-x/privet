@@ -2,11 +2,21 @@ import { CaseId, Noun } from "./types";
 import { NOUNS } from "./nouns-data";
 import { RUSSIAN_NAMES } from "./names-data";
 import { declineNoun } from "./decline";
-import { CaseTrigger, PROPER_NOUN_TRIGGER_ID, triggersForCase } from "./triggers";
+import {
+  CaseTrigger,
+  PROPER_NOUN_TRIGGER_ID,
+  resolveNumber,
+  triggersForCase,
+} from "./triggers";
 import { CASES } from "./cases";
 import { CountForm, countFormFor, randomCountNumber } from "./numerals";
 import { fillFrenchBlank, frenchNounPhrase } from "./french-article";
-import { categoryOf, countableNouns, type NounCategory } from "./noun-categories";
+import {
+  categoryOf,
+  countableNouns,
+  pluralisableNouns,
+  type NounCategory,
+} from "./noun-categories";
 import { TRIGGER_NOUNS } from "./trigger-nouns.generated";
 
 // Pool unique de tous les exercices : la banque importée, dont chaque forme
@@ -128,11 +138,18 @@ export function generateIsolatedExercise(
   plural = false,
   pool: Noun[] = DECLINABLE_NOUNS
 ): CaseExercise {
-  // Le nominatif singulier EST la forme du dictionnaire : rien à décliner.
-  // On force donc le pluriel pour tester une vraie transformation
-  // (книга -> книги) plutôt que de faire retaper le mot affiché.
+  // Le nominatif SINGULIER est la forme du dictionnaire : rien à décliner,
+  // on ferait retaper le mot affiché. Le pluriel etait donc force ici — ce
+  // qui réglait ce cas et en créait deux autres : le nominatif singulier
+  // devenait intestable, et « ри́сы », « шокола́ды », « мяса́ » étaient
+  // demandés parce que le forçage ignorait la dénombrabilité.
+  //
+  // Le nombre vient maintenant du sélecteur, et le nominatif singulier est
+  // simplement écarté du tirage : c'est la seule case des douze qui
+  // n'apprend rien.
   const effectivePlural = targetCase === "nominative" ? true : plural;
-  const noun = pickRandom(pool);
+  const usable = effectivePlural ? pluralisableNouns(pool) : pool;
+  const noun = pickRandom(usable);
   const result = declineNoun(noun, targetCase, effectivePlural);
   return {
     kind: "isolated",
@@ -149,11 +166,15 @@ export function generateIsolatedExercise(
 export function generateSentenceExercise(
   targetCase: CaseId,
   trigger?: CaseTrigger,
-  pool: Noun[] = DECLINABLE_NOUNS
+  pool: Noun[] = DECLINABLE_NOUNS,
+  wantPlural = false
 ): CaseExercise {
   const chosenTrigger = trigger ?? pickRandom(triggersForCase(targetCase));
-  const noun = pickRandom(poolFor(chosenTrigger, pool));
-  const plural = chosenTrigger.plural ?? false;
+  // La contrainte du gabarit l'emporte sur le souhait de l'apprenant :
+  // « несколько ___ » reste au pluriel, « Меня зовут ___ » au singulier.
+  const plural = resolveNumber(chosenTrigger, wantPlural);
+  const candidates = poolFor(chosenTrigger, pool);
+  const noun = pickRandom(plural ? pluralisableNouns(candidates) : candidates);
   const result = declineNoun(noun, targetCase, plural);
 
   return {
@@ -177,9 +198,10 @@ export function generateSentenceExercise(
 export function generateMcqExercise(
   targetCase: CaseId,
   trigger?: CaseTrigger,
-  pool: Noun[] = DECLINABLE_NOUNS
+  pool: Noun[] = DECLINABLE_NOUNS,
+  wantPlural = false
 ): CaseExercise {
-  const base = generateSentenceExercise(targetCase, trigger, pool);
+  const base = generateSentenceExercise(targetCase, trigger, pool, wantPlural);
   const otherCases = CASES.map((c) => c.id).filter((id) => id !== targetCase);
 
   const distractors = new Set<string>();

@@ -6,7 +6,7 @@ import { exerciseSystemPrompt } from "@/lib/ai/prompts";
 import { CaseId, Noun } from "@/lib/grammar/types";
 import type { CefrLevel } from "@/lib/supabase/types";
 import { getCase } from "@/lib/grammar/cases";
-import { CaseTrigger, getTrigger, PROPER_NOUN_TRIGGER_ID } from "@/lib/grammar/triggers";
+import { CaseTrigger, PROPER_NOUN_TRIGGER_ID, getTrigger, resolveNumber } from "@/lib/grammar/triggers";
 import { DECLINABLE_NOUNS, poolFor } from "@/lib/grammar/exercise-generator";
 import { nounsForLevel } from "@/lib/grammar/nouns-data";
 import { declineNoun } from "@/lib/grammar/decline";
@@ -83,6 +83,10 @@ export async function POST(req: Request) {
   // Mots récemment vus par l'apprenant (n'importe quel cas) — évite que le
   // modèle reparte systématiquement sur le mot le plus "évident" du thème
   // choisi (ex. музыка dès que le thème est la musique, en boucle).
+  // Le nombre demandé par l'apprenant. Il n'est PAS cru sur parole : le
+  // gabarit tranche juste en dessous (resolveNumber), donc un client qui
+  // réclamerait un pluriel sur « Меня зовут ___ » obtient un singulier.
+  const wantPlural = body.plural === true;
   const recentLemmas: string[] = Array.isArray(body.recentLemmas)
     ? body.recentLemmas.filter((w: unknown): w is string => typeof w === "string").slice(0, 12)
     : [];
@@ -119,9 +123,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Génération non disponible." }, { status: 429 });
     }
 
-    // Le NOMBRE vient du déclencheur, jamais du modèle : c'est lui qui entre
-    // dans le calcul de la forme attendue, côté client comme côté serveur.
-    const plural = trigger?.plural ?? false;
+    // Le NOMBRE ne vient jamais du modèle : c'est lui qui entre dans le
+    // calcul de la forme attendue, côté client comme côté serveur. Il vient
+    // du choix de l'apprenant, borné par ce que le gabarit supporte.
+    const plural = trigger ? resolveNumber(trigger, wantPlural) : wantPlural;
     const allowed = trigger ? poolFor(trigger, DECLINABLE_NOUNS) : DECLINABLE_NOUNS;
 
     // Deux tentatives au plus. Le contrôle grammatical (sentence-guard) refuse

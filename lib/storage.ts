@@ -12,6 +12,7 @@ const KEYS = {
   addWordFirstSide: "ru-app:add-word-first-side",
   coursesRead: "ru-app:courses-read",
   lastVocabList: "ru-app:vocab-last-list",
+  caseNumber: "ru-app:case-number",
 };
 
 /** Exposée pour lib/courses/use-read-lessons.ts, qui lit le brut sans le parser. */
@@ -139,4 +140,74 @@ export function saveReadLessons(slugs: string[]) {
     // Quota plein ou stockage refusé : la lecture reste possible, seule la
     // coche est perdue. Rien à signaler à l'apprenant.
   }
+}
+
+// --- Cas : singulier, pluriel, ou les deux ---
+//
+// UNE FAÇON DE TRAVAILLER, PAS UN ÉTAT D'ÉCRAN. Quelqu'un qui révise les
+// pluriels les révise sur les six cas, et sur plusieurs sessions : lui
+// redemander à chaque page serait lui faire répéter une décision qu'il a
+// déjà prise. Local plutôt qu'en base, pour la même raison que la liste de
+// vocabulaire — c'est une préférence d'entraînement sur un appareil, pas
+// une donnée d'apprentissage à synchroniser.
+
+export type CaseNumberMode = "singular" | "plural" | "mixed";
+
+export function loadCaseNumber(): CaseNumberMode {
+  if (typeof window === "undefined") return "mixed";
+  try {
+    const raw = localStorage.getItem(KEYS.caseNumber);
+    return raw === "singular" || raw === "plural" ? raw : "mixed";
+  } catch {
+    // Stockage refusé : « Mélange », qui est le mode le plus complet et le
+    // seul dont personne n'a à se plaindre s'il arrive par défaut.
+    return "mixed";
+  }
+}
+
+export function saveCaseNumber(mode: CaseNumberMode) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(KEYS.caseNumber, mode);
+  } catch {}
+}
+
+/**
+ * La préférence exposée comme une source externe, pour `useSyncExternalStore`.
+ *
+ * POURQUOI PAS UN useState + useEffect. Lire localStorage au montage et
+ * appeler setState dans l'effet, c'est un rendu jeté à chaque visite — et
+ * la règle react-hooks/set-state-in-effect l'interdit, à raison. Un
+ * initialiseur paresseux ne marche pas non plus : le serveur rend
+ * « Mélange », le client lirait « Pluriel », et l'hydratation divergerait.
+ *
+ * useSyncExternalStore est fait exactement pour ça : un instantané serveur
+ * (« Mélange »), un instantané client (le stockage), et React s'occupe du
+ * raccord.
+ */
+const caseNumberListeners = new Set<() => void>();
+let caseNumberCache: CaseNumberMode | null = null;
+
+export function subscribeCaseNumber(onChange: () => void): () => void {
+  caseNumberListeners.add(onChange);
+  return () => {
+    caseNumberListeners.delete(onChange);
+  };
+}
+
+/** L'instantané client. Mis en cache : `getSnapshot` doit être stable entre deux rendus. */
+export function getCaseNumber(): CaseNumberMode {
+  if (caseNumberCache === null) caseNumberCache = loadCaseNumber();
+  return caseNumberCache;
+}
+
+/** L'instantané serveur : aucun stockage à lire, donc le mode le plus complet. */
+export function getCaseNumberOnServer(): CaseNumberMode {
+  return "mixed";
+}
+
+export function setCaseNumber(mode: CaseNumberMode) {
+  caseNumberCache = mode;
+  saveCaseNumber(mode);
+  for (const listener of caseNumberListeners) listener();
 }

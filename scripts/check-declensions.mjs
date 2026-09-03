@@ -37,7 +37,9 @@ const { CASE_ORDER } = await jiti.import("../lib/grammar/types.ts");
 const { generateSentenceExercise, generateNumeralExercise, poolFor } = await jiti.import(
   "../lib/grammar/exercise-generator.ts"
 );
-const { TRIGGERS, PROPER_NOUN_TRIGGER_ID } = await jiti.import("../lib/grammar/triggers.ts");
+const { TRIGGERS, PROPER_NOUN_TRIGGER_ID, triggerNumber } = await jiti.import(
+  "../lib/grammar/triggers.ts"
+);
 const { validateSentence, validateFrenchSentence } = await jiti.import(
   "../lib/grammar/sentence-guard.ts"
 );
@@ -526,19 +528,34 @@ let demandingTriggers = 0;
 //   b) il refuse bien les phrases fautives observées en production, et
 //      accepte des phrases justes de même forme (pas un refus global).
 {
+  // CHAQUE NOMBRE QUE LE DÉCLENCHEUR DÉCLARE, pas seulement celui qu'il
+  // servait hier. Le champ `number` dit ce que le gabarit accepte
+  // ("singular", "plural" ou "both") et c'est le sélecteur de l'apprenant
+  // qui choisit dans cet ensemble : un gabarit annoncé "both" doit donc
+  // tenir dans les DEUX nombres, sinon le sélecteur produit une phrase
+  // fausse dès qu'on bascule.
+  //
+  // C'est l'invariant qui manquait : l'ancien booléen ne pouvait dire que
+  // « ce gabarit sert le pluriel », jamais « ce gabarit le supporte », et
+  // rien ne vérifiait le nombre qu'on ne servait pas.
   for (const trigger of TRIGGERS) {
-    const verdict = validateSentence({
-      sentence: trigger.template.ru,
-      targetCase: trigger.caseId,
-      plural: trigger.plural ?? false,
-      trigger,
-    });
-    expect(
-      `gabarit « ${trigger.id} » (${trigger.template.ru}) refusé par le garde-fou` +
-        `${verdict.reason ? ` : ${verdict.reason}` : ""}`,
-      verdict.ok,
-      true
-    );
+    const declared = triggerNumber(trigger);
+    const numbers = declared === "both" ? [false, true] : [declared === "plural"];
+    for (const plural of numbers) {
+      const verdict = validateSentence({
+        sentence: trigger.template.ru,
+        targetCase: trigger.caseId,
+        plural,
+        trigger,
+      });
+      expect(
+        `gabarit « ${trigger.id} » (${trigger.template.ru}) au ` +
+          `${plural ? "pluriel" : "singulier"} refusé par le garde-fou` +
+          `${verdict.reason ? ` : ${verdict.reason}` : ""}`,
+        verdict.ok,
+        true
+      );
+    }
   }
 
   // Témoins. Les trois premiers sont les phrases réellement servies à
@@ -597,6 +614,44 @@ let demandingTriggers = 0;
           true
         );
       }
+    }
+  }
+
+  //    Puis le français lui-même. `article: "demonstrative"` est le mode par
+  //    défaut de 120 déclencheurs, et il est inséré mécaniquement devant la
+  //    traduction — ce qui donnait « Il travaille comme CE juge », « Il veut
+  //    devenir CE médecin ». Le russe était juste, la phrase française qui
+  //    l'explique ne l'était pas.
+  //
+  //    Ce qui est interdit après « comme » / « devenir » / « en tant que »,
+  //    c'est le DÉFINI et le DÉMONSTRATIF : « comme ce juge », « comme le
+  //    juge ». L'indéfini, lui, est correct — « il est considéré comme un
+  //    spécialiste » — et c'est pour cela que la règle nomme les
+  //    déterminants un par un au lieu d'interdire le déterminant en bloc.
+  //
+  //    Courte, mécanique, donc vérifiable : exactement le genre de faute
+  //    qu'un relecteur humain cesse de voir au bout de vingt gabarits.
+  const NO_DETERMINER_AFTER = /\b(comme|devenir|devient|deviens|en tant que)\s+(ce|cet|cette|ces|le|la|les)\b/i;
+  for (const trigger of TRIGGERS) {
+    if (trigger.id === PROPER_NOUN_TRIGGER_ID) continue;
+    const sample = poolFor(trigger, NOUNS)[0];
+    if (!sample) continue;
+    // Seulement les nombres que le gabarit déclare : « Il est considéré
+    // comme des personnes » n'a pas à être jugé sur un déclencheur qui a
+    // dit ne servir que le singulier.
+    const declared = triggerNumber(trigger);
+    for (const plural of declared === "both" ? [false, true] : [declared === "plural"]) {
+      const sentenceFr = fillFrenchBlank(
+        trigger.template.fr,
+        frenchNounPhrase(sample.translation, sample.frenchGender, trigger.article, plural)
+      );
+      const offense = NO_DETERMINER_AFTER.exec(sentenceFr);
+      require_(
+        !offense,
+        `déclencheur « ${trigger.id} » : « ${sentenceFr} » — « ${offense?.[1]} » ` +
+          `ne prend pas de déterminant, mets article: "none" (ou "indefinite" ` +
+          `si la tournure en demande un)`
+      );
     }
   }
 

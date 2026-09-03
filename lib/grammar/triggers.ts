@@ -31,6 +31,31 @@ export type TriggerKind = "preposition" | "verb" | "expression";
 // le reste plutôt que de tout servir à poids égal dès A0.
 export type TriggerTier = "basic" | "intermediate" | "advanced";
 
+/**
+ * Les nombres qu'un gabarit accepte.
+ *
+ * CE QUE CE CHAMP REMPLACE. Il y avait un booléen `plural`, vrai sur six
+ * déclencheurs — « много ___ », « несколько ___ » — parce que ces
+ * expressions EXIGENT le pluriel. Partout ailleurs il valait faux, ce qui
+ * ne voulait pas dire « ce gabarit refuse le pluriel » mais « personne n'a
+ * eu l'occasion de dire le contraire ». Les six vivaient au nominatif et au
+ * génitif : le datif, l'accusatif, l'instrumental et le prépositionnel
+ * n'avaient donc AUCUN exercice au pluriel, alors que la banque porte les
+ * douze formes de chaque nom, accentuées et vérifiées.
+ *
+ * Trois etats, parce qu'il y a trois situations réelles :
+ * - "plural"   le gabarit impose le pluriel (« несколько ___ ») ;
+ * - "singular" il le refuse — le trou est un prenom (« Меня зовут ___ »),
+ *   un sujet dont le verbe francais s'accorde (« ___ a une voiture »), ou
+ *   une quantité de matière (« un verre de ___ ») ;
+ * - "both"     le défaut : le trou est un complément, et « Я говорю с
+ *   дру́гом » comme « Я говорю с друзья́ми » sont deux phrases justes.
+ *
+ * Le défaut est "both" et non "singular" : un complément accepte les deux
+ * nombres, c'est le refus qui est l'exception et qui mérite d'être écrit.
+ */
+export type TriggerNumber = "singular" | "plural" | "both";
+
 export interface CaseTrigger {
   id: string;
   caseId: CaseId;
@@ -39,7 +64,12 @@ export interface CaseTrigger {
   ru: string; // ex. "у", "помогать (+ дат.)"
   meaningFr: string;
   template: { ru: string; fr: string }; // "___" = trou
-  plural?: boolean; // ce déclencheur appelle naturellement le pluriel
+  /**
+   * Nombre(s) que le gabarit accepte. Absent = "both" — voir TriggerNumber
+   * pour ce que l'absence signifiait avant, et pourquoi elle ne le signifie
+   * plus.
+   */
+  number?: TriggerNumber;
   // Article français à appliquer devant la traduction insérée dans le trou
   // du template.fr — voir lib/grammar/french-article.ts. Champ obligatoire
   // (pas de défaut implicite) : chaque déclencheur a été revu au cas par
@@ -79,6 +109,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "это",
     meaningFr: "Identifier quelqu'un ou quelque chose.",
     template: { ru: "Это ___.", fr: "C'est ___." },
+    number: "singular", // « C'est ___ » demanderait « Ce sont » au pluriel
   },
   {
     id: "expr-nom-vot",
@@ -114,6 +145,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "зовут",
     meaningFr: "Se présenter : le nom reste au nominatif après \"меня зовут\".",
     template: { ru: "Меня зовут ___.", fr: "Je m'appelle ___." },
+    number: "singular", // un prénom, jamais un pluriel
   },
   {
     id: "expr-nom-pluriel",
@@ -125,7 +157,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "мн. число",
     meaningFr: "Le sujet est au pluriel.",
     template: { ru: "Здесь только ___.", fr: "Ici il n'y a que des ___." },
-    plural: true,
+    number: "plural",
   },
 
   // ─── Génitif ────────────────────────────────────────────────────
@@ -150,7 +182,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "много",
     meaningFr: "Quantité importante (+ génitif pluriel).",
     template: { ru: "У меня много ___.", fr: "J'ai beaucoup de ___." },
-    plural: true,
+    number: "plural",
   },
   {
     id: "expr-gen-malo",
@@ -161,7 +193,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "мало",
     meaningFr: "Quantité insuffisante (+ génitif pluriel).",
     template: { ru: "У меня мало ___.", fr: "J'ai peu de ___." },
-    plural: true,
+    number: "plural",
   },
   {
     id: "expr-gen-neskolko",
@@ -173,7 +205,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "несколько",
     meaningFr: "\"Plusieurs\" (+ génitif pluriel).",
     template: { ru: "У меня есть несколько ___.", fr: "J'ai plusieurs ___." },
-    plural: true,
+    number: "plural",
   },
   {
     id: "expr-gen-skolko",
@@ -185,7 +217,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "сколько",
     meaningFr: "\"Combien de\" (+ génitif).",
     template: { ru: "Сколько ___ у тебя?", fr: "Combien de ___ as-tu ?" },
-    plural: true,
+    number: "plural",
   },
   {
     id: "expr-gen-kusok",
@@ -197,6 +229,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "кусок",
     meaningFr: "Unité de mesure : \"un morceau de\".",
     template: { ru: "Дай мне кусок ___.", fr: "Donne-moi un morceau de ___." },
+    number: "singular", // un morceau se prend dans une matière, au singulier
   },
   {
     id: "expr-gen-stakan",
@@ -208,6 +241,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "стакан",
     meaningFr: "Unité de mesure : \"un verre de\".",
     template: { ru: "Я хочу стакан ___.", fr: "Je veux un verre de ___." },
+    number: "singular", // un verre se remplit d'une matière, au singulier
   },
   // Possession
   {
@@ -231,6 +265,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "у ... есть",
     meaningFr: "Possession : \"chez X il y a Y\" = \"X a Y\" — le possesseur (X) est au génitif après у.",
     template: { ru: "У ___ есть машина.", fr: "___ a une voiture." },
+    number: "singular", // le trou est le sujet : « ___ ont une voiture » au pluriel
   },
   {
     id: "expr-gen-possession",
@@ -375,7 +410,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "среди",
     meaningFr: "\"Parmi\".",
     template: { ru: "Я чувствую себя одиноко среди ___.", fr: "Je me sens seul parmi ___." },
-    plural: true,
+    number: "plural",
   },
   {
     id: "prep-gen-protiv",
@@ -485,6 +520,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "накануне",
     meaningFr: "\"La veille de\".",
     template: { ru: "Я пришёл накануне ___.", fr: "Je suis venu la veille de ___." },
+    number: "singular", // la veille d'UN événement
   },
   {
     id: "prep-gen-vrode",
@@ -496,6 +532,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "вроде",
     meaningFr: "\"Une sorte de\", \"comme\" (familier).",
     template: { ru: "Это что-то вроде ___.", fr: "C'est une sorte de ___." },
+    number: "singular", // « une sorte de » appelle un singulier
   },
   // Verbes
   {
@@ -574,6 +611,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "выпить",
     meaningFr: "Génitif partitif : boire UNE PARTIE de (contraste avec l'accusatif пить qui boit la chose entière/précise).",
     template: { ru: "Я хочу выпить ___.", fr: "Je veux boire un peu de ___." },
+    number: "singular", // on boit un peu d'une matière, au singulier
   },
   {
     id: "verb-gen-lishitsya",
@@ -619,6 +657,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "полный",
     meaningFr: "\"Plein de\" se construit au génitif.",
     template: { ru: "Стакан полный ___.", fr: "Le verre est plein de ___." },
+    number: "singular", // plein d'une matière, au singulier
   },
   {
     id: "expr-gen-dostoin",
@@ -1212,10 +1251,11 @@ export const TRIGGERS: CaseTrigger[] = [
     caseId: "instrumental",
     kind: "expression",
     tier: "basic",
-    article: "demonstrative",
+    article: "none", // « Il travaille comme juge » — un métier ne prend pas d'article
     ru: "работать +",
     meaningFr: "Métier, profession exercée.",
     template: { ru: "Он работает ___.", fr: "Il travaille comme ___." },
+    number: "singular", // attribut du sujet « он » : « Он работает судьёй », pas « судьями »
   },
   {
     id: "expr-instr-stat",
@@ -1223,10 +1263,11 @@ export const TRIGGERS: CaseTrigger[] = [
     caseId: "instrumental",
     kind: "expression",
     tier: "intermediate",
-    article: "demonstrative",
+    article: "none", // « Il veut devenir médecin » — idem
     ru: "стать +",
     meaningFr: "Devenir quelque chose.",
     template: { ru: "Он хочет стать ___.", fr: "Il veut devenir ___." },
+    number: "singular", // attribut du sujet « он »
   },
   {
     id: "verb-instr-yavlyatsya",
@@ -1238,6 +1279,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "являться",
     meaningFr: "\"Être, constituer\" (registre formel) se construit à l'instrumental.",
     template: { ru: "Это является ___.", fr: "Ceci constitue ___." },
+    number: "singular", // attribut du sujet « это »
   },
   {
     id: "verb-instr-kazatsya",
@@ -1249,6 +1291,7 @@ export const TRIGGERS: CaseTrigger[] = [
     ru: "казаться",
     meaningFr: "\"Sembler être\" se construit à l'instrumental.",
     template: { ru: "Он кажется ___.", fr: "Il semble être ___." },
+    number: "singular", // attribut du sujet « он »
   },
   {
     id: "verb-instr-schitatsya",
@@ -1256,10 +1299,11 @@ export const TRIGGERS: CaseTrigger[] = [
     caseId: "instrumental",
     kind: "verb",
     tier: "advanced",
-    article: "demonstrative",
+    article: "indefinite", // « Il est considéré comme un spécialiste »
     ru: "считаться",
     meaningFr: "\"Être considéré comme\" se construit à l'instrumental.",
     template: { ru: "Он считается ___.", fr: "Il est considéré comme ___." },
+    number: "singular", // attribut du sujet « он »
   },
   {
     id: "verb-instr-interesovatsya",
@@ -1586,4 +1630,37 @@ export function triggersForCase(caseId: CaseId): CaseTrigger[] {
 
 export function getTrigger(id: string): CaseTrigger | undefined {
   return TRIGGERS.find((t) => t.id === id);
+}
+
+/**
+ * Le nombre qu'un gabarit accepte, avec son défaut explicite.
+ *
+ * Un seul endroit lit le champ, pour que « absent = both » ne se réinvente
+ * pas à chaque appelant — c'est exactement la façon dont l'ancien
+ * `plural ?? false` s'était figé en « jamais de pluriel ».
+ */
+export function triggerNumber(trigger: CaseTrigger): TriggerNumber {
+  return trigger.number ?? "both";
+}
+
+/** Ce déclencheur peut-il servir le nombre demandé ? */
+export function triggerAllows(trigger: CaseTrigger, plural: boolean): boolean {
+  const n = triggerNumber(trigger);
+  return n === "both" || (plural ? n === "plural" : n === "singular");
+}
+
+/**
+ * Le nombre RÉELLEMENT servi par ce déclencheur, une fois croisés le choix
+ * de l'apprenant et ce que le gabarit supporte.
+ *
+ * La contrainte du gabarit gagne toujours : « несколько ___ » reste au
+ * pluriel même si l'apprenant travaille le singulier, parce que l'autre
+ * option est une phrase fausse. C'est aussi ce qui rend le sélecteur sûr
+ * — il ne peut pas produire un exercice que la langue refuse.
+ */
+export function resolveNumber(trigger: CaseTrigger, wanted: boolean): boolean {
+  const n = triggerNumber(trigger);
+  if (n === "plural") return true;
+  if (n === "singular") return false;
+  return wanted;
 }

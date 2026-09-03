@@ -268,3 +268,46 @@ export function countableNouns<T extends { id: string }>(pool: T[]): T[] {
   const kept = pool.filter((n) => isCountable(n.id));
   return kept.length > 0 ? kept : pool;
 }
+
+/**
+ * Les noms dont le PLURIEL ne s'enseigne pas.
+ *
+ * Distinct de `isCountable`, qui répond à « peut-on mettre un cardinal
+ * devant ». Les deux se recoupent largement — on ne compte pas le riz, et
+ * on ne dit pas non plus « des riz » — mais pas complètement, et c'est le
+ * pluriel qui a besoin d'une réponse propre depuis que l'apprenant peut le
+ * demander.
+ *
+ * Deux familles :
+ *
+ * 1. LES INDÉNOMBRABLES, repris tels quels. Le nominatif isolé forçait le
+ *    pluriel (pour éviter de faire retaper la forme du dictionnaire), si
+ *    bien que la page demandait « ри́сы », « шокола́ды », « мяса́ »,
+ *    « хле́бы ». Les formes existent au paradigme ; elles ne sont pas du
+ *    russe qu'on apprend.
+ *
+ * 2. LES PLURIELS DÉFECTIFS, listés ici. Le dictionnaire donne un pluriel à
+ *    любо́вь et à ложь parce qu'il complète mécaniquement le paradigme, mais
+ *    « любви́ » et « лжи » ne s'emploient pas. Pire pour мечта́ : son génitif
+ *    pluriel de dictionnaire est « мечта́ний », qui est celui de мечта́ние —
+ *    l'app enseignerait le pluriel d'un autre mot.
+ */
+const NO_USABLE_PLURAL = new Set(["lyubov", "lozh", "mechta"]);
+
+/** Peut-on demander le pluriel de ce nom sans enseigner une forme morte ? */
+export function hasUsablePlural(nounId: string): boolean {
+  return isCountable(nounId) && !NO_USABLE_PLURAL.has(nounId);
+}
+
+/**
+ * Le sous-ensemble d'un pool qu'on peut mettre au pluriel. Même repli que
+ * `countableNouns` : un pool vide rend le pool d'origine, parce qu'un
+ * exercice bancal reste préférable à un écran vide.
+ */
+export function pluralisableNouns<T extends { id: string }>(pool: T[]): T[] {
+  const kept = pool.filter((n) => hasUsablePlural(n.id));
+  return kept.length > 0 ? kept : pool;
+}
+
+/** Pour les contrôles : la liste brute des pluriels défectifs. */
+export const DECLARED_NO_PLURAL = [...NO_USABLE_PLURAL];
