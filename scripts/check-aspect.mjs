@@ -28,7 +28,10 @@ function require_(condition, message) {
   if (!condition) failures.push(message);
 }
 
-const CYRILLIC = /^[а-яёА-ЯЁ -]+$/;
+// L'accent tonique combinant fait partie des formes depuis que la banque
+// est accentuée.
+const CYRILLIC = /^[а-яёА-ЯЁ ́-]+$/;
+const stripAccent = (f) => f.replace(/́/g, "");
 
 // ─── 1. Paires : table de référence relue à la main ────────────────
 const EXPECTED = {
@@ -77,18 +80,44 @@ for (const pair of V.ASPECT_PAIRS) {
   }
   const got = [pair.perfective, pair.impPast, pair.perfPast, pair.impPresent1, pair.perfFuture1];
   const labels = ["perfectif", "passé imp.", "passé perf.", "présent 1sg", "futur perf. 1sg"];
+  // La table témoin garde l'ORTHOGRAPHE ; la position de l'accent est
+  // vérifiée contre le dictionnaire au §5.
   got.forEach((form, i) => {
     require_(
-      form === expected[i],
+      stripAccent(form) === expected[i],
       `${pair.imperfective} : ${labels[i]} "${form}" au lieu de "${expected[i]}"`
     );
   });
-  for (const form of [...got, pair.impImperative, pair.perfImperative]) {
+  const imperatives = [
+    pair.impImperative,
+    pair.perfImperative,
+    pair.impImperativeTy,
+    pair.perfImperativeTy,
+  ].filter(Boolean);
+  for (const form of [...got, pair.impPastF, pair.perfPastF, ...imperatives]) {
     require_(CYRILLIC.test(form), `${pair.imperfective} : forme "${form}" hors alphabet cyrillique`);
   }
+  // Les deux membres d'une paire doivent différer partout où l'exercice les
+  // oppose : sinon le QCM n'a pas de bonne réponse.
   require_(
-    pair.impImperative !== pair.perfImperative,
-    `${pair.imperfective} : les deux impératifs sont identiques, l'exercice n'aurait pas de réponse`
+    pair.impPast !== pair.perfPast && pair.impPastF !== pair.perfPastF,
+    `${pair.imperfective} : les deux passés sont identiques, l'exercice n'aurait pas de réponse`
+  );
+  // Un impératif absent est une décision (ви́деть n'en a pas d'usuel) : les
+  // deux membres doivent alors l'être ensemble, sans quoi l'exercice
+  // proposerait un seul bouton.
+  require_(
+    !pair.impImperative === !pair.perfImperative &&
+      !pair.impImperativeTy === !pair.perfImperativeTy,
+    `${pair.imperfective} : un seul des deux impératifs est renseigné`
+  );
+  require_(
+    !pair.impImperative || pair.impImperative !== pair.perfImperative,
+    `${pair.imperfective} : les deux impératifs (vous) sont identiques`
+  );
+  require_(
+    !pair.impImperativeTy || pair.impImperativeTy !== pair.perfImperativeTy,
+    `${pair.imperfective} : les deux impératifs (tu) sont identiques`
   );
   require_(
     ["prefixe", "suffixe", "suppletion"].includes(pair.formation),
@@ -170,11 +199,15 @@ for (const skill of X.ASPECT_SKILLS) {
         ? [
             pair.impPast,
             pair.perfPast,
+            pair.impPastF,
+            pair.perfPastF,
             pair.perfFuture1,
             `буду ${pair.imperfective}`,
             pair.impImperative,
             pair.perfImperative,
-          ]
+            pair.impImperativeTy,
+            pair.perfImperativeTy,
+          ].filter(Boolean)
         : [];
       if (!pair || !forms.includes(answer)) mismatchedPair += 1;
     }
@@ -199,6 +232,82 @@ require_(
 require_(X.checkAspectAnswer("", "") === null, "un identifiant vide doit être rejeté");
 
 // ─── Rapport ───────────────────────────────────────────────────────
+/**
+ * Un mot cyrillique entier. `\b` est inutilisable ici : JavaScript le
+ * définit sur [A-Za-z0-9_], si bien que /\bона\b/ ne matche jamais « Она »
+ * et qu'un contrôle écrit ainsi passe toujours, quoi qu'il vérifie.
+ */
+const CYRILLIC_WORD = (alternatives) =>
+  new RegExp(`(^|[^а-яёА-ЯЁ])(${alternatives})([^а-яёА-ЯЁ]|$)`, "i");
+
+// ─── 6. La phrase et la forme attendue disent la même personne ────
+//
+// Un contexte écrit sa phrase ET déclare la forme du verbe qu'il attend.
+// Rien ne vérifiait que les deux s'accordent, et deux familles de gabarits
+// ne s'accordaient pas :
+//
+//   « Она́ сра́зу ___ на мой вопро́с » recevait le passé MASCULIN, faute
+//   d'une forme féminine dans la banque. Trois contextes sur dix-huit.
+//
+//   « ___ по-ру́сски ка́ждый день — так ТЫ бы́стрее вы́учишь язы́к » recevait
+//   l'impératif de politesse : « Чита́йте … так ты ». La phrase se
+//   contredisait toute seule, huit fois sur douze.
+//
+// Ces deux contrôles lisent la phrase russe et refusent le désaccord.
+{
+  for (const context of X.PAST_CONTEXTS) {
+    // ATTENTION : \b ne marche PAS sur du cyrillique en JavaScript — il est
+    // défini sur [A-Za-z0-9_], donc /\bона\b/ ne matche jamais « Она ».
+    // D'où des bornes écrites à la main.
+    const feminine = CYRILLIC_WORD("она").test(context.template);
+    const declared = context.subject === "f";
+    require_(
+      feminine === declared,
+      `contexte « ${context.id} » : la phrase « ${context.template} » ` +
+        `${feminine ? "a" : "n'a pas"} « она » pour sujet, mais subject ` +
+        `${declared ? 'vaut "f"' : "n'est pas déclaré féminin"}`
+    );
+  }
+
+  for (const context of X.IMPERATIVE_CONTEXTS) {
+    // Le russe du gabarit tutoie-t-il ? « ты », « тебя », « тебе », « твой »
+    // et le « пожалуйста » d'une phrase sans вы sont les indices sûrs.
+    const tutoie = CYRILLIC_WORD("ты|тебя|тебе|твой|твоя|твоё|твои").test(context.template);
+    const vouvoie = CYRILLIC_WORD("вы|вас|вам|ваш|ваша|ваше|ваши").test(context.template);
+    if (tutoie) {
+      require_(
+        context.address === "ty",
+        `contexte « ${context.id} » : la phrase tutoie (« ${context.template} ») ` +
+          `mais address vaut "${context.address}"`
+      );
+    }
+    if (vouvoie) {
+      require_(
+        context.address === "vy",
+        `contexte « ${context.id} » : la phrase vouvoie (« ${context.template} ») ` +
+          `mais address vaut "${context.address}"`
+      );
+    }
+    // Et la traduction française doit dire la même chose que le russe.
+    const frTutoie = /\b(te|toi|tes|ton|ta)\b/i.test(context.fr) || /s'il te plaît/i.test(context.fr);
+    const frVouvoie = /\b(vous|votre|vos)\b/i.test(context.fr);
+    if (frTutoie && !frVouvoie) {
+      require_(
+        context.address === "ty",
+        `contexte « ${context.id} » : le français tutoie (« ${context.fr} ») ` +
+          `mais address vaut "${context.address}"`
+      );
+    }
+    if (frVouvoie && !frTutoie) {
+      require_(
+        context.address === "vy",
+        `contexte « ${context.id} » : le français vouvoie (« ${context.fr} ») ` +
+          `mais address vaut "${context.address}"`
+      );
+    }
+  }
+}
+
 if (failures.length) {
   console.error(`\n✗ ${failures.length} problème(s) sur ${checks} contrôles :\n`);
   for (const f of failures) console.error(`  ${f}`);

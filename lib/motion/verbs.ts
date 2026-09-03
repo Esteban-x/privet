@@ -30,15 +30,33 @@ export const MODE_LABEL: Record<MotionMode, string> = {
   carry: "en portant",
 };
 
+/**
+ * Les formes servies par les exercices, accentuées.
+ *
+ * `present2` et `pastPl` MANQUAIENT, et leur absence se voyait à l'écran.
+ * Le contexte « Куда ты ___ ? » demandait `present1` faute de mieux, donc
+ * « Куда ты иду́ ? » — avec « иду́ » présenté comme la bonne réponse. « Мы
+ * до́лго ___ по го́роду » demandait `pastM` : « Мы до́лго ходи́л ». Deux
+ * phrases fausses, servies avec l'autorité d'un exercice corrigé.
+ *
+ * Aucun contrôle ne pouvait les voir : ils vérifiaient que les formes
+ * étaient justes (elles l'étaient) et que les distracteurs différaient de
+ * la réponse (ils différaient). Personne ne vérifiait que le SUJET de la
+ * phrase s'accordait avec la forme attendue — c'est fait maintenant.
+ */
 export interface MotionForms {
   /** 1re personne du singulier au présent (я …). */
   present1: string;
+  /** 2e personne du singulier au présent (ты …). */
+  present2: string;
   /** 3e personne du singulier au présent (он/она …). */
   present3: string;
   /** Passé masculin (он …). */
   pastM: string;
   /** Passé féminin (она …). */
   pastF: string;
+  /** Passé pluriel (мы/вы/они …). */
+  pastPl: string;
 }
 
 export interface MotionPair {
@@ -69,8 +87,22 @@ export const MOTION_PAIRS: MotionPair[] = [
     mode: "foot",
     isGoing: true,
     // Passé supplétif : шёл, aucune règle ne le tire de « идти ».
-    uniForms: { present1: "иду", present3: "идёт", pastM: "шёл", pastF: "шла" },
-    multiForms: { present1: "хожу", present3: "ходит", pastM: "ходил", pastF: "ходила" },
+    uniForms: {
+      present1: "иду́",
+      present2: "идёшь",
+      present3: "идёт",
+      pastM: "шёл",
+      pastF: "шла",
+      pastPl: "шли",
+    },
+    multiForms: {
+      present1: "хожу́",
+      present2: "хо́дишь",
+      present3: "хо́дит",
+      pastM: "ходи́л",
+      pastF: "ходи́ла",
+      pastPl: "ходи́ли",
+    },
   },
   {
     id: "ekhat",
@@ -79,8 +111,22 @@ export const MOTION_PAIRS: MotionPair[] = [
     translation: "aller (en véhicule)",
     mode: "vehicle",
     isGoing: true,
-    uniForms: { present1: "еду", present3: "едет", pastM: "ехал", pastF: "ехала" },
-    multiForms: { present1: "езжу", present3: "ездит", pastM: "ездил", pastF: "ездила" },
+    uniForms: {
+      present1: "е́ду",
+      present2: "е́дешь",
+      present3: "е́дет",
+      pastM: "е́хал",
+      pastF: "е́хала",
+      pastPl: "е́хали",
+    },
+    multiForms: {
+      present1: "е́зжу",
+      present2: "е́здишь",
+      present3: "е́здит",
+      pastM: "е́здил",
+      pastF: "е́здила",
+      pastPl: "е́здили",
+    },
   },
   {
     id: "letet",
@@ -89,8 +135,22 @@ export const MOTION_PAIRS: MotionPair[] = [
     translation: "voler, aller (en avion)",
     mode: "air",
     isGoing: true,
-    uniForms: { present1: "лечу", present3: "летит", pastM: "летел", pastF: "летела" },
-    multiForms: { present1: "летаю", present3: "летает", pastM: "летал", pastF: "летала" },
+    uniForms: {
+      present1: "лечу́",
+      present2: "лети́шь",
+      present3: "лети́т",
+      pastM: "лете́л",
+      pastF: "лете́ла",
+      pastPl: "лете́ли",
+    },
+    multiForms: {
+      present1: "лета́ю",
+      present2: "лета́ешь",
+      present3: "лета́ет",
+      pastM: "лета́л",
+      pastF: "лета́ла",
+      pastPl: "лета́ли",
+    },
   },
   {
     id: "plyt",
@@ -99,8 +159,22 @@ export const MOTION_PAIRS: MotionPair[] = [
     translation: "nager, naviguer",
     mode: "water",
     isGoing: true,
-    uniForms: { present1: "плыву", present3: "плывёт", pastM: "плыл", pastF: "плыла" },
-    multiForms: { present1: "плаваю", present3: "плавает", pastM: "плавал", pastF: "плавала" },
+    uniForms: {
+      present1: "плыву́",
+      present2: "плывёшь",
+      present3: "плывёт",
+      pastM: "плыл",
+      pastF: "плыла́",
+      pastPl: "плы́ли",
+    },
+    multiForms: {
+      present1: "пла́ваю",
+      present2: "пла́ваешь",
+      present3: "пла́вает",
+      pastM: "пла́вал",
+      pastF: "пла́вала",
+      pastPl: "пла́вали",
+    },
   },
   {
     id: "bezhat",
@@ -109,8 +183,22 @@ export const MOTION_PAIRS: MotionPair[] = [
     translation: "courir",
     mode: "foot",
     isGoing: false,
-    uniForms: { present1: "бегу", present3: "бежит", pastM: "бежал", pastF: "бежала" },
-    multiForms: { present1: "бегаю", present3: "бегает", pastM: "бегал", pastF: "бегала" },
+    uniForms: {
+      present1: "бегу́",
+      present2: "бежи́шь",
+      present3: "бежи́т",
+      pastM: "бежа́л",
+      pastF: "бежа́ла",
+      pastPl: "бежа́ли",
+    },
+    multiForms: {
+      present1: "бе́гаю",
+      present2: "бе́гаешь",
+      present3: "бе́гает",
+      pastM: "бе́гал",
+      pastF: "бе́гала",
+      pastPl: "бе́гали",
+    },
   },
   {
     id: "nesti",
@@ -119,8 +207,22 @@ export const MOTION_PAIRS: MotionPair[] = [
     translation: "porter (en marchant)",
     mode: "carry",
     isGoing: false,
-    uniForms: { present1: "несу", present3: "несёт", pastM: "нёс", pastF: "несла" },
-    multiForms: { present1: "ношу", present3: "носит", pastM: "носил", pastF: "носила" },
+    uniForms: {
+      present1: "несу́",
+      present2: "несёшь",
+      present3: "несёт",
+      pastM: "нёс",
+      pastF: "несла́",
+      pastPl: "несли́",
+    },
+    multiForms: {
+      present1: "ношу́",
+      present2: "но́сишь",
+      present3: "но́сит",
+      pastM: "носи́л",
+      pastF: "носи́ла",
+      pastPl: "носи́ли",
+    },
   },
 ];
 

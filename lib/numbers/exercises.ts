@@ -1,5 +1,5 @@
 import { NOUNS } from "@/lib/grammar/nouns-data";
-import { isCountable } from "@/lib/grammar/noun-categories";
+import { hasUsablePlural, isCountable } from "@/lib/grammar/noun-categories";
 import type { Noun } from "@/lib/grammar/types";
 import { buildOptions, pick, type PracticeExercise, type Rng, type Skill } from "@/lib/exercises/types";
 
@@ -105,7 +105,10 @@ const COUNTABLE = NOUNS.filter(
     n.forms.plural &&
     n.rank !== undefined &&
     n.rank < 2500 &&
-    isCountable(n.id)
+    isCountable(n.id) &&
+    // Le génitif pluriel sert dès 5 : un nom sans pluriel réel donnerait
+    // « двена́дцать лжей ». Même liste que pour les exercices de cas.
+    hasUsablePlural(n.id)
 ).slice(0, 120);
 
 function formFor(noun: Noun, zone: AgreementZone): string {
@@ -117,14 +120,30 @@ function formFor(noun: Noun, zone: AgreementZone): string {
 }
 
 /**
- * Оди́н s'accorde en genre, contrairement aux autres nombres : « одна́ кни́га »,
- * « одно́ окно́ ». Le nombre affiché doit donc suivre le nom.
+ * Les deux nombres russes qui s'accordent en genre : оди́н et два.
+ *
+ * Le commentaire d'origine disait « contrairement aux AUTRES nombres » et
+ * ne traitait qu'оди́н. Or два a un féminin, две, et la banque des noms
+ * comptables contient 48 féminins (кни́га, ко́мната, дверь, маши́на, шко́ла…) :
+ * l'exercice affichait régulièrement « два кни́ги » et « два́дцать два
+ * маши́ны », qui sont faux, en donnant la forme du nom pour bonne réponse.
+ *
+ * Trois et au-delà ne s'accordent pas — c'est là que le « contrairement aux
+ * autres » était juste, et c'est cette moitié de règle qui a été prise pour
+ * la règle entière.
  */
-function agreeOne(word: string, noun: Noun): string {
-  if (!word.endsWith("оди́н")) return word;
-  const base = word.slice(0, word.length - "оди́н".length);
-  if (noun.gender === "feminine") return `${base}одна́`;
-  if (noun.gender === "neuter") return `${base}одно́`;
+function agreeNumeral(word: string, noun: Noun): string {
+  if (word.endsWith("оди́н")) {
+    const base = word.slice(0, -"оди́н".length);
+    if (noun.gender === "feminine") return `${base}одна́`;
+    if (noun.gender === "neuter") return `${base}одно́`;
+    return word;
+  }
+  // два / две : le neutre suit le masculin (два окна́).
+  if (word.endsWith("два")) {
+    const base = word.slice(0, -"два".length);
+    return noun.gender === "feminine" ? `${base}две` : word;
+  }
   return word;
 }
 
@@ -132,7 +151,7 @@ function agreementExercise(random: Rng): PracticeExercise {
   const noun = pick(COUNTABLE, random);
   const number = pick(AGREEMENT_NUMBERS, random);
   const correct = formFor(noun, number.zone);
-  const numberWord = agreeOne(number.word, noun);
+  const numberWord = agreeNumeral(number.word, noun);
 
   const candidates = [
     noun.forms.singular[0],
@@ -299,6 +318,23 @@ const DAY_ORDINAL_GEN = [
   "седьмо́го", "восьмо́го", "девя́того", "деся́того",
 ];
 
+/**
+ * Les mois en FRANÇAIS, pour l'indice.
+ *
+ * L'indice tentait de fabriquer un nom de mois en retirant la finale du
+ * génitif russe : `"января́".replace("я́", "")` — d'où « Il arrivera le 5
+ * январ… », un mot russe tronqué au milieu d'une phrase française. Et pour
+ * les mois dont le génitif ne finit pas par -я́ (ма́рта, а́вгуста), la
+ * substitution ne faisait rien du tout et laissait le russe intact.
+ *
+ * Un indice sert à dire, en français, ce qu'il faut produire en russe. Il
+ * n'a aucune raison d'y mêler du russe abîmé.
+ */
+const MONTHS_FR = [
+  "janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+];
+
 function dateExercise(random: Rng): PracticeExercise {
   const day = 1 + Math.floor(random() * 10);
   const month = Math.floor(random() * 12);
@@ -320,8 +356,8 @@ function dateExercise(random: Rng): PracticeExercise {
     prompt: situate ? "Situe l'événement" : "Annonce la date",
     question: situate ? "Он прие́дет ___." : "Сего́дня ___.",
     hint: situate
-      ? `Il arrivera le ${day} ${MONTHS_GEN[month].replace("я́", "")}…`
-      : `Nous sommes le ${day}…`,
+      ? `Il arrivera le ${day} ${MONTHS_FR[month]}…`
+      : `Nous sommes le ${day} ${MONTHS_FR[month]}…`,
     badge: `${day} / ${month + 1}`,
     options,
     correctIndex,

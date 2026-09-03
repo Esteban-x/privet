@@ -107,6 +107,14 @@ interface AspectContext {
   schema: TimelineSchema;
   answer: "imperfective" | "perfective";
   why: string;
+  /**
+   * Genre du sujet de la phrase. Le passé russe s'accorde en genre, et
+   * trois gabarits disent « Она́ … » : ils recevaient le passé masculin,
+   * donc « Она́ сра́зу отве́тил », « Она́ два часа́ гото́вил у́жин ». Le second
+   * s'appelle même `za-chas-prigotovila` — l'identifiant nommait la forme
+   * féminine que la donnée ne savait pas produire.
+   */
+  subject?: "m" | "f";
   /** UNE paire, pas une liste — voir le commentaire ci-dessous. */
   pair: string;
 }
@@ -224,6 +232,7 @@ const PAST_CONTEXTS: AspectContext[] = [
   },
   {
     id: "srazu",
+    subject: "f",
     template: "Она сразу ___ на мой вопрос.",
     fr: "Elle a répondu tout de suite à ma question.",
     schema: "result",
@@ -233,6 +242,7 @@ const PAST_CONTEXTS: AspectContext[] = [
   },
   {
     id: "dva-chasa-gotovil",
+    subject: "f",
     template: "Она два часа ___ ужин.",
     fr: "Elle a préparé le dîner pendant deux heures.",
     schema: "duration",
@@ -242,6 +252,7 @@ const PAST_CONTEXTS: AspectContext[] = [
   },
   {
     id: "za-chas-prigotovila",
+    subject: "f",
     template: "Она ___ ужин за час.",
     fr: "Elle a préparé le dîner en une heure.",
     schema: "duration",
@@ -269,7 +280,7 @@ const PAST_CONTEXTS: AspectContext[] = [
   },
   {
     id: "poka-govoril",
-    template: "Пока он ___ , все молчали.",
+    template: "Пока он ___, все молчали.",
     fr: "Pendant qu'il parlait, tout le monde se taisait.",
     schema: "process",
     answer: "imperfective",
@@ -295,10 +306,13 @@ function pastExercise(random: Rng, onlyMarkers: boolean): AspectExercise {
     : PAST_CONTEXTS;
   const context = pick(contexts, random);
   const pair = getPair(context.pair)!;
-  const correct = context.answer === "imperfective" ? pair.impPast : pair.perfPast;
+  const feminine = context.subject === "f";
+  const imperfective = feminine ? pair.impPastF : pair.impPast;
+  const perfective = feminine ? pair.perfPastF : pair.perfPast;
+  const correct = context.answer === "imperfective" ? imperfective : perfective;
 
   const { options, correctIndex } = shuffleWithAnswer(
-    [pair.impPast, pair.perfPast],
+    [imperfective, perfective],
     correct,
     random
   );
@@ -349,7 +363,7 @@ interface FutureContext {
 const FUTURE_CONTEXTS: FutureContext[] = [
   {
     id: "ves-den",
-    template: "Завтра я весь день ___ .",
+    template: "Завтра я весь день ___.",
     fr: "Demain, je vais lire toute la journée.",
     schema: "process",
     answer: "imperfective",
@@ -497,12 +511,22 @@ interface ImperativeContext {
   fr: string;
   answer: "imperfective" | "perfective";
   why: string;
+  /**
+   * À qui la phrase s'adresse. La banque ne portait que la forme de
+   * politesse, et huit contextes sur douze tutoient : « Ne m'appelle pas si
+   * tard », « Passe-moi le sel », « Lis en russe tous les jours — так ты
+   * бы́стрее вы́учишь язы́к ». Ce dernier se contredisait dans sa propre
+   * phrase, en donnant « Чита́йте » pour un « ты » écrit trois mots plus
+   * loin.
+   */
+  address: "ty" | "vy";
   pair: string;
 }
 
 const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   {
     id: "negation",
+    address: "ty",
     template: "Не ___ окно, пожалуйста!",
     fr: "Ne ferme pas la fenêtre, s'il te plaît !",
     answer: "imperfective",
@@ -511,6 +535,7 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "negation-opozdat",
+    address: "ty",
     template: "Не ___ мне так поздно!",
     fr: "Ne m'appelle pas si tard !",
     answer: "imperfective",
@@ -519,7 +544,8 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "polite-request",
-    template: "___ , пожалуйста, ещё раз.",
+    address: "vy",
+    template: "___, пожалуйста, ещё раз.",
     fr: "Répétez, s'il vous plaît.",
     answer: "perfective",
     why: "Demande ponctuelle et unique, dont on attend le résultat — perfectif.",
@@ -527,7 +553,8 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "invitation",
-    template: "___ , пожалуйста! Чувствуйте себя как дома.",
+    address: "vy",
+    template: "___, пожалуйста! Чувствуйте себя как дома.",
     fr: "Asseyez-vous, je vous en prie ! Faites comme chez vous.",
     answer: "imperfective",
     why: "Invitation chaleureuse : l'imperfectif « садитесь » accueille, alors que le perfectif « сядьте » sonne comme un ordre.",
@@ -535,6 +562,7 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "one-off",
+    address: "ty",
     template: "___ мне соль, пожалуйста.",
     fr: "Passe-moi le sel, s'il te plaît.",
     answer: "perfective",
@@ -543,6 +571,7 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "negation-brat",
+    address: "ty",
     template: "Не ___ эту книгу без разрешения.",
     fr: "Ne prends pas ce livre sans autorisation.",
     answer: "imperfective",
@@ -551,6 +580,7 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "negation-govorit",
+    address: "ty",
     template: "Не ___ об этом никому!",
     fr: "N'en parle à personne !",
     answer: "imperfective",
@@ -559,7 +589,8 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "polite-open",
-    template: "___ , пожалуйста, окно.",
+    address: "vy",
+    template: "___, пожалуйста, окно.",
     fr: "Ouvrez la fenêtre, s'il vous plaît.",
     answer: "perfective",
     why: "Une action unique dont on attend le résultat immédiat — perfectif.",
@@ -567,7 +598,8 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "invitation-eat",
-    template: "___ , пожалуйста! Всё ещё горячее.",
+    address: "vy",
+    template: "___, пожалуйста! Всё ещё горячее.",
     fr: "Mangez, je vous en prie ! C'est encore chaud.",
     answer: "imperfective",
     why: "Invitation chaleureuse : l'imperfectif accueille, le perfectif « съешьте » sonnerait comme un ordre.",
@@ -575,6 +607,7 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "warning-zabyt",
+    address: "ty",
     template: "Не ___ ключи!",
     fr: "N'oublie pas tes clés !",
     answer: "perfective",
@@ -583,6 +616,7 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "request-write",
+    address: "ty",
     template: "___ мне свой адрес, пожалуйста.",
     fr: "Écris-moi ton adresse, s'il te plaît.",
     answer: "perfective",
@@ -591,6 +625,7 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
   {
     id: "habit-read",
+    address: "ty",
     template: "___ по-русски каждый день — так ты быстрее выучишь язык.",
     fr: "Lis en russe tous les jours — tu apprendras la langue plus vite.",
     answer: "imperfective",
@@ -599,16 +634,28 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
   },
 ];
 
-function imperativeExercise(random: Rng): AspectExercise {
-  const context = pick(IMPERATIVE_CONTEXTS, random);
-  const pair = getPair(context.pair)!;
-  const correct = context.answer === "imperfective" ? pair.impImperative : pair.perfImperative;
+/**
+ * Les deux impératifs d'une paire, dans la personne que la phrase adresse.
+ * `null` si l'un des deux verbes n'a pas d'impératif usuel — le contexte
+ * est alors inutilisable, et `check:aspect` refuse qu'on en écrive un.
+ */
+function imperativesFor(
+  pair: AspectPair,
+  address: ImperativeContext["address"]
+): [string, string] | null {
+  const imperfective = address === "ty" ? pair.impImperativeTy : pair.impImperative;
+  const perfective = address === "ty" ? pair.perfImperativeTy : pair.perfImperative;
+  return imperfective && perfective ? [imperfective, perfective] : null;
+}
 
-  const { options, correctIndex } = shuffleWithAnswer(
-    [pair.impImperative, pair.perfImperative],
-    correct,
-    random
-  );
+function imperativeExercise(random: Rng): AspectExercise {
+  const usable = IMPERATIVE_CONTEXTS.filter((c) => imperativesFor(getPair(c.pair)!, c.address));
+  const context = pick(usable, random);
+  const pair = getPair(context.pair)!;
+  const [imperfective, perfective] = imperativesFor(pair, context.address)!;
+  const correct = context.answer === "imperfective" ? imperfective : perfective;
+
+  const { options, correctIndex } = shuffleWithAnswer([imperfective, perfective], correct, random);
   return {
     skill: "imperative",
     itemId: `imperative:${context.id}:${pair.id}`,
@@ -682,7 +729,16 @@ export function checkAspectAnswer(itemId: string, answer: string): boolean | nul
     const pair = getPair(rest[1]);
     if (!context || !pair) return null;
     if (kind === "markers" && MARKER_OF[context.id] === undefined) return null;
-    return (context.answer === "imperfective" ? pair.impPast : pair.perfPast) === answer;
+    const feminine = context.subject === "f";
+    const expected =
+      context.answer === "imperfective"
+        ? feminine
+          ? pair.impPastF
+          : pair.impPast
+        : feminine
+          ? pair.perfPastF
+          : pair.perfPast;
+    return expected === answer;
   }
   if (kind === "future") {
     const context = FUTURE_CONTEXTS.find((c) => c.id === rest[0]);
@@ -696,7 +752,9 @@ export function checkAspectAnswer(itemId: string, answer: string): boolean | nul
     const context = IMPERATIVE_CONTEXTS.find((c) => c.id === rest[0]);
     const pair = getPair(rest[1]);
     if (!context || !pair) return null;
-    return (context.answer === "imperfective" ? pair.impImperative : pair.perfImperative) === answer;
+    const forms = imperativesFor(pair, context.address);
+    if (!forms) return false;
+    return (context.answer === "imperfective" ? forms[0] : forms[1]) === answer;
   }
   if (kind === "pairs") {
     const pair = getPair(rest[0]);

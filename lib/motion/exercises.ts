@@ -168,7 +168,7 @@ interface DirectionContext {
   /** Marqueur qui impose la réponse. */
   marker: string;
   fr: string;
-  form: "present1" | "present3" | "pastM" | "infinitive";
+  form: "present1" | "present2" | "present3" | "pastM" | "pastPl" | "infinitive";
   answer: "uni" | "multi";
   why: string;
 }
@@ -230,7 +230,10 @@ const DIRECTION_CONTEXTS: DirectionContext[] = [
     schema: "oneway",
     marker: "Куда ты ___?",
     fr: "Où vas-tu (là, maintenant) ?",
-    form: "present1",
+    // Le sujet est « ты » : c'est la 2e personne, pas la 1re. Le contexte
+    // demandait `present1` faute d'un champ pour la 2e, et l'exercice
+    // servait « Куда ты иду́ ? » en donnant « иду́ » pour bonne réponse.
+    form: "present2",
     answer: "uni",
     why: "« Куда ты…? » interroge sur un trajet en cours — unidirectionnel.",
   },
@@ -261,7 +264,8 @@ const DIRECTION_CONTEXTS: DirectionContext[] = [
     schema: "repeated",
     marker: "Мы долго ___ по городу.",
     fr: "Nous avons longtemps circulé dans la ville.",
-    form: "pastM",
+    // Sujet « мы » : passé pluriel. `pastM` donnait « Мы до́лго ходи́л ».
+    form: "pastPl",
     answer: "multi",
     why: "« По + datif » décrit un déplacement sans destination unique, dans tous les sens — multidirectionnel.",
   },

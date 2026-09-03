@@ -10,6 +10,12 @@
  *    doit jamais attendre « бегу » (je cours). Ce genre d'incohérence est
  *    apparu au premier essai : la génération tirait un verbe de manière là
  *    où le contexte demandait un verbe d'aller.
+ * 3. L'ACCORD. Un contexte nomme son sujet (« Куда ты … ? », « Мы до́лго
+ *    … ») et déclare la forme attendue. Rien ne vérifiait que les deux
+ *    parlaient de la même personne : « Куда ты ___ ? » demandait la 1re du
+ *    singulier, donc « Куда ты иду́ ? », donné pour juste. La donnée était
+ *    correcte, les distracteurs étaient corrects, et la phrase était
+ *    fausse — c'est le trou que le contrôle §4 ferme.
  */
 import { createJiti } from "jiti";
 import path from "node:path";
@@ -27,7 +33,11 @@ function require_(condition, message) {
   if (!condition) failures.push(message);
 }
 
-const CYRILLIC = /^[а-яёА-ЯЁ -]+$/;
+// L'accent tonique combinant (U+0301) fait partie des formes depuis que la
+// banque est accentuée : la classe doit l'accepter, sans quoi toute forme
+// accentuée « sort de l'alphabet cyrillique ».
+const CYRILLIC = /^[а-яёА-ЯЁ ́-]+$/;
+const stripAccent = (f) => f.replace(/́/g, "");
 
 // ─── 1. Paires de base ─────────────────────────────────────────────
 // Table de référence recopiée à la main : c'est elle qui attrape une
@@ -53,8 +63,21 @@ for (const pair of V.MOTION_PAIRS) {
   require_(pair.multi === expected.multi, `${pair.uni} : multidirectionnel "${pair.multi}" au lieu de "${expected.multi}"`);
   const uni = [pair.uniForms.present1, pair.uniForms.present3, pair.uniForms.pastM, pair.uniForms.pastF];
   const mult = [pair.multiForms.present1, pair.multiForms.present3, pair.multiForms.pastM, pair.multiForms.pastF];
-  uni.forEach((form, i) => require_(form === expected.uni[i], `${pair.uni} : forme "${form}" au lieu de "${expected.uni[i]}"`));
-  mult.forEach((form, i) => require_(form === expected.mult[i], `${pair.multi} : forme "${form}" au lieu de "${expected.mult[i]}"`));
+  // La table témoin est écrite sans accent : c'est l'ORTHOGRAPHE qu'elle
+  // garde, la position de l'accent étant vérifiée contre le dictionnaire au
+  // §5. Recopier les accents ici les figerait deux fois, à deux endroits.
+  uni.forEach((form, i) =>
+    require_(
+      stripAccent(form) === expected.uni[i],
+      `${pair.uni} : forme "${form}" au lieu de "${expected.uni[i]}"`
+    )
+  );
+  mult.forEach((form, i) =>
+    require_(
+      stripAccent(form) === expected.mult[i],
+      `${pair.multi} : forme "${form}" au lieu de "${expected.mult[i]}"`
+    )
+  );
   require_(
     [...uni, ...mult].every((f) => CYRILLIC.test(f)),
     `${pair.uni} : une forme sort de l'alphabet cyrillique`
@@ -155,6 +178,49 @@ require_(
   X.checkMotionAnswer("", "") === null,
   "un identifiant vide doit être rejeté"
 );
+
+// ─── 4. Le sujet de la phrase et la forme attendue ────────────────
+//
+// Chaque contexte porte une phrase à trou dont le SUJET est écrit, et
+// déclare séparément quelle forme du verbe il attend. Les deux doivent
+// parler de la même personne. Rien ne le vérifiait, et deux contextes sur
+// douze ne s'accordaient pas :
+//
+//   « Куда ты ___ ? »          demandait present1  -> « Куда ты иду́ ? »
+//   « Мы до́лго ___ по го́роду » demandait pastM     -> « Мы до́лго ходи́л »
+//
+// Les deux formes étaient justes, les distracteurs aussi ; seule la phrase
+// était fausse, et c'est elle que l'apprenant lit.
+{
+  // Le pronom sujet -> les formes qui s'accordent avec lui.
+  const SUBJECT_FORMS = {
+    я: ["present1"],
+    ты: ["present2"],
+    он: ["present3", "pastM"],
+    она: ["present3", "pastF"],
+    оно: ["present3"],
+    мы: ["pastPl"],
+    вы: ["pastPl"],
+    они: ["pastPl"],
+    ребёнок: ["present3", "pastM"],
+    автобус: ["present3", "pastM"],
+  };
+
+  for (const context of X.DIRECTION_CONTEXTS) {
+    // L'infinitif ne s'accorde avec personne : rien à vérifier.
+    if (context.form === "infinitive") continue;
+    const words = context.marker.toLowerCase().replace(/[^а-яё ]/g, " ").split(/\s+/);
+    const subject = words.find((w) => SUBJECT_FORMS[w]);
+    if (!subject) continue;
+    const allowed = SUBJECT_FORMS[subject];
+    require_(
+      allowed.includes(context.form),
+      `contexte « ${context.id} » : sujet « ${subject} » mais forme « ${context.form} » — ` +
+        `la phrase « ${context.marker} » donnerait un accord faux ` +
+        `(attendu : ${allowed.join(" ou ")})`
+    );
+  }
+}
 
 // ─── Rapport ───────────────────────────────────────────────────────
 if (failures.length) {

@@ -253,12 +253,31 @@ interface PassiveContext {
   why: string;
 }
 
-/** Terminaisons de la forme longue selon l'accord. */
-function agree(long: string, agreement: PassiveContext["agreement"]): string {
+/**
+ * Terminaisons de la forme longue selon l'accord — ET selon le cas.
+ *
+ * Elle ne produisait que du NOMINATIF, ce qui suffisait tant que le
+ * participe restait attribut. Un contexte le met en épithète dans un groupe
+ * à l'accusatif — « Он не заме́тил ___ дверь » — et recevait donc
+ * « закры́тая дверь » là où le russe demande « закры́тую дверь », donné pour
+ * bonne réponse.
+ *
+ * L'accusatif ne se distingue du nominatif qu'au féminin singulier : le
+ * neutre et le masculin inanimé le copient, ce qui est exactement pourquoi
+ * les trois autres épithètes passaient inaperçues.
+ */
+function agree(
+  long: string,
+  agreement: PassiveContext["agreement"],
+  grammaticalCase: "nominative" | "accusative" = "nominative"
+): string {
   const stem = long.slice(0, -2); // -ый / -ий / -ой font deux caractères
   const soft = long.endsWith("ий");
+  if (agreement === "f") {
+    if (grammaticalCase === "accusative") return stem + (soft ? "юю" : "ую");
+    return stem + (soft ? "яя" : "ая");
+  }
   if (agreement === "m") return long;
-  if (agreement === "f") return stem + (soft ? "яя" : "ая");
   if (agreement === "n") return stem + (soft ? "ее" : "ое");
   return stem + (soft ? "ие" : "ые");
 }
@@ -391,6 +410,12 @@ interface ShortContext {
   verb: string;
   form: "short" | "long";
   agreement: "m" | "f" | "n" | "pl";
+  /**
+   * Cas du groupe où vit le participe. Ne change la forme qu'au féminin
+   * singulier (закры́тая / закры́тую) — mais c'est justement là que le seul
+   * contexte à l'accusatif se trouvait.
+   */
+  grammaticalCase?: "nominative" | "accusative";
   sentence: string;
   fr: string;
   why: string;
@@ -402,7 +427,7 @@ const SHORT_CONTEXTS: ShortContext[] = [
     verb: "zakryvat",
     form: "short",
     agreement: "f",
-    sentence: "Дверь ___ .",
+    sentence: "Дверь ___.",
     fr: "La porte est fermée.",
     why: "Le participe est ATTRIBUT : il affirme quelque chose du sujet → forme courte.",
   },
@@ -411,6 +436,8 @@ const SHORT_CONTEXTS: ShortContext[] = [
     verb: "zakryvat",
     form: "long",
     agreement: "f",
+    // « заме́тил » régit l'accusatif : закры́тую, pas закры́тая.
+    grammaticalCase: "accusative",
     sentence: "Он не заметил ___ дверь.",
     fr: "Il n'a pas remarqué la porte fermée.",
     why: "Le participe est ÉPITHÈTE : il qualifie le nom qu'il accompagne → forme longue, accordée.",
@@ -429,7 +456,7 @@ const SHORT_CONTEXTS: ShortContext[] = [
     verb: "otkryvat",
     form: "short",
     agreement: "n",
-    sentence: "Окно ___ .",
+    sentence: "Окно ___.",
     fr: "La fenêtre est ouverte.",
     why: "« окно » est neutre : la forme courte prend -о.",
   },
@@ -438,7 +465,7 @@ const SHORT_CONTEXTS: ShortContext[] = [
     verb: "delat",
     form: "short",
     agreement: "f",
-    sentence: "Работа ___ .",
+    sentence: "Работа ___.",
     fr: "Le travail est fait.",
     why: "Attribut : forme courte, accordée avec « работа », féminin.",
   },
@@ -456,7 +483,7 @@ const SHORT_CONTEXTS: ShortContext[] = [
     verb: "poluchat",
     form: "short",
     agreement: "pl",
-    sentence: "Все письма ___ .",
+    sentence: "Все письма ___.",
     fr: "Toutes les lettres ont été reçues.",
     why: "Attribut au pluriel : forme courte en -ы.",
   },
@@ -483,7 +510,7 @@ const SHORT_CONTEXTS: ShortContext[] = [
     verb: "reshat",
     form: "short",
     agreement: "pl",
-    sentence: "Все задачи ___ .",
+    sentence: "Все задачи ___.",
     fr: "Tous les problèmes sont résolus.",
     why: "Forme courte au pluriel. Attention à l'accent : решён au masculin, mais решены au pluriel.",
   },
@@ -502,7 +529,7 @@ function shortExercise(random: Rng): ParticipleExercise {
   const context = pick(SHORT_CONTEXTS, random);
   const verb = getVerb(context.verb)!;
   const short = verb.passiveShort![context.agreement];
-  const long = agree(verb.passivePast!, context.agreement);
+  const long = agree(verb.passivePast!, context.agreement, context.grammaticalCase);
   const correct = context.form === "short" ? short : long;
 
   const { options, correctIndex } = shuffleWithAnswer([short, long], correct, random);
@@ -571,7 +598,7 @@ const GERUND_CONTEXTS: GerundContext[] = [
     verb: "rabotat",
     aspect: "imperfective",
     expanded: "Пока он работал, он слушал музыку.",
-    compressed: "___ , он слушал музыку.",
+    compressed: "___, он слушал музыку.",
     fr: "Pendant qu'il travaillait, il écoutait de la musique.",
     why: "Arrière-plan simultané → gérondif imperfectif.",
   },
@@ -789,7 +816,7 @@ export function checkParticipleAnswer(itemId: string, answer: string): boolean |
     const expected =
       context.form === "short"
         ? verb.passiveShort[context.agreement]
-        : agree(verb.passivePast, context.agreement);
+        : agree(verb.passivePast, context.agreement, context.grammaticalCase);
     return expected === answer;
   }
   if (kind === "gerund") {

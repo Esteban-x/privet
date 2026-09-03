@@ -253,7 +253,7 @@ const SPELLING_ITEMS: SpellingItem[] = [
     question: "одна́ кни́га → две ___",
     hint: "deux livres",
     correct: "кни́ги",
-    wrong: ["кни́гы", "кни́гa", "кни́гэ"],
+    wrong: ["кни́гы", "кни́га", "кни́гэ"],
     why: "Après г, jamais ы : la règle des sept lettres impose и. La terminaison reste celle du génitif singulier, seule son orthographe change.",
   },
   {

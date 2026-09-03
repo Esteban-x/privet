@@ -210,8 +210,43 @@ function mutationExercise(random: Rng): PracticeExercise {
     explain:
       verb.conjugation === "second"
         ? `Alternance ${verb.mutation!.label}, et en deuxième conjugaison elle ne touche QUE la première personne du singulier : ${correct}, mais ${verb.present[1]}.`
-        : `Alternance ${verb.mutation!.label} : en première conjugaison, elle touche toutes les personnes — ${correct}, ${verb.present[1]}, ${verb.present[5]}.`,
+        : alternationReachesEveryPerson(verb)
+          ? `Alternance ${verb.mutation!.label} : ici elle touche toutes les personnes — ${verb.present[0]}, ${verb.present[1]}, ${verb.present[5]}.`
+          : `Alternance ${verb.mutation!.label}, mais elle épargne « я » et « они » : ${verb.present[0]} et ${verb.present[5]} gardent le radical, ${verb.present[1]} l'alterne.`,
   };
+}
+
+const bare = (form: string) => form.replace(/́/g, "");
+
+/**
+ * En première conjugaison, l'alternance consonantique touche-t-elle vraiment
+ * TOUTES les personnes ?
+ *
+ * L'explication l'affirmait sans condition, et citait trois formes en
+ * preuve. Pour мочь elle citait « могу́, мо́жешь, мо́гут » — deux formes sur
+ * trois où le г n'a pas alterné, données comme preuve d'une alternance г→ж.
+ * Ce verbe suit le schéma inverse : « я » et « они » gardent le radical,
+ * tout le reste l'alterne. Deux tirages sur trois tombaient dessus.
+ */
+function alternationReachesEveryPerson(verb: Verb): boolean {
+  const first = bare(verb.present[0]).slice(0, -1); // -у / -ю
+  const second = bare(verb.present[1]).replace(/(ешь|ёшь|ишь)$/, "");
+  return first === second;
+}
+
+/**
+ * L'impératif se tire-t-il du radical de « они́ » ?
+ *
+ * C'est la règle générale, et l'explication la récitait pour tous les
+ * verbes. Elle est fausse pour есть (едя́т -> ешь), дать (даду́т -> дай) et
+ * е́хать (е́дут -> поезжа́й) : trois des quarante-cinq impératifs de la
+ * banque, à qui on enseignait une dérivation qui ne marche pas sur eux.
+ */
+function imperativeFollowsTheyStem(verb: Verb): boolean {
+  if (!verb.imperative) return false;
+  const stem = bare(verb.present[5]).replace(/(ут|ют|ат|ят)$/, "");
+  const imperative = bare(verb.imperative);
+  return imperative.startsWith(stem) || imperative.startsWith(stem.replace(/ь$/, ""));
 }
 
 function pastExercise(random: Rng): PracticeExercise {
@@ -252,12 +287,17 @@ function imperativeExercise(random: Rng): PracticeExercise {
   return {
     itemId: `imperative:${verb.id}`,
     prompt: "Donne l'ordre (à « ты »)",
-    question: "___ !",
+    question: "___!",
     hint: `${verb.infinitive} — ${verb.translation}`,
     badge: "impératif",
     options,
     correctIndex,
-    explain: `L'impératif se prend sur le radical de « они́ » (${verb.present[5]}) : ${correct}. Pour « вы », on ajoute -те — ${correct}те.`,
+    explain: imperativeFollowsTheyStem(verb)
+      ? `L'impératif se prend sur le radical de « они́ » (${verb.present[5]}) : ${correct}. ` +
+        `Pour « вы », on ajoute -те — ${correct}те.`
+      : `Impératif irrégulier : il ne se tire pas du radical de « они́ » ` +
+        `(${verb.present[5]}), il s'apprend tel quel — ${correct}. ` +
+        `Pour « вы », on ajoute -те — ${correct}те.`,
   };
 }
 
