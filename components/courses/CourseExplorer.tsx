@@ -54,7 +54,22 @@ export default function CourseExplorer({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [levels, setLevels] = useState<CefrLevel[]>([]);
-  const [collapsed, setCollapsed] = useState<string[]>([]);
+  /**
+   * LES UNITÉS SONT FERMÉES TANT QU'ON N'A PAS TAPÉ DESSUS.
+   *
+   * L'état inverse — tout ouvert, on replie ce dont on ne veut pas — servait
+   * les 130 leçons d'un coup : plusieurs mètres de page où l'unité 7 ne
+   * s'atteignait qu'au défilement, et où le PLAN — c'est-à-dire ce que cette
+   * page est — ne se voyait nulle part. Fermées, les douze unités tiennent
+   * sous la recherche : on lit le parcours, puis on ouvre ce qu'on vient
+   * chercher.
+   *
+   * La liste retient donc ce qui est OUVERT, pas ce qui est replié. Le
+   * défaut s'écrit alors « liste vide » ; l'autre sens obligerait à la
+   * réamorcer avec tous les slugs, et à la corriger chaque fois qu'une unité
+   * s'ajoute.
+   */
+  const [expanded, setExpanded] = useState<string[]>([]);
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const { read, toggle } = useReadLessons();
@@ -282,15 +297,15 @@ export default function CourseExplorer({
           {units.map((unit, unitIndex) => {
             const lessons = levelFiltered.filter((e) => e.unitSlug === unit.slug);
             if (lessons.length === 0) return null;
-            const isCollapsed = collapsed.includes(unit.slug);
+            const isOpen = expanded.includes(unit.slug);
             const unitRead = lessons.filter((l) => read.has(l.slug)).length;
             return (
               <section key={unit.slug} className="overflow-hidden rounded-3xl surface">
                 <button
                   type="button"
-                  aria-expanded={!isCollapsed}
+                  aria-expanded={isOpen}
                   onClick={() =>
-                    setCollapsed((prev) =>
+                    setExpanded((prev) =>
                       prev.includes(unit.slug)
                         ? prev.filter((s) => s !== unit.slug)
                         : [...prev, unit.slug],
@@ -333,7 +348,7 @@ export default function CourseExplorer({
                     stroke="currentColor"
                     strokeWidth="2"
                     className={`h-4 w-4 shrink-0 text-muted transition-transform duration-300 ${
-                      isCollapsed ? "" : "rotate-180"
+                      isOpen ? "rotate-180" : ""
                     }`}
                   >
                     <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -344,10 +359,17 @@ export default function CourseExplorer({
                     à 1fr, le navigateur interpole la hauteur réelle. */}
                 <div
                   className={`grid transition-[grid-template-rows] duration-300 ease-out ${
-                    isCollapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]"
+                    isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                   }`}
                 >
-                  <div className="overflow-hidden">
+                  {/* `inert` PARCE QUE 0fr NE CACHE RIEN À PERSONNE : la
+                      hauteur tombe à zéro, mais les liens restent dans le
+                      document, tabulables et lus par les lecteurs d'écran.
+                      Tant qu'un repli était l'exception, ça se discutait ;
+                      maintenant que tout part fermé, c'était 130 liens
+                      invisibles à traverser à la tabulation avant d'atteindre
+                      le pied de page. */}
+                  <div className="overflow-hidden" inert={!isOpen}>
                     <ul className="border-t border-border">
                       {lessons.map((entry) => (
                         <li key={entry.slug}>
