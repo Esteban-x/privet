@@ -45,7 +45,7 @@ export const UNIT_PARTICIPES: Unit = {
           title: "Quel verbe donne quel participe",
           body: [
             "Tous les verbes ne forment pas les quatre. Le participe présent (actif ou passif) suppose un verbe IMPERFECTIF, puisqu'il décrit une action en cours. Le participe passif suppose un verbe TRANSITIF, puisqu'il faut un objet à transformer en sujet.",
-            "Un verbe perfectif intransitif comme прийти́ n'a donc qu'un seul participe : пришéдший, actif passé.",
+            "Un verbe perfectif intransitif comme прийти́ n'a donc qu'un seul participe : прише́дший, actif passé.",
           ],
         },
         {
@@ -402,7 +402,7 @@ export const UNIT_PARTICIPES: Unit = {
       title: "Quand employer ces formes",
       titleRu: "Причастия и стиль",
       level: "C1",
-      minutes: 8,
+      minutes: 9,
       summary:
         "Les participes sont de l'écrit. Savoir les lire est indispensable ; savoir quand ne pas les employer l'est tout autant.",
       keywords: ["registre", "стиль", "который", "écrit", "oral", "transformation"],
@@ -431,6 +431,17 @@ export const UNIT_PARTICIPES: Unit = {
           body: [
             "Pour transformer un participe en relative : trouver le nom qualifié, le reprendre par кото́рый au cas voulu, et conjuguer le verbe au temps que le participe indiquait. Le participe présent donne un présent, le passé un passé.",
             "Dans l'autre sens, la relative ne devient un participe que si кото́рый y est SUJET (pour un participe actif) ou OBJET (pour un participe passif). Une relative où кото́рый est au datif ou après une préposition ne se comprime pas : кни́га, о кото́рой мы говори́ли ne peut pas devenir un participe.",
+          ],
+        },
+        {
+          kind: "examples",
+          title: "Là où on les rencontre vraiment",
+          items: [
+            { ru: "Пассажи́ры, ожида́ющие ре́йса, прохо́дят к вы́ходу но́мер пять.", fr: "Les passagers en attente de leur vol sont priés de gagner la porte cinq.", note: "annonce d'aéroport : participe actif présent" },
+            { ru: "Зако́н, при́нятый в про́шлом году́, вступа́ет в си́лу.", fr: "La loi adoptée l'an dernier entre en vigueur.", note: "presse : participe passif passé" },
+            { ru: "Не зна́я, что отве́тить, он промолча́л.", fr: "Ne sachant que répondre, il garda le silence.", note: "récit écrit : gérondif" },
+            { ru: "Он не знал, что отве́тить, и промолча́л.", fr: "Il ne savait pas quoi répondre, alors il s'est tu.", note: "la même phrase, telle qu'elle se dit" },
+            { ru: "А тот, кото́рый вчера́ звони́л, опя́ть звони́л.", fr: "Et celui qui a appelé hier a rappelé.", note: "conversation : кото́рый, jamais un participe" },
           ],
         },
         {

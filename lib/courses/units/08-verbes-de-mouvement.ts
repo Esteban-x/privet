@@ -100,7 +100,7 @@ export const UNIT_MOUVEMENT: Unit = {
       title: "À pied ou en véhicule",
       titleRu: "Идти или ехать",
       level: "A2",
-      minutes: 8,
+      minutes: 9,
       summary:
         "Le russe marque le moyen dans le verbe lui-même. Et la frontière ne passe pas exactement là où on l'attend.",
       keywords: ["идти", "ехать", "à pied", "véhicule", "транспорт", "движение"],
@@ -132,6 +132,14 @@ export const UNIT_MOUVEMENT: Unit = {
             { ru: "Куда́ ты е́дешь?", fr: "Où pars-tu ?", note: "en voyage" },
             { ru: "Э́тот авто́бус идёт до це́нтра?", fr: "Ce bus va-t-il jusqu'au centre ?" },
             { ru: "Мы е́здили в Петербу́рг на по́езде.", fr: "Nous sommes allés à Saint-Pétersbourg en train." },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Идти́ ne parle pas que de pieds",
+          body: [
+            "Идёт sert à quantité de sujets qui ne marchent pas : дождь идёт (il pleut), снег идёт (il neige), фильм идёт (le film passe), вре́мя идёт (le temps passe), часы́ иду́т (la pendule marche), уро́к идёт (le cours a lieu). Et pour un vêtement : Тебе́ идёт э́то пла́тье (cette robe te va). C'est l'un des verbes les plus productifs de la langue.",
+            "Le piège symétrique est celui qu'un francophone tend tout seul : « Я иду́ в Москву́ » se comprend, mais décrit quelqu'un qui s'y rend à pied. Dès qu'on change de ville, c'est е́хать — Я е́ду в Москву́ — même si le trajet commence par dix minutes de marche jusqu'à la gare.",
           ],
         },
         {
@@ -187,7 +195,7 @@ export const UNIT_MOUVEMENT: Unit = {
           title: "Les couples opposés",
           body: [
             "Les préfixes fonctionnent par paires contraires, ce qui divise l'effort de mémorisation par deux : при- / у- (arriver / partir), в- / вы- (entrer / sortir), под- / от- (s'approcher / s'éloigner), при- / от- pour les objets qu'on apporte et qu'on remporte.",
-            "Une remarque de forme : идти́ devient -йти́ après préfixe (прийти́, уйти́, войти́, вы́йти) et е́хать devient -ъе́хать (прие́хать, уе́хать, въе́хать). Ce sont les mêmes verbes, simplement soudés.",
+            "Une remarque de forme : идти́ devient -йти́ après préfixe (прийти́, уйти́, войти́, вы́йти). Е́хать, lui, ne change pas — прие́хать, уе́хать, дое́хать — sauf après un préfixe terminé par une CONSONNE, où le ъ de séparation devient obligatoire : въе́хать, съе́хать, отъе́хать, подъе́хать. C'est la même règle que dans объясни́ть, vue à l'unité 1.",
           ],
         },
         {

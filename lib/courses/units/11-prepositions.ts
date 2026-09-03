@@ -18,7 +18,7 @@ export const UNIT_PREPOSITIONS: Unit = {
       title: "Les prépositions, cas par cas",
       titleRu: "Предлоги и падежи",
       level: "A2",
-      minutes: 9,
+      minutes: 10,
       summary:
         "Chaque préposition régit un cas — parfois deux, et la différence est alors toujours porteuse de sens.",
       keywords: ["prépositions", "предлоги", "cas", "régime", "tableau"],
@@ -60,6 +60,18 @@ export const UNIT_PREPOSITIONS: Unit = {
           body: [
             "Certaines prépositions s'allongent devant un groupe de consonnes difficile : в → во (во Фра́нции), с → со (со мной), к → ко (ко мне), о → об / обо (об э́том, обо мне), из → изо (изо все́х сил).",
             "Ce n'est pas facultatif, et cela ne s'entend pas toujours à l'oral rapide ; il faut y penser en écrivant.",
+          ],
+        },
+        {
+          kind: "examples",
+          title: "La même préposition, deux cas",
+          items: [
+            { ru: "Я иду́ в шко́лу.", fr: "Je vais à l'école.", note: "в + accusatif : où l'on va" },
+            { ru: "Я в шко́ле.", fr: "Je suis à l'école.", note: "в + prépositionnel : où l'on est" },
+            { ru: "Кот побежа́л под дива́н.", fr: "Le chat a filé sous le canapé.", note: "под + accusatif : le mouvement" },
+            { ru: "Кот спит под дива́ном.", fr: "Le chat dort sous le canapé.", note: "под + instrumental : la position" },
+            { ru: "Я прие́хал с ю́га.", fr: "Je suis arrivé du sud.", note: "с + génitif : l'origine" },
+            { ru: "Я прие́хал с бра́том.", fr: "Je suis arrivé avec mon frère.", note: "с + instrumental : l'accompagnement" },
           ],
         },
         {
@@ -195,7 +207,7 @@ export const UNIT_PREPOSITIONS: Unit = {
       title: "К, у, от : les personnes",
       titleRu: "К, у, от",
       level: "A2",
-      minutes: 7,
+      minutes: 8,
       summary:
         "On ne va pas « dans » quelqu'un : avec les personnes, le russe emploie un triplet à part.",
       keywords: ["к", "у", "от", "chez", "personnes", "врач"],
@@ -232,6 +244,14 @@ export const UNIT_PREPOSITIONS: Unit = {
           body: [
             "У + génitif sert bien au-delà du lieu : c'est la construction de la possession (У меня́ есть), celle de l'état d'une personne (У меня́ боли́т голова́), et celle de la localisation près de quelque chose (у окна́, у вхо́да).",
             "Ces emplois ont une idée commune : ce qui se trouve dans la sphère de quelqu'un ou de quelque chose. C'est l'une des prépositions les plus fréquentes de la langue.",
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Une personne n'est pas un lieu",
+          body: [
+            "L'erreur apparaît dès qu'on maîtrise в et на : « Я иду́ в врача́ » ou « Я на до́кторе » sont des phrases qu'aucun Russe ne produit. В et на réclament un lieu — un bâtiment, une ville, une surface, une activité. Un être humain n'en est pas un, et il faut basculer sur le triplet к / у / от.",
+            "Le test tient en une question : le complément désigne-t-il quelqu'un ? врач, друг, ба́бушка, дире́ктор, Ма́ша — alors ni в ni на. Cela vaut aussi pour les pronoms, où l'allongement est obligatoire : ко мне, у тебя́, от них.",
           ],
         },
         {
@@ -296,7 +316,7 @@ export const UNIT_PREPOSITIONS: Unit = {
             "над, под, пе́ред, за, ме́жду, ря́дом с : instrumental.",
             "о́коло, напро́тив, вокру́г, ми́мо : génitif.",
             "Mouvement vers la position : под et за passent à l'accusatif.",
-            "нахо́диться (se trouver) est le verbe standard pour situer.",
+            "находи́ться (se trouver) est le verbe standard pour situer.",
           ],
         },
       ],
@@ -373,7 +393,7 @@ export const UNIT_PREPOSITIONS: Unit = {
       level: "B2",
       minutes: 8,
       summary:
-        "Благодаря́, из-за, несмотря́ на : les prépositions de la cause, de la concession et du but, presque toutes issues d'autres mots.",
+        "Благодаря́, и́з-за, несмотря́ на : les prépositions de la cause, de la concession et du but, presque toutes issues d'autres mots.",
       keywords: ["благодаря", "из-за", "несмотря на", "ради", "вопреки", "cause"],
       sections: [
         {
@@ -381,7 +401,7 @@ export const UNIT_PREPOSITIONS: Unit = {
           title: "Cause, but, concession",
           head: ["Préposition", "Cas", "Sens", "Nuance"],
           rows: [
-            ["из-за", "génitif", "à cause de", "conséquence négative"],
+            ["и́з-за", "génitif", "à cause de", "conséquence négative"],
             ["благодаря́", "datif", "grâce à", "conséquence positive"],
             ["по причи́не", "génitif", "pour cause de", "administratif"],
             ["ра́ди", "génitif", "pour, en vue de", "sacrifice, intention"],
@@ -394,14 +414,14 @@ export const UNIT_PREPOSITIONS: Unit = {
         {
           kind: "prose",
           body: [
-            "Из-за et благодаря́ ne sont pas interchangeables : le premier annonce une conséquence fâcheuse (из-за дождя́ — à cause de la pluie), le second une conséquence heureuse (благодаря́ тебе́ — grâce à toi). Employer благодаря́ pour un malheur produit une ironie que le locuteur ne voulait pas toujours.",
+            "И́з-за et благодаря́ ne sont pas interchangeables : le premier annonce une conséquence fâcheuse (и́з-за дождя́ — à cause de la pluie), le second une conséquence heureuse (благодаря́ тебе́ — grâce à toi). Employer благодаря́ pour un malheur produit une ironie que le locuteur ne voulait pas toujours.",
             "Благодаря́ vient du gérondif de благодари́ть (remercier) : « en remerciant ». Le sens positif s'explique de lui-même, et l'étymologie aide à retenir le datif, qui est le cas du destinataire du remerciement.",
           ],
         },
         {
           kind: "examples",
           items: [
-            { ru: "Из-за дождя́ мы оста́лись до́ма.", fr: "À cause de la pluie, nous sommes restés à la maison." },
+            { ru: "И́з-за дождя́ мы оста́лись до́ма.", fr: "À cause de la pluie, nous sommes restés à la maison." },
             { ru: "Благодаря́ ва́шей по́мощи всё получи́лось.", fr: "Grâce à votre aide, tout a marché." },
             { ru: "Несмотря́ на уста́лость, он продолжа́л рабо́тать.", fr: "Malgré la fatigue, il a continué à travailler." },
             { ru: "Он сде́лал э́то ра́ди семьи́.", fr: "Il l'a fait pour sa famille." },
@@ -411,7 +431,7 @@ export const UNIT_PREPOSITIONS: Unit = {
         {
           kind: "keypoints",
           items: [
-            "из-за + génitif : cause négative. благодаря́ + datif : cause positive.",
+            "и́з-за + génitif : cause négative. благодаря́ + datif : cause positive.",
             "несмотря́ на + accusatif : la concession courante.",
             "ра́ди (en vue de) et для (destiné à) ne se confondent pas.",
             "по + datif couvre « selon », « par », « le long de ».",
@@ -424,7 +444,7 @@ export const UNIT_PREPOSITIONS: Unit = {
       title: "Le régime des verbes",
       titleRu: "Управление глаголов",
       level: "B2",
-      minutes: 9,
+      minutes: 10,
       summary:
         "Помога́ть demande le datif, занима́ться l'instrumental, боя́ться le génitif : la liste des verbes dont le complément n'est pas à l'accusatif.",
       keywords: ["régime", "управление", "помогать", "заниматься", "бояться", "verbes"],
@@ -467,6 +487,18 @@ export const UNIT_PREPOSITIONS: Unit = {
             ["выходи́ть за́муж (se marier, femme)", "за + accusatif", "вы́йти за́муж за Ива́на"],
             ["зави́сеть (dépendre)", "от + génitif", "зави́сеть от пого́ды"],
             ["отвеча́ть (répondre)", "на + accusatif", "отве́тить на вопро́с"],
+          ],
+        },
+        {
+          kind: "examples",
+          title: "Le régime en phrase",
+          items: [
+            { ru: "Я ему́ помога́ю ка́ждый день.", fr: "Je l'aide tous les jours.", note: "ему́, jamais его́ : помога́ть appelle le datif" },
+            { ru: "Позвони́ мне ве́чером.", fr: "Appelle-moi ce soir.", note: "звони́ть + datif" },
+            { ru: "Она́ занима́ется му́зыкой с де́тства.", fr: "Elle fait de la musique depuis l'enfance.", note: "занима́ться + instrumental" },
+            { ru: "Я бою́сь темноты́.", fr: "J'ai peur du noir.", note: "боя́ться + génitif" },
+            { ru: "Всё зави́сит от пого́ды.", fr: "Tout dépend de la météo.", note: "зави́сеть от + génitif" },
+            { ru: "Он жени́лся на Ма́ше, а она́ вы́шла за́муж за Ива́на.", fr: "Il a épousé Macha, et elle a épousé Ivan.", note: "deux constructions opposées pour un seul verbe français" },
           ],
         },
         {

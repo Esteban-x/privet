@@ -115,7 +115,7 @@ export const UNIT_PRONOMS: Unit = {
           kind: "pitfall",
           title: "Себя́ ou -ся ?",
           body: [
-            "Le suffixe -ся des verbes réfléchis vient de себя́, mais les deux ne sont plus interchangeables. Мыться (se laver) est un verbe complet ; мыть себя́ n'est employé que pour insister sur l'objet, et sonne étrange dans la plupart des contextes.",
+            "Le suffixe -ся des verbes réfléchis vient de себя́, mais les deux ne sont plus interchangeables. Мы́ться (se laver) est un verbe complet ; мыть себя́ n'est employé que pour insister sur l'objet, et sonne étrange dans la plupart des contextes.",
             "Règle pratique : quand il existe un verbe en -ся pour l'action, on l'emploie. Себя́ sert quand on veut souligner (Он ду́мает то́лько о себе́) ou après une préposition, où -ся ne peut pas aller.",
           ],
         },
@@ -403,7 +403,7 @@ export const UNIT_PRONOMS: Unit = {
             ["когда́-то", "когда́-нибудь", "—"],
             ["како́й-то", "како́й-нибудь", "ко́е-како́й"],
           ],
-          note: "Seule la base se décline : кого́-то, кому́-нибудь, о ком-то.",
+          note: "Seule la base se décline : кого́-то, кому́-нибудь, о ко́м-то.",
         },
         {
           kind: "examples",

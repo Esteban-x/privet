@@ -50,7 +50,7 @@ export const UNIT_ECRITURE: Unit = {
             ["Ж ж", "жэ", "j de jour", "жена́ — épouse"],
             ["З з", "зэ", "z", "зима́ — hiver"],
             ["И и", "и", "i", "и́мя — prénom"],
-            ["Й й", "и краткое", "y de yaourt", "мой — mon"],
+            ["Й й", "и кра́ткое", "y de yaourt", "мой — mon"],
             ["К к", "ка", "k", "кни́га — livre"],
             ["Л л", "эль", "l", "луна́ — lune"],
             ["М м", "эм", "m", "мо́ре — mer"],
@@ -81,7 +81,7 @@ export const UNIT_ECRITURE: Unit = {
           title: "Trois familles",
           body: [
             "FAMILLE 1, les gratuites : А, К, М, О, Т se lisent exactement comme en français, à la forme près. Ajoutez-y Е, qui vaut « ié ».",
-            "FAMILLE 2, les pièges : В se lit v, Н se lit n, Р se lit r, С se lit s, У se lit ou, Х se lit kh. Ce sont elles qui font lire « ресторан » comme un mot inconnu alors qu'il dit « restaurant ». Une leçon entière leur est consacrée juste après.",
+            "FAMILLE 2, les pièges : В se lit v, Н se lit n, Р se lit r, С se lit s, У se lit ou, Х se lit kh. Ce sont elles qui font lire « рестора́н » comme un mot inconnu alors qu'il dit « restaurant ». Une leçon entière leur est consacrée juste après.",
             "FAMILLE 3, les nouvelles : Б, Г, Д, Ж, З, И, Й, Л, П, Ф, Ц, Ч, Ш, Щ, Ъ, Ы, Ь, Э, Ю, Я. Elles n'évoquent rien, donc elles ne trompent pas — c'est paradoxalement la famille la plus facile.",
           ],
         },
@@ -107,6 +107,7 @@ export const UNIT_ECRITURE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/alphabet/letters", label: "Exercice : la valeur des lettres" }],
     },
     {
       slug: "faux-amis-de-l-alphabet",
@@ -149,10 +150,10 @@ export const UNIT_ECRITURE: Unit = {
           title: "Le test",
           items: [
             { ru: "суп", fr: "soupe", note: "et non « cyn »" },
-            { ru: "ресторан", fr: "restaurant", note: "et non « pectopah »" },
-            { ru: "новость", fr: "nouvelle, information", note: "et non « hoboctb »" },
+            { ru: "рестора́н", fr: "restaurant", note: "et non « pectopah »" },
+            { ru: "но́вость", fr: "nouvelle, information", note: "et non « hoboctb »" },
             { ru: "вход", fr: "entrée", note: "v-kh-o-d ; le panneau qu'on lit le plus souvent" },
-            { ru: "выход", fr: "sortie", note: "l'autre panneau" },
+            { ru: "вы́ход", fr: "sortie", note: "l'autre panneau" },
           ],
         },
         {
@@ -173,6 +174,7 @@ export const UNIT_ECRITURE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/alphabet/traps", label: "Exercice : les lettres qui trompent" }],
     },
     {
       slug: "voyelles-dures-et-molles",
@@ -241,6 +243,7 @@ export const UNIT_ECRITURE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/alphabet/letters", label: "Exercice : la valeur des lettres" }],
     },
     {
       slug: "accent-tonique",
@@ -315,6 +318,7 @@ export const UNIT_ECRITURE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/alphabet/stress", label: "Exercice : où tombe l'accent" }],
     },
     {
       slug: "reduction-des-voyelles",
@@ -383,6 +387,7 @@ export const UNIT_ECRITURE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/alphabet/sounds", label: "Exercice : ce qu'on entend vraiment" }],
     },
     {
       slug: "consonnes-sourdes-et-sonores",
@@ -431,8 +436,8 @@ export const UNIT_ECRITURE: Unit = {
           kind: "pitfall",
           title: "Le -го qui se dit -во",
           body: [
-            "Toutes les terminaisons de génitif en -ого / -его se prononcent -ова / -ева. C'est une règle, pas une exception : красного = « krasnava », сегодня = « sivodnia ».",
-            "Elle vaut aussi pour его, кого, чего, ничего. Il n'y a que quelques mots où le г écrit se dit vraiment g dans cette position, tous savants.",
+            "Toutes les terminaisons de génitif en -ого / -его se prononcent -ова / -ева. C'est une règle, pas une exception : кра́сного = « krasnava », сего́дня = « sivodnia ».",
+            "Elle vaut aussi pour его́, кого́, чего́, ничего́. Il n'y a que quelques mots où le г écrit se dit vraiment g dans cette position, tous savants.",
           ],
         },
         {
@@ -445,6 +450,7 @@ export const UNIT_ECRITURE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/alphabet/sounds", label: "Exercice : ce qu'on entend vraiment" }],
     },
     {
       slug: "signe-mou-et-signe-dur",
@@ -539,7 +545,7 @@ export const UNIT_ECRITURE: Unit = {
               "ж, ш, ч, щ, ц (terminaison atone)",
               "о",
               "е",
-              "хоро́шее ме́сто (et non хоро́шоe)",
+              "хоро́шее ме́сто (et non хоро́шое)",
             ],
           ],
           note: "La troisième règle ne joue que sur les terminaisons non accentuées : sous l'accent, о reste (большо́й, отцо́м).",
@@ -574,7 +580,10 @@ export const UNIT_ECRITURE: Unit = {
           ],
         },
       ],
-      practice: [{ href: "/adjectives/spelling", label: "Exercice : orthographe de l'adjectif" }],
+      practice: [
+        { href: "/alphabet/spelling", label: "Exercice : les règles d'orthographe" },
+        { href: "/adjectives/spelling", label: "Exercice : orthographe de l'adjectif" },
+      ],
     },
     {
       slug: "ecriture-cursive",
@@ -610,7 +619,7 @@ export const UNIT_ECRITURE: Unit = {
           kind: "pitfall",
           title: "Les mots en file de jambages",
           body: [
-            "Un mot comme « шишки » (pommes de pin) devient à la main une longue vague où il faut compter les traits verticaux pour distinguer ш de и. Les Russes eux-mêmes soulignent parfois le ш ou surlignent le т d'un trait pour lever l'ambiguïté.",
+            "Un mot comme « ши́шки » (pommes de pin) devient à la main une longue vague où il faut compter les traits verticaux pour distinguer ш de и. Les Russes eux-mêmes soulignent parfois le ш ou surlignent le т d'un trait pour lever l'ambiguïté.",
             "Ne cherchez pas à écrire vite : la cursive russe se lit d'abord, s'écrit ensuite. Recopier trois lignes d'un texte connu suffit à installer les formes.",
           ],
         },
@@ -646,7 +655,7 @@ export const UNIT_ECRITURE: Unit = {
           kind: "prose",
           title: "Translittération",
           body: [
-            "Il n'existe pas une translittération du russe mais plusieurs, et elles se contredisent. Le même nom de famille Чехов s'écrit Chekhov en anglais, Tchekhov en français, Čehov en tchèque, Chekhov dans un passeport russe moderne (norme ICAO).",
+            "Il n'existe pas une translittération du russe mais plusieurs, et elles se contredisent. Le même nom de famille Че́хов s'écrit Chekhov en anglais, Tchekhov en français, Čehov en tchèque, Chekhov dans un passeport russe moderne (norme ICAO).",
             "Retenez surtout les correspondances françaises, parce que ce sont elles qui vous feront reconnaître un nom russe dans un texte français : ч = tch, ш = ch, щ = chtch, ж = j, х = kh, ы = y, ю = iou, я = ia, е initial = ié.",
           ],
         },
@@ -655,11 +664,11 @@ export const UNIT_ECRITURE: Unit = {
           title: "Trois systèmes, un même mot",
           head: ["Russe", "Français", "Anglais", "Passeport (ICAO)"],
           rows: [
-            ["Чехов", "Tchekhov", "Chekhov", "Chekhov"],
-            ["Шостакович", "Chostakovitch", "Shostakovich", "Shostakovich"],
+            ["Че́хов", "Tchekhov", "Chekhov", "Chekhov"],
+            ["Шостако́вич", "Chostakovitch", "Shostakovich", "Shostakovich"],
             ["Хрущёв", "Khrouchtchev", "Khrushchev", "Khrushchev"],
-            ["Юрий", "Iouri", "Yuri", "Iurii"],
-            ["Ельцин", "Eltsine", "Yeltsin", "Eltsin"],
+            ["Ю́рий", "Iouri", "Yuri", "Iurii"],
+            ["Е́льцин", "Eltsine", "Yeltsin", "Eltsin"],
           ],
         },
         {
@@ -723,8 +732,8 @@ export const UNIT_ECRITURE: Unit = {
           kind: "prose",
           title: "Ce que le français fait et que le russe ne fait pas",
           body: [
-            "Pas d'espace avant les signes doubles : le russe écrit « Как дела?» sans espace devant le point d'interrogation, contrairement au français.",
-            "Les guillemets sont des chevrons « … », et à l'intérieur d'une citation déjà entre chevrons, on utilise les guillemets allemands „ “. La virgule ne se met jamais devant и quand il relie deux termes simples (хлеб и молоко) — mais elle se met dans une énumération d'au moins trois éléments coordonnés par и répété.",
+            "Pas d'espace avant les signes doubles : le russe écrit « Как дела́?» sans espace devant le point d'interrogation, contrairement au français.",
+            "Les guillemets sont des chevrons « … », et à l'intérieur d'une citation déjà entre chevrons, on utilise les guillemets allemands „ “. La virgule ne se met jamais devant и quand il relie deux termes simples (хлеб и молоко́) — mais elle se met dans une énumération d'au moins trois éléments coordonnés par и répété.",
           ],
         },
         {
@@ -785,12 +794,12 @@ export const UNIT_ECRITURE: Unit = {
             {
               ru: "Он рабо́тает в Москве́?",
               fr: "Il y travaille (ou il y étudie) ?",
-              note: "montée sur работает",
+              note: "montée sur рабо́тает",
             },
             {
               ru: "Он рабо́тает в Москве́?",
               fr: "C'est à Moscou qu'il travaille ?",
-              note: "montée sur Москве",
+              note: "montée sur Москве́",
             },
           ],
         },

@@ -94,7 +94,7 @@ export const UNIT_ASPECT: Unit = {
       title: "Comment se forment les paires",
       titleRu: "Образование видовых пар",
       level: "B1",
-      minutes: 10,
+      minutes: 11,
       summary:
         "Trois procédés : un préfixe, un suffixe, ou deux mots sans rapport. Savoir lequel est en jeu aide à deviner l'aspect d'un verbe inconnu.",
       keywords: ["paire", "préfixe", "suffixe", "видовая пара", "сказать", "решать"],
@@ -138,6 +138,14 @@ export const UNIT_ASPECT: Unit = {
             { ru: "Я написа́л письмо́.", fr: "J'ai écrit la lettre (elle est prête)." },
             { ru: "Я записа́л его́ но́мер.", fr: "J'ai noté son numéro.", note: "запис- : autre verbe, autre paire" },
             { ru: "Она́ ка́ждый день запи́сывает расхо́ды.", fr: "Elle note ses dépenses chaque jour.", note: "imperfectif de записа́ть" },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Le préfixe « vide » ne se devine pas",
+          body: [
+            "Quand un préfixe sert seulement à perfectiver, il cesse de vouloir dire quoi que ce soit — mais chaque verbe a le sien, et aucune logique ne permet de le prévoir : чита́ть → прочита́ть, де́лать → сде́лать, писа́ть → написа́ть, ви́деть → уви́деть, слы́шать → услы́шать, гото́вить → пригото́вить, есть → съесть, пить → вы́пить, учи́ть → вы́учить.",
+            "Se dire « je mets с-, c'est le plus fréquent » fabrique des mots qui n'existent pas. La conséquence pratique est la même que pour les verbes de mouvement : on apprend la PAIRE, jamais le verbe seul. Deux formes pour un sens, dès la première rencontre — c'est trois secondes de plus par verbe, et cela évite de reconstruire un perfectif au jugé.",
           ],
         },
         {
@@ -519,7 +527,7 @@ export const UNIT_ASPECT: Unit = {
           kind: "prose",
           title: "Les itératifs en -ыва- / -ива-",
           body: [
-            "Quelques verbes ont une forme d'habitude passée, aujourd'hui rare et un peu littéraire : зна́ть → зна́вать, ходи́ть → ха́живать, говори́ть → гова́ривать. Elles s'emploient presque toujours au passé négatif ou dans des tournures figées : Он не́ был там, не ха́живал.",
+            "Quelques verbes ont une forme d'habitude passée, aujourd'hui rare et un peu littéraire : знать → знава́ть, ходи́ть → ха́живать, говори́ть → гова́ривать. Elles s'emploient presque toujours au passé négatif ou dans des tournures figées : Он не́ был там, не ха́живал.",
             "On les rencontre en lecture, on ne les produit pas — sauf pour faire un effet de style volontairement ancien.",
           ],
         },

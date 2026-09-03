@@ -304,7 +304,7 @@ export const UNIT_REGISTRES: Unit = {
       title: "Écrit et parlé : deux grammaires",
       titleRu: "Устная и письменная речь",
       level: "C1",
-      minutes: 8,
+      minutes: 9,
       summary:
         "Le même contenu ne se dit pas avec les mêmes structures : les participes et les noms d'action appartiennent à l'écrit, les subordonnées et les verbes à l'oral.",
       keywords: ["écrit", "oral", "стиль", "participes", "nominalisation", "registre"],
@@ -317,7 +317,7 @@ export const UNIT_REGISTRES: Unit = {
             ["По́сле оконча́ния рабо́ты…", "Когда́ он ко́нчил рабо́тать…"],
             ["Реше́ние бы́ло при́нято.", "Реши́ли."],
             ["Лю́ди, живу́щие здесь…", "Те, кто здесь живёт…"],
-            ["В свя́зи с боле́знью…", "Потому́ что он заболе́л…"],
+            ["В связи́ с боле́знью…", "Потому́ что он заболе́л…"],
             ["Прочита́в письмо́, он ушёл.", "Он прочита́л письмо́ и ушёл."],
           ],
         },
@@ -326,6 +326,18 @@ export const UNIT_REGISTRES: Unit = {
           body: [
             "L'écrit russe NOMINALISE : il transforme les verbes en noms d'action (-ение, -ание) et compresse les propositions en participes et gérondifs. L'oral VERBALISE : il déplie tout en propositions coordonnées ou subordonnées.",
             "Un apprenant qui parle comme un texte administratif se fait comprendre, mais paraît guindé ; un apprenant qui écrit comme il parle paraît négligé. La compétence de niveau avancé consiste à savoir passer d'un registre à l'autre volontairement.",
+          ],
+        },
+        {
+          kind: "examples",
+          title: "Un même message, deux registres",
+          items: [
+            { ru: "В связи́ с отсу́тствием свобо́дных мест поса́дка не произво́дится.", fr: "En raison de l'absence de places disponibles, l'embarquement n'a pas lieu.", note: "écrit : deux noms d'action, pas une seule proposition" },
+            { ru: "Мест нет, поэ́тому никого́ не сажа́ют.", fr: "Il n'y a plus de places, donc on ne fait monter personne.", note: "le même contenu, en verbes" },
+            { ru: "По́сле получе́ния письма́ он измени́л реше́ние.", fr: "Après réception de la lettre, il a modifié sa décision.", note: "получе́ние : le nom d'action, marque de l'écrit" },
+            { ru: "Когда́ он получи́л письмо́, он переду́мал.", fr: "Quand il a reçu la lettre, il a changé d'avis.", note: "subordonnée et verbe : l'oral" },
+            { ru: "Прошу́ вас сообщи́ть о ва́шем реше́нии.", fr: "Je vous prie de me faire part de votre décision.", note: "formule administrative figée" },
+            { ru: "Скажи́, что ты реши́л.", fr: "Dis-moi ce que tu as décidé.", note: "la même demande, entre amis" },
           ],
         },
         {

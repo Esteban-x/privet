@@ -170,7 +170,7 @@ export const UNIT_LEXIQUE: Unit = {
           head: ["Suffixe", "Ce qu'il forme", "Genre", "Exemples"],
           rows: [
             ["-тель", "agent, instrument", "masculin", "учи́тель, писа́тель, выключа́тель"],
-            ["-ник / -щик", "métier, agent", "masculin", "рабо́тник, ученик, часовщи́к"],
+            ["-ник / -щик", "métier, agent", "masculin", "рабо́тник, учени́к, часовщи́к"],
             ["-ист", "adepte, profession", "masculin", "журнали́ст, тури́ст"],
             ["-ость", "qualité abstraite", "féminin", "но́вость, ра́дость, ско́рость"],
             ["-ство", "état, collectif", "neutre", "госуда́рство, о́бщество, ка́чество"],
@@ -230,7 +230,7 @@ export const UNIT_LEXIQUE: Unit = {
           rows: [
             ["-ик / -чик", "дом", "до́мик", "petit, mignon"],
             ["-ок / -ёк", "чай", "ча́ёк", "chaleureux"],
-            ["-ка", "ру́ка", "ру́чка", "petit, familier"],
+            ["-ка", "рука́", "ру́чка", "petit, familier"],
             ["-очка / -ечка", "ма́ма", "ма́мочка", "très affectueux"],
             ["-ушка / -юшка", "ба́ба", "ба́бушка", "affectueux, figé"],
             ["-ище", "дом", "доми́ще", "augmentatif, ironique"],
@@ -241,7 +241,7 @@ export const UNIT_LEXIQUE: Unit = {
           kind: "prose",
           title: "Les prénoms",
           body: [
-            "Chaque prénom russe a une forme officielle et un cortège de diminutifs. Алекса́ндр donne Са́ша, Са́шенька, Шу́ра ; Мари́я donne Ма́ша, Ма́шенька, Ма́шка ; Влади́мир donne Воло́дя, Вова.",
+            "Chaque prénom russe a une forme officielle et un cortège de diminutifs. Алекса́ндр donne Са́ша, Са́шенька, Шу́ра ; Мари́я donne Ма́ша, Ма́шенька, Ма́шка ; Влади́мир donne Воло́дя, Во́ва.",
             "Ces formes ne sont pas interchangeables : Са́ша est la forme familière normale entre proches et collègues ; Са́шенька est très affectueux ; Са́шка est brusque, entre amis proches ou légèrement rude. Employer le mauvais niveau se remarque immédiatement.",
           ],
         },
@@ -328,7 +328,7 @@ export const UNIT_LEXIQUE: Unit = {
       title: "Apprendre, savoir, connaître",
       titleRu: "Учить, знать, уметь",
       level: "B1",
-      minutes: 9,
+      minutes: 10,
       summary:
         "Quatre verbes russes pour « apprendre », deux pour « savoir » : le français est ici beaucoup plus pauvre, et cela se paie en erreurs.",
       keywords: ["учить", "учиться", "изучать", "заниматься", "знать", "уметь"],
@@ -362,6 +362,14 @@ export const UNIT_LEXIQUE: Unit = {
           body: [
             "Знать = connaître une information ou une personne : Я зна́ю его́ а́дрес, Я зна́ю его́. Уме́ть = savoir faire, avoir la compétence : Я уме́ю пла́вать. Мочь = pouvoir dans les circonstances : Я не могу́ прийти́ сего́дня.",
             "Le français « je sais nager » et « je peux nager » se distinguent mal ; le russe, lui, sépare la compétence acquise (уме́ть) de la possibilité du moment (мочь). Dire Я зна́ю пла́вать est une faute que fait tout débutant francophone.",
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Учи́ться ne prend pas d'objet",
+          body: [
+            "« J'apprends le russe » ne se dit pas « Я учу́сь ру́сский язы́к ». Учи́ться porte un -ся, et aucun verbe russe en -ся n'accepte de complément d'objet direct : il prend un lieu (учи́ться в шко́ле), un infinitif (учи́ться чита́ть), ou la matière au DATIF (учи́ться ру́сскому языку́), qui est la construction la moins connue des trois.",
+            "Pour dire la phrase sans y penser, deux verbes suffisent, et tous deux prennent l'accusatif : Я учу́ ру́сский (je le travaille, je le mémorise) et Я изуча́ю ру́сский (je l'étudie comme matière). Le -ся est le signal : dès qu'il est là, cherchez un autre cas que l'accusatif.",
           ],
         },
         {
@@ -523,7 +531,7 @@ export const UNIT_LEXIQUE: Unit = {
           kind: "prose",
           title: "Se déclinent-elles ?",
           body: [
-            "Les abréviations tronquées se déclinent comme des noms ordinaires : в вузе, зарпла́ты. Les sigles se déclinent s'ils se prononcent comme un mot et sont masculins (в МИДе), et restent invariables sinon : в МГУ, в РФ.",
+            "Les abréviations tronquées se déclinent comme des noms ordinaires : в ву́зе, зарпла́ты. Les sigles se déclinent s'ils se prononcent comme un mot et sont masculins (в МИДе), et restent invariables sinon : в МГУ, в РФ.",
             "Le genre d'un sigle suit en principe celui du mot principal développé : МГУ est masculin parce que университе́т l'est ; ООН est féminin parce qu'организа́ция l'est.",
           ],
         },

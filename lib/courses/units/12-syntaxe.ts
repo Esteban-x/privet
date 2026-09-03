@@ -266,7 +266,7 @@ export const UNIT_SYNTAXE: Unit = {
       title: "Il y a, il n'y a pas",
       titleRu: "Есть и нет",
       level: "A2",
-      minutes: 8,
+      minutes: 9,
       summary:
         "Есть affirme l'existence, нет la nie, et l'ordre des mots dit s'il s'agit d'exister ou de se trouver quelque part.",
       keywords: ["есть", "нет", "il y a", "существование", "находится", "существует"],
@@ -292,9 +292,17 @@ export const UNIT_SYNTAXE: Unit = {
           kind: "examples",
           items: [
             { ru: "В на́шем го́роде есть университе́т.", fr: "Il y a une université dans notre ville." },
-            { ru: "Университе́т нахо́дится в це́нтре.", fr: "L'université se trouve au centre.", note: "нахо́диться : le verbe de localisation" },
+            { ru: "Университе́т нахо́дится в це́нтре.", fr: "L'université se trouve au centre.", note: "находи́ться : le verbe de localisation" },
             { ru: "Здесь нет апте́ки.", fr: "Il n'y a pas de pharmacie ici." },
             { ru: "У вас есть свобо́дные номера́?", fr: "Avez-vous des chambres libres ?" },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Sous la négation, le sujet disparaît",
+          body: [
+            "Здесь есть апте́ка devient Здесь нет апте́ки, jamais « Здесь нет апте́ка ». Ce qui n'existe pas passe au génitif et cesse d'être sujet : la phrase n'a plus de sujet du tout, нет est invariable, et il n'y a plus rien avec quoi accorder quoi que ce soit.",
+            "Au passé et au futur, le verbe reste donc impersonnel, au neutre singulier, quel que soit le genre du nom : Здесь не́ было апте́ки, Здесь не бу́дет апте́ки — jamais « не была́ », même pour un féminin. C'est l'erreur la plus tenace du francophone, parce que le français garde son sujet d'un bout à l'autre : « la pharmacie n'était pas là ».",
           ],
         },
         {
@@ -303,7 +311,7 @@ export const UNIT_SYNTAXE: Unit = {
             "есть affirme l'existence ; il tombe quand on décrit ou localise.",
             "нет + génitif nie l'existence.",
             "Le lieu ouvre la phrase quand ce qui existe est nouveau.",
-            "нахо́диться sert à localiser ce dont l'existence est acquise.",
+            "находи́ться sert à localiser ce dont l'existence est acquise.",
           ],
         },
       ],
@@ -371,7 +379,7 @@ export const UNIT_SYNTAXE: Unit = {
       title: "Comparer",
       titleRu: "Сравнение",
       level: "B1",
-      minutes: 8,
+      minutes: 9,
       summary:
         "Plus que, aussi que, le même que : les constructions de comparaison, avec ou sans чем.",
       keywords: ["comparaison", "чем", "как", "такой же", "сравнение", "чем тем"],
@@ -404,6 +412,14 @@ export const UNIT_SYNTAXE: Unit = {
             { ru: "Сего́дня тепле́е, чем вчера́.", fr: "Il fait plus chaud aujourd'hui qu'hier." },
             { ru: "Он рабо́тает так же мно́го, как и ра́ньше.", fr: "Il travaille autant qu'avant." },
             { ru: "Чем бо́льше я чита́ю, тем лу́чше понима́ю.", fr: "Plus je lis, mieux je comprends." },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Бо́лее хоро́ший n'existe pas",
+          body: [
+            "Le français fabrique tous ses comparatifs avec « plus ». Le russe a une forme synthétique pour l'essentiel de la langue courante — интере́снее, бо́льше, лу́чше, ста́рше — et c'est elle qui s'emploie en parlant. Бо́лее existe, mais il appartient à l'écrit et se place devant un adjectif épithète (бо́лее сло́жный вопро́с) ; il ne se pose jamais sur un mot qui est déjà un comparatif, et « бо́лее лу́чший » est en russe une faute proverbiale.",
+            "Deuxième piège : les comparatifs les plus fréquents ne ressemblent pas à leur adjectif. хоро́ший → лу́чше, плохо́й → ху́же, большо́й → бо́льше, ма́ленький → ме́ньше. Ce sont ceux qui servent tous les jours, donc ceux qu'il faut connaître avant la règle qui les explique.",
           ],
         },
         {

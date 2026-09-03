@@ -17,7 +17,7 @@ export const UNIT_ADJECTIF: Unit = {
       title: "L'accord de l'adjectif",
       titleRu: "Согласование прилагательного",
       level: "A1",
-      minutes: 9,
+      minutes: 10,
       summary:
         "Un adjectif russe porte trois informations à la fois : le genre, le nombre et le cas du nom qu'il qualifie.",
       keywords: ["adjectif", "accord", "прилагательное", "новый", "genre", "terminaisons"],
@@ -57,6 +57,14 @@ export const UNIT_ADJECTIF: Unit = {
             { ru: "Он живёт в большо́м го́роде.", fr: "Il habite dans une grande ville.", note: "prépositionnel masculin : -ом" },
             { ru: "Я купи́л краси́вые цветы́.", fr: "J'ai acheté de belles fleurs." },
             { ru: "Пого́да сего́дня хоро́шая.", fr: "Le temps est beau aujourd'hui.", note: "attribut, après le nom" },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Врач est masculin, même quand c'est une femme",
+          body: [
+            "Toute une série de noms de métier n'existe qu'au masculin : врач, инжене́р, дире́ктор, президе́нт, а́втор, секрета́рь, специали́ст. L'adjectif qui les qualifie se met donc au masculin quel que soit le sexe de la personne : Она́ хоро́ший врач. « Хоро́шая врач » s'entend, mais reste hors norme.",
+            "Le VERBE, lui, a le droit de suivre la personne réelle : Врач сказа́ла, что на́до отдохну́ть est correct et courant. C'est la seule entorse admise — l'adjectif reste masculin, le passé peut passer au féminin. Les formes en -ха ou -ша (врачи́ха, секрета́рша) existent, mais elles sont familières et souvent dépréciatives : à comprendre, pas à employer.",
           ],
         },
         {
@@ -143,7 +151,7 @@ export const UNIT_ADJECTIF: Unit = {
       title: "L'adjectif dans les six cas",
       titleRu: "Склонение прилагательных",
       level: "B1",
-      minutes: 11,
+      minutes: 12,
       summary:
         "Le tableau complet — et l'astuce des questions : la terminaison de l'adjectif rime avec la question du cas.",
       keywords: ["déclinaison", "adjectif", "какой", "cas", "obliques", "tableau"],
@@ -191,6 +199,14 @@ export const UNIT_ADJECTIF: Unit = {
             { ru: "Он говори́т с интере́сным челове́ком.", fr: "Il parle avec un homme intéressant.", note: "instrumental masculin : -ым" },
             { ru: "Мы живём в ста́ром до́ме.", fr: "Nous habitons dans une vieille maison." },
             { ru: "У меня́ нет свобо́дного вре́мени.", fr: "Je n'ai pas de temps libre." },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "L'accusatif masculin dépend de ce qu'on regarde",
+          body: [
+            "« = nom. ou gén. » dans le tableau n'est pas une commodité de mise en page : c'est la règle d'animation, et elle commande DEUX mots à la fois. Я ви́жу но́вый дом (inanimé : forme du nominatif) contre Я ви́жу но́вого студе́нта (animé : forme du génitif). L'adjectif ne décide de rien, il suit son nom.",
+            "Au pluriel, la règle s'étend aux trois genres : Я ви́жу но́вые дома́, mais Я ви́жу но́вых студе́нток — féminin compris, alors qu'au singulier le féminin y échappait (Я ви́жу но́вую студе́нтку). C'est le seul endroit de la déclinaison où l'animation touche le féminin, et il se rate systématiquement.",
           ],
         },
         {
@@ -277,7 +293,7 @@ export const UNIT_ADJECTIF: Unit = {
       title: "Le comparatif",
       titleRu: "Сравнительная степень",
       level: "B1",
-      minutes: 10,
+      minutes: 11,
       summary:
         "Une forme unique en -ее, invariable, et deux façons de dire « que » : чем, ou le génitif seul.",
       keywords: ["comparatif", "сравнительная", "чем", "лучше", "больше", "plus que"],
@@ -325,6 +341,14 @@ export const UNIT_ADJECTIF: Unit = {
           ],
         },
         {
+          kind: "pitfall",
+          title: "Ста́рше n'est pas старе́е",
+          body: [
+            "Plusieurs adjectifs ont deux comparatifs, un par sens, et le français n'en a qu'un. Ста́рше parle de l'âge d'une personne (Он ста́рше меня́), старе́е de l'ancienneté d'une chose (Э́тот дом старе́е). De même моло́же (plus jeune, pour quelqu'un) contre нове́е (plus récent, pour quelque chose). Se tromper ne rend pas la phrase obscure : elle devient simplement bizarre.",
+            "Autre chausse-trappe : бо́льше et ме́ньше servent à la fois d'adjectif (plus grand, plus petit) et d'adverbe de quantité (plus, moins). Я хочу́ бо́льше veut dire « j'en veux davantage », pas « je le veux plus grand ». Pour la taille, on précise : Я хочу́ дом побо́льше.",
+          ],
+        },
+        {
           kind: "keypoints",
           items: [
             "Comparatif simple en -ее : invariable, attribut seulement.",
@@ -340,7 +364,7 @@ export const UNIT_ADJECTIF: Unit = {
       title: "Le superlatif",
       titleRu: "Превосходная степень",
       level: "B1",
-      minutes: 7,
+      minutes: 8,
       summary:
         "Са́мый + adjectif couvre 90 % des besoins ; les formes en -ейший appartiennent à l'écrit soutenu.",
       keywords: ["superlatif", "самый", "превосходная", "лучший", "наиболее"],
@@ -371,6 +395,14 @@ export const UNIT_ADJECTIF: Unit = {
             { ru: "Она́ моя́ лу́чшая подру́га.", fr: "C'est ma meilleure amie.", note: "лу́чший : superlatif irrégulier de хоро́ший" },
             { ru: "Он рабо́тает бо́льше всех.", fr: "C'est lui qui travaille le plus." },
             { ru: "Бо́льше всего́ я люблю́ чита́ть.", fr: "Ce que j'aime le plus, c'est lire." },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Са́мый est un adjectif, pas un article",
+          body: [
+            "« Le plus » français est invariable ; са́мый ne l'est pas. C'est un adjectif, qui s'accorde en genre, en nombre ET en cas avec celui qu'il renforce, si bien que les deux mots bougent ensemble à chaque phrase : в са́мый большо́й го́род à l'accusatif, в са́мом большо́м го́роде au prépositionnel, о са́мых интере́сных кни́гах au pluriel.",
+            "Et il ne se pose pas sur un comparatif. Лу́чший et ху́дший sont déjà des superlatifs : la norme demande лу́чший друг, pas « са́мый лу́чший друг » — tournure très entendue à l'oral, et corrigée dans tout écrit soigné.",
           ],
         },
         {

@@ -75,6 +75,7 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/numbers", label: "Les nombres en exercices" }],
     },
     {
       slug: "accord-apres-les-nombres",
@@ -141,6 +142,7 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/numbers/agreement", label: "Exercice : l'accord après un nombre" }],
     },
     {
       slug: "declinaison-des-nombres",
@@ -200,6 +202,7 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/numbers/agreement", label: "Exercice : l'accord après un nombre" }],
     },
     {
       slug: "nombres-ordinaux",
@@ -237,7 +240,7 @@ export const UNIT_NOMBRES: Unit = {
           items: [
             { ru: "Я живу́ на тре́тьем этаже́.", fr: "J'habite au troisième étage.", note: "тре́тий a une déclinaison spéciale : тре́тьего, тре́тьему" },
             { ru: "Э́то во второ́м то́ме.", fr: "C'est dans le deuxième volume." },
-            { ru: "Он занял пе́рвое ме́сто.", fr: "Il a pris la première place." },
+            { ru: "Он за́нял пе́рвое ме́сто.", fr: "Il a pris la première place." },
             { ru: "Откро́йте кни́гу на двадца́той страни́це.", fr: "Ouvrez le livre à la page vingt." },
           ],
         },
@@ -259,6 +262,7 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/numbers/date", label: "Exercice : les dates" }],
     },
     {
       slug: "dire-l-heure",
@@ -319,6 +323,7 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/numbers/time", label: "Exercice : dire l'heure" }],
     },
     {
       slug: "dates-et-jours",
@@ -386,6 +391,7 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/numbers/date", label: "Exercice : les dates" }],
     },
     {
       slug: "age-et-duree",
@@ -445,6 +451,10 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [
+        { href: "/numbers/age", label: "Exercice : l'âge" },
+        { href: "/numbers/duration", label: "Exercice : durée et délai" },
+      ],
     },
     {
       slug: "numeraux-collectifs-et-fractions",
@@ -472,7 +482,7 @@ export const UNIT_NOMBRES: Unit = {
             ["полови́на", "la moitié", "+ génitif", "полови́на гру́ппы"],
             ["треть, че́тверть", "un tiers, un quart", "+ génitif", "треть населе́ния"],
             ["полтора́ / полторы́", "un et demi", "+ génitif singulier", "полтора́ часа́, полторы́ неде́ли"],
-            ["по́лтора́ста", "cent cinquante", "+ génitif pluriel", "полтора́ста лет"],
+            ["полтора́ста", "cent cinquante", "+ génitif pluriel", "полтора́ста лет"],
           ],
         },
         {
@@ -502,6 +512,7 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/numbers", label: "Les nombres en exercices" }],
     },
     {
       slug: "expressions-de-quantite",
@@ -530,7 +541,7 @@ export const UNIT_NOMBRES: Unit = {
             ["не́сколько", "quelques", "не́сколько дней"],
             ["ско́лько", "combien", "Ско́лько э́то сто́ит?"],
             ["сто́лько", "tant, autant", "сто́лько люде́й!"],
-            ["бо́льшинство́", "la plupart", "большинство́ студе́нтов"],
+            ["большинство́", "la plupart", "большинство́ студе́нтов"],
             ["па́ра", "une paire, deux-trois", "па́ра мину́т"],
           ],
         },
@@ -562,6 +573,7 @@ export const UNIT_NOMBRES: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/cases/genitive", label: "Exercice : le génitif" }],
     },
   ],
 };

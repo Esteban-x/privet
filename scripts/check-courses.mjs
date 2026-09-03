@@ -36,6 +36,9 @@ const { MOTION_SKILLS } = await jiti.import("../lib/motion/exercises.ts");
 const { ASPECT_SKILLS } = await jiti.import("../lib/aspect/exercises.ts");
 const { PARTICIPLE_SKILLS } = await jiti.import("../lib/participles/exercises.ts");
 const { ADJECTIVE_SKILLS } = await jiti.import("../lib/adjectives/exercises.ts");
+const { ALPHABET_SKILLS } = await jiti.import("../lib/alphabet/exercises.ts");
+const { CONJUGATION_SKILLS } = await jiti.import("../lib/conjugation/exercises.ts");
+const { NUMBER_SKILLS } = await jiti.import("../lib/numbers/exercises.ts");
 
 const failures = [];
 let checks = 0;
@@ -48,12 +51,24 @@ function require_(condition, message) {
 // Balayage de app/ : tout dossier contenant page.tsx est une route. Les
 // segments dynamiques deviennent une liste d'identifiants connus, pour que
 // /cases/genitif (au lieu de /cases/genitive) soit refusé.
+//
+// CETTE TABLE DÉCIDE DE CE QU'UNE LEÇON A LE DROIT DE VISER, et il y
+// manquait trois modules entiers. /alphabet, /conjugation et /numbers ont
+// chacun leurs compétences et leurs pages, mais aucun identifiant ici : la
+// route /numbers/time n'entrait donc jamais dans `routes`, un lien pratique
+// vers elle faisait échouer `npm run check`, et le catalogue s'est écrit
+// sans jamais y mener. Quarante-deux liens pratiques, tous vers les cinq
+// modules que la table connaissait — l'omission avait fini par façonner le
+// contenu.
 const DYNAMIC_IDS = {
   "/cases": CASES.map((c) => c.id),
   "/motion": MOTION_SKILLS.map((s) => s.id),
   "/aspect": ASPECT_SKILLS.map((s) => s.id),
   "/participles": PARTICIPLE_SKILLS.map((s) => s.id),
   "/adjectives": ADJECTIVE_SKILLS.map((s) => s.id),
+  "/alphabet": ALPHABET_SKILLS.map((s) => s.id),
+  "/conjugation": CONJUGATION_SKILLS.map((s) => s.id),
+  "/numbers": NUMBER_SKILLS.map((s) => s.id),
 };
 
 function collectRoutes(dir, prefix, out) {

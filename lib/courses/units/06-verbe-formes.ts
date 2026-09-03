@@ -17,7 +17,7 @@ export const UNIT_VERBE: Unit = {
       title: "L'infinitif et le radical",
       titleRu: "Инфинитив и основа",
       level: "A1",
-      minutes: 8,
+      minutes: 9,
       summary:
         "L'infinitif russe ne dit pas comment le verbe se conjugue. Ce sont les deux radicaux, celui du présent et celui du passé, qui commandent tout.",
       keywords: ["infinitif", "radical", "основа", "-ть", "conjugaison", "verbe"],
@@ -42,6 +42,17 @@ export const UNIT_VERBE: Unit = {
           ],
         },
         {
+          kind: "examples",
+          title: "Les deux radicaux en phrase",
+          items: [
+            { ru: "Я пишу́ письмо́, а он чита́ет газе́ту.", fr: "J'écris une lettre, et lui lit le journal.", note: "пиш- et чита́- : deux radicaux de présent pour deux infinitifs en -ать" },
+            { ru: "Вчера́ я писа́л весь ве́чер.", fr: "Hier, j'ai écrit toute la soirée.", note: "au passé, писа́ть retrouve son radical d'infinitif" },
+            { ru: "Она́ живёт в Москве́ уже́ пять лет.", fr: "Elle habite à Moscou depuis cinq ans.", note: "жить → жив-, radical élargi qu'aucune lettre de l'infinitif n'annonce" },
+            { ru: "Я не могу́ сего́дня, но за́втра смогу́.", fr: "Je ne peux pas aujourd'hui, mais demain je pourrai.", note: "мочь : могу́ / мо́жешь, alternance г / ж" },
+            { ru: "Мы говори́м по-ру́сски ка́ждый день.", fr: "Nous parlons russe tous les jours.", note: "говори́ть : deuxième conjugaison, radical stable" },
+          ],
+        },
+        {
           kind: "pitfall",
           title: "L'infinitif ne prédit pas la conjugaison",
           body: [
@@ -59,13 +70,14 @@ export const UNIT_VERBE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/conjugation", label: "Les verbes en exercices" }],
     },
     {
       slug: "present-premiere-conjugaison",
       title: "Le présent : première conjugaison",
       titleRu: "Первое спряжение",
       level: "A1",
-      minutes: 9,
+      minutes: 10,
       summary:
         "La conjugaison en -е- : чита́ю, чита́ешь, чита́ет. Elle couvre la majorité des verbes russes.",
       keywords: ["présent", "première conjugaison", "спряжение", "читать", "-ешь"],
@@ -111,6 +123,14 @@ export const UNIT_VERBE: Unit = {
           ],
         },
         {
+          kind: "pitfall",
+          title: "Le ё que personne n'imprime",
+          body: [
+            "La règle « -е- devient -ё- sous l'accent » est simple ; le problème est qu'on ne la voit jamais appliquée. Les textes russes — presse, romans, sous-titres, panneaux — écrivent е là où il faut lire ё : живёшь est imprimé живешь, идёт est imprimé идет, поёт est imprimé поет. Le tréma ne survit que dans les manuels, les dictionnaires et les livres pour enfants.",
+            "Conséquence : la terminaison écrite -ешь ne dit pas où tombe l'accent. Qui lit « живешь » à la lettre accentue la première syllabe et produit un mot que personne ne reconnaît. Le réflexe à prendre : dans cette conjugaison, dès que l'accent est sur la terminaison, elle se lit -ёшь, -ёт, -ём, -ёте, quoi qu'en dise la page.",
+          ],
+        },
+        {
           kind: "keypoints",
           items: [
             "Voyelle caractéristique : -е-, qui devient -ё- sous l'accent.",
@@ -120,13 +140,14 @@ export const UNIT_VERBE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/conjugation/present1", label: "Exercice : la première conjugaison" }],
     },
     {
       slug: "present-deuxieme-conjugaison",
       title: "Le présent : deuxième conjugaison",
       titleRu: "Второе спряжение",
       level: "A1",
-      minutes: 8,
+      minutes: 9,
       summary:
         "La conjugaison en -и- : говорю́, говори́шь, говоря́т. Moins nombreuse, mais pleine de verbes indispensables.",
       keywords: ["deuxième conjugaison", "говорить", "-ишь", "présent", "спряжение"],
@@ -163,7 +184,7 @@ export const UNIT_VERBE: Unit = {
             ["учи́ть (apprendre)", "учу́", "у́чишь", "у́чат"],
             ["слы́шать (entendre)", "слы́шу", "слы́шишь", "слы́шат"],
           ],
-          note: "После ж, ш, ч, щ : -ат au lieu de -ят, et -у au lieu de -ю (слы́шу, слы́шат).",
+          note: "Après ж, ш, ч, щ : -ат au lieu de -ят, et -у au lieu de -ю (слы́шу, слы́шат).",
         },
         {
           kind: "examples",
@@ -172,6 +193,14 @@ export const UNIT_VERBE: Unit = {
             { ru: "Я не ви́жу разни́цы.", fr: "Je ne vois pas la différence." },
             { ru: "Она́ лю́бит класси́ческую му́зыку.", fr: "Elle aime la musique classique." },
             { ru: "Мы смо́трим фильм.", fr: "Nous regardons un film." },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Le л qui ne sort qu'à la première personne",
+          body: [
+            "Люби́ть fait люблю́, mais лю́бишь, лю́бит, лю́бим, лю́бите, лю́бят. Ce -л- surgit à la seule première personne du singulier, et seulement pour les radicaux terminés par б, п, в, ф ou м : купи́ть → куплю́, спать → сплю, гото́вить → гото́влю, корми́ть → кормлю́.",
+            "L'erreur consiste à le généraliser — « они́ люблят » n'existe pas — et elle s'explique : le dictionnaire donne la première personne comme forme de référence, si bien qu'on la prend pour le modèle de toutes les autres. C'est ici la seule forme irrégulière du tableau.",
           ],
         },
         {
@@ -184,6 +213,7 @@ export const UNIT_VERBE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/conjugation/present2", label: "Exercice : la deuxième conjugaison" }],
     },
     {
       slug: "alternances-consonantiques",
@@ -244,6 +274,7 @@ export const UNIT_VERBE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/conjugation/mutation", label: "Exercice : les alternances" }],
     },
     {
       slug: "verbes-irreguliers",
@@ -301,6 +332,7 @@ export const UNIT_VERBE: Unit = {
           ],
         },
       ],
+      practice: [{ href: "/conjugation", label: "Les verbes en exercices" }],
     },
     {
       slug: "verbes-reflechis",
@@ -316,7 +348,7 @@ export const UNIT_VERBE: Unit = {
           kind: "prose",
           body: [
             "Le suffixe -ся se place APRÈS la terminaison de personne : я учу́сь, ты у́чишься, он у́чится. Il s'écrit -сь après une voyelle et -ся après une consonne : учу́сь, но у́чится.",
-            "Attention : un verbe en -ся ne peut jamais avoir d'objet direct à l'accusatif. C'est la conséquence directe de son origine (« soi-même » incorporé au verbe), et c'est le test le plus fiable pour savoir si на́чать ou нача́ться convient.",
+            "Attention : un verbe en -ся ne peut jamais avoir d'objet direct à l'accusatif. C'est la conséquence directe de son origine (« soi-même » incorporé au verbe), et c'est le test le plus fiable pour savoir si нача́ть ou нача́ться convient.",
           ],
         },
         {
@@ -433,7 +465,10 @@ export const UNIT_VERBE: Unit = {
           ],
         },
       ],
-      practice: [{ href: "/aspect/past", label: "Exercice : l'aspect au passé" }],
+      practice: [
+        { href: "/conjugation/past", label: "Exercice : former le passé" },
+        { href: "/aspect/past", label: "Exercice : l'aspect au passé" },
+      ],
     },
     {
       slug: "futur",
@@ -560,7 +595,10 @@ export const UNIT_VERBE: Unit = {
           ],
         },
       ],
-      practice: [{ href: "/aspect/imperative", label: "Exercice : l'aspect à l'impératif" }],
+      practice: [
+        { href: "/conjugation/imperative", label: "Exercice : former l'impératif" },
+        { href: "/aspect/imperative", label: "Exercice : l'aspect à l'impératif" },
+      ],
     },
     {
       slug: "conditionnel",

@@ -56,7 +56,7 @@ export const UNIT_PREMIERES_PHRASES: Unit = {
             { ru: "Э́то моя́ кни́га.", fr: "C'est mon livre.", note: "кни́га : -а, féminin" },
             { ru: "Э́то моё окно́.", fr: "C'est ma fenêtre.", note: "окно́ : -о, neutre" },
             { ru: "Мой па́па — врач.", fr: "Mon père est médecin.", note: "-а mais masculin : le sens décide" },
-            { ru: "Кака́я длинная ночь!", fr: "Quelle longue nuit !", note: "ночь : -ь féminin, à retenir avec le mot" },
+            { ru: "Кака́я дли́нная ночь!", fr: "Quelle longue nuit !", note: "ночь : -ь féminin, à retenir avec le mot" },
           ],
         },
         {
@@ -346,7 +346,7 @@ export const UNIT_PREMIERES_PHRASES: Unit = {
           kind: "prose",
           title: "Нет, deux emplois",
           body: [
-            "Нет répond « non » à une question. Mais c'est aussi le mot de l'absence : « il n'y a pas », suivi du génitif. Дома нет ма́мы : maman n'est pas à la maison.",
+            "Нет répond « non » à une question. Mais c'est aussi le mot de l'absence : « il n'y a pas », suivi du génitif. До́ма нет ма́мы : maman n'est pas à la maison.",
             "Cette construction est traitée en détail dans l'unité de syntaxe, avec le génitif de négation ; retenez pour l'instant que « il n'y a pas de X » se dit нет + X au génitif, et que le sujet grammatical disparaît.",
           ],
         },
