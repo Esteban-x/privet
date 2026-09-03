@@ -34,9 +34,13 @@ const { NOUNS, nounsForLevel } = await jiti.import("../lib/grammar/nouns-data.ts
 const { RUSSIAN_NAMES } = await jiti.import("../lib/grammar/names-data.ts");
 const { ADJECTIVES } = await jiti.import("../lib/grammar/adjectives-data.ts");
 const { CASE_ORDER } = await jiti.import("../lib/grammar/types.ts");
-const { generateSentenceExercise, generateNumeralExercise, poolFor } = await jiti.import(
-  "../lib/grammar/exercise-generator.ts"
-);
+const {
+  acceptableForms,
+  generateSentenceExercise,
+  generateNumeralExercise,
+  normalizeAnswer,
+  poolFor,
+} = await jiti.import("../lib/grammar/exercise-generator.ts");
 import { mixedScript, accentOnConsonant } from "./lib/cyrillic.mjs";
 
 const { TRIGGERS, PROPER_NOUN_TRIGGER_ID, triggerNumber } = await jiti.import(
@@ -134,6 +138,61 @@ for (const n of NOUNS) {
       );
     }
   }
+}
+
+// ─── 1bis. Les variantes du dictionnaire ───────────────────────────
+//
+// 148 cases ont deux formes également correctes (« дочерьми́ » ou
+// « дочеря́ми »). L'import n'en gardait qu'une, et taper l'autre comptait
+// une faute. Trois choses à tenir maintenant qu'on les garde.
+{
+  let withVariant = 0;
+  for (const n of NOUNS) {
+    for (const [number, forms] of [
+      ["singulier", n.forms.singular],
+      ["pluriel", n.forms.plural],
+    ]) {
+      const variants =
+        number === "singulier" ? n.forms.variants?.singular : n.forms.variants?.plural;
+      if (!variants) continue;
+      for (const [index, variant] of Object.entries(variants)) {
+        withVariant += 1;
+        const main = forms[Number(index)];
+        // a) une variante n'est pas la forme principale déguisée.
+        require_(
+          stripAccent(variant) !== stripAccent(main),
+          `${n.lemma} : variante "${variant}" identique à la forme principale au ${number}`
+        );
+        // b) elle reste du russe accentué comme le reste de la banque.
+        const vowels = [...stripAccent(variant)].filter((c) =>
+          VOWELS.includes(c.toLowerCase())
+        ).length;
+        require_(
+          vowels <= 1 || variant !== stripAccent(variant) || variant.includes("ё"),
+          `${n.lemma} : variante "${variant}" polysyllabique sans accent tonique`
+        );
+        // c) et surtout : elle est ACCEPTÉE. C'est la raison d'être du
+        //    champ, et le seul contrôle qui casse si on oublie de brancher
+        //    la variante dans le comparateur.
+        const targetCase = CASE_ORDER[Number(index)];
+        const exercise = {
+          correctForm: stripAccent(main),
+          variantForm: variant,
+        };
+        require_(
+          acceptableForms(exercise).length === 2 &&
+            normalizeAnswer(variant) ===
+              normalizeAnswer(acceptableForms(exercise)[1]),
+          `${n.lemma} ${targetCase} ${number} : la variante "${variant}" n'est pas acceptée`
+        );
+      }
+    }
+  }
+  require_(
+    withVariant > 100,
+    `seulement ${withVariant} variantes importées — le dictionnaire en donne 148, ` +
+      `l'import les a-t-il reperdues ?`
+  );
 }
 
 // ─── 2. Paradigmes témoins ─────────────────────────────────────────

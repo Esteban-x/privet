@@ -636,10 +636,20 @@ export function declineNoun(noun: Noun, targetCase: CaseId, plural = false): Dec
   const index = CASE_ORDER.indexOf(targetCase);
   const accented = (plural ? noun.forms.plural : noun.forms.singular)[index];
   const form = stripAccent(accented);
+  // La variante du dictionnaire, quand elle existe. Elle ne change rien à
+  // la forme enseignée — elle empêche de compter fausse une réponse juste.
+  const variant = (plural ? noun.forms.variants?.plural : noun.forms.variants?.singular)?.[index];
 
   const predicted = byRule(noun, targetCase, plural, endingIsStressed(accented));
   if (predicted.form === form) {
-    return { case: targetCase, form, accented, ruleApplied: predicted.rule, isIrregular: false };
+    return {
+      case: targetCase,
+      form,
+      accented,
+      variant,
+      ruleApplied: predicted.rule,
+      isIrregular: false,
+    };
   }
 
   // La règle se trompe : reste à dire EN QUOI, pour que l'apprenant sache
@@ -652,6 +662,7 @@ export function declineNoun(noun: Noun, targetCase: CaseId, plural = false): Dec
       case: targetCase,
       form,
       accented,
+      variant,
       ruleApplied: `${predicted.rule} — mais le radical change (voyelle mobile ou alternance)`,
       isIrregular: true,
     };
@@ -711,6 +722,7 @@ export function declineNoun(noun: Noun, targetCase: CaseId, plural = false): Dec
       case: targetCase,
       form,
       accented,
+      variant,
       ruleApplied:
         "instrumental pluriel en -ьми : classe fermée (людьми́, детьми́, " +
         "дверьми́, лошадьми́, дочерьми́)",
@@ -726,6 +738,7 @@ export function declineNoun(noun: Noun, targetCase: CaseId, plural = false): Dec
       case: targetCase,
       form,
       accented,
+      variant,
       ruleApplied:
         "locatif en -у́ : après в/на, quelques masculins le prennent au lieu " +
         "de -е (в саду́, на полу́, в лесу́)",
@@ -743,6 +756,7 @@ export function declineNoun(noun: Noun, targetCase: CaseId, plural = false): Dec
       case: targetCase,
       form,
       accented,
+      variant,
       ruleApplied:
         "nominatif pluriel irrégulier : à mémoriser — les autres cas du pluriel s'en déduisent",
       isIrregular: true,

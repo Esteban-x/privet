@@ -159,11 +159,23 @@ function loadDictionary() {
  * vérification IA d'app/api/cases/attempt. Un astérisque marque une forme
  * non standard : le mot entier est alors refusé.
  */
-function canonicalForm(raw) {
-  if (raw.includes("*")) return null;
-  const first = raw.split(/,|\/\//)[0].trim();
-  if (!first || !CYRILLIC.test(first)) return null;
-  return first;
+/**
+ * TOUTES les formes que le dictionnaire donne pour une case, la principale
+ * en tête.
+ *
+ * On n'en gardait qu'une, et les autres étaient perdues : le dictionnaire
+ * écrit « дочерьми́, дочеря́ми » ou « тёть, тёте́й » parce que les deux se
+ * disent. Un apprenant qui tapait la seconde était compté FAUX — sauf s'il
+ * était connecté, dans son quota, et que la relecture payante par le modèle
+ * le rattrapait. Sur le plan gratuit, c'était une faute sèche sur une
+ * réponse juste. 148 cases sont concernées.
+ */
+function canonicalForms(raw) {
+  if (!raw || raw.includes("*")) return [];
+  return raw
+    .split(/,|\/\//)
+    .map((f) => f.trim())
+    .filter((f) => f && CYRILLIC.test(f));
 }
 
 function loadWanted() {
@@ -252,7 +264,22 @@ async function main() {
       continue;
     }
     const overrides = FORM_OVERRIDES[w.lemma] ?? {};
-    const forms = FORMS.map((f) => canonicalForm(overrides[f] ?? r[f]));
+    const allForms = FORMS.map((f) => canonicalForms(overrides[f] ?? r[f]));
+    const forms = allForms.map((v) => v[0] ?? null);
+    // La seconde variante, quand il y en a une : indexée par case, et
+    // seulement là où elle existe.
+    const variants = { singular: {}, plural: {} };
+    allForms.forEach((v, k) => {
+      if (v.length < 2) return;
+      // Une variante qui ne diffère que par la PLACE DE L'ACCENT n'apporte
+      // rien : la comparaison des réponses retire l'accent, donc les deux
+      // sont déjà acceptées, et les afficher côte à côte (« у́трам » /
+      // « утра́м ») ressemblerait à une coquille. On ne garde que les
+      // variantes qui changent les lettres — « дочерьми́ » / « дочеря́ми ».
+      if (strip(v[0]) === strip(v[1])) return;
+      const target = k < 6 ? variants.singular : variants.plural;
+      target[k % 6] = accentuate(v[1]);
+    });
     const missing = FORMS.filter((f, k) => !forms[k]);
     if (missing.length) {
       problems.push(`ligne ${w.line} : "${w.lemma}" — formes manquantes ou douteuses : ${missing.join(", ")}`);
@@ -282,6 +309,7 @@ async function main() {
       rank: ranks.get(w.lemma) ?? RARE_RANK,
       singular: forms.slice(0, 6).map(accentuate),
       plural: forms.slice(6).map(accentuate),
+      variants,
     });
   }
 
@@ -294,7 +322,21 @@ async function main() {
   const body = nouns
     .map((n) => {
       const q = (s) => JSON.stringify(s);
-      return `  { id: ${q(n.id)}, lemma: ${q(n.lemma)}, translation: ${q(n.translation)}, frenchGender: ${q(n.frenchGender)}, gender: ${q(n.gender)}, animacy: ${q(n.animacy)}, rank: ${n.rank},\n    forms: { singular: [${n.singular.map(q).join(", ")}], plural: [${n.plural.map(q).join(", ")}] } },`;
+      const sparse = (obj) =>
+        Object.keys(obj).length
+          ? `{ ${Object.entries(obj)
+              .map(([k, v]) => `${k}: ${q(v)}`)
+              .join(", ")} }`
+          : null;
+      const sg = sparse(n.variants.singular);
+      const pl = sparse(n.variants.plural);
+      const variants =
+        sg || pl
+          ? `,\n      variants: { ${[sg && `singular: ${sg}`, pl && `plural: ${pl}`]
+              .filter(Boolean)
+              .join(", ")} }`
+          : "";
+      return `  { id: ${q(n.id)}, lemma: ${q(n.lemma)}, translation: ${q(n.translation)}, frenchGender: ${q(n.frenchGender)}, gender: ${q(n.gender)}, animacy: ${q(n.animacy)}, rank: ${n.rank},\n    forms: { singular: [${n.singular.map(q).join(", ")}], plural: [${n.plural.map(q).join(", ")}]${variants} } },`;
     })
     .join("\n");
 

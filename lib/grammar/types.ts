@@ -45,6 +45,20 @@ export type FrenchGender = "m" | "f";
 export interface NounForms {
   singular: string[];
   plural: string[];
+  /**
+   * Secondes formes, également correctes, indexées par cas (0 = nominatif).
+   *
+   * Le dictionnaire en donne 148 : « дочерьми́ » ou « дочеря́ми », « тёть »
+   * ou « тёте́й », « ма́мой » ou « ма́мою ». L'import n'en gardait qu'une, si
+   * bien qu'un apprenant qui tapait l'autre était compté faux. Le rattrapage
+   * existait — une relecture par le modèle, côté serveur — mais il coûte un
+   * appel, ne se déclenche qu'après un verdict négatif, et n'est pas offert
+   * au plan gratuit : la réponse juste y restait une faute.
+   */
+  variants?: {
+    singular?: Record<number, string>;
+    plural?: Record<number, string>;
+  };
 }
 
 export interface Noun {
@@ -75,6 +89,11 @@ export interface DeclensionResult {
   ruleApplied: string;
   /** Vrai quand le moteur de règles ne retombe pas sur la forme du dictionnaire. */
   isIrregular: boolean;
+  /**
+   * Seconde forme correcte, s'il y en a une (« дочеря́ми » à côté de
+   * « дочерьми́ »). Accentuée : elle est faite pour être montrée.
+   */
+  variant?: string;
 }
 
 export interface Adjective {

@@ -50,6 +50,11 @@ export interface CaseExercise {
   correctForm: string;
   /** Même forme avec l'accent tonique, pour l'affichage de la réponse. */
   accentedForm: string;
+  /**
+   * Seconde forme que le dictionnaire donne pour cette case, s'il y en a
+   * une. Acceptée comme réponse, et annoncée quand l'apprenant la trouve.
+   */
+  variantForm?: string;
   ruleApplied: string;
 
   // sentence-fixed / sentence-ai / trigger-mcq
@@ -158,6 +163,7 @@ export function generateIsolatedExercise(
     plural: effectivePlural,
     correctForm: result.form,
     accentedForm: result.accented,
+    variantForm: result.variant,
     ruleApplied: result.ruleApplied,
   };
 }
@@ -184,6 +190,7 @@ export function generateSentenceExercise(
     plural,
     correctForm: result.form,
     accentedForm: result.accented,
+    variantForm: result.variant,
     ruleApplied: result.ruleApplied,
     trigger: chosenTrigger,
     sentenceTemplate: chosenTrigger.template.ru,
@@ -247,6 +254,7 @@ export function generateNumeralExercise(pool: Noun[] = DECLINABLE_NOUNS): CaseEx
     plural,
     correctForm: result.form,
     accentedForm: result.accented,
+    variantForm: result.variant,
     ruleApplied: result.ruleApplied,
     numeral,
     countForm,
@@ -276,6 +284,35 @@ export function normalizeAnswer(str: string): string {
     .replace(/\s+/g, " ");
 }
 
+/**
+ * Toutes les réponses acceptables : la forme du paradigme, et la variante
+ * du dictionnaire quand il en donne une.
+ *
+ * Un seul endroit les énumère, et le client comme le serveur l'appellent —
+ * c'est ce qui garantit qu'un écran disant « juste » et une base disant
+ * « faux » ne peuvent pas coexister.
+ */
+export function acceptableForms(exercise: {
+  correctForm: string;
+  variantForm?: string;
+}): string[] {
+  return exercise.variantForm ? [exercise.correctForm, exercise.variantForm] : [exercise.correctForm];
+}
+
 export function checkAnswer(exercise: CaseExercise, userInput: string): boolean {
-  return normalizeAnswer(userInput) === normalizeAnswer(exercise.correctForm);
+  const given = normalizeAnswer(userInput);
+  return acceptableForms(exercise).some((form) => normalizeAnswer(form) === given);
+}
+
+/**
+ * L'apprenant a-t-il répondu par la VARIANTE plutôt que par la forme
+ * principale ? C'est ce qui déclenche le « Juste aussi : … ».
+ */
+export function answeredWithVariant(exercise: CaseExercise, userInput: string): boolean {
+  if (!exercise.variantForm) return false;
+  const given = normalizeAnswer(userInput);
+  return (
+    given === normalizeAnswer(exercise.variantForm) &&
+    given !== normalizeAnswer(exercise.correctForm)
+  );
 }

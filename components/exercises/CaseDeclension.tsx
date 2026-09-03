@@ -8,6 +8,7 @@ import { declineNoun } from "@/lib/grammar/decline";
 import { fillFrenchBlank, frenchNounPhrase } from "@/lib/grammar/french-article";
 import {
   CaseExercise,
+  answeredWithVariant,
   checkAnswer,
   generateIsolatedExercise,
   generateMcqExercise,
@@ -212,6 +213,7 @@ async function buildExercise(
       plural,
       correctForm: result.form,
       accentedForm: result.accented,
+      variantForm: result.variant,
       ruleApplied: result.ruleApplied,
       trigger,
       sentenceTemplate: ai.sentence_ru,
@@ -753,6 +755,17 @@ export default function CaseDeclension({
                   {exercise.accentedForm ?? exercise.correctForm}
                 </p>
                 <p className="mt-1 font-display text-sm text-muted">{exercise.ruleApplied}</p>
+                {/* La seconde forme du dictionnaire. Elle est acceptée comme
+                    réponse ; la montrer, c'est transformer un « faux » évité
+                    en quelque chose d'appris. On la nomme différemment selon
+                    que l'apprenant vient de la taper ou non. */}
+                {exercise.variantForm && (
+                  <p className="mt-1 font-display text-sm text-muted">
+                    {feedback.picked && answeredWithVariant(exercise, feedback.picked)
+                      ? `Juste aussi — la forme la plus courante est ${exercise.accentedForm}.`
+                      : `Juste aussi : ${exercise.variantForm}.`}
+                  </p>
+                )}
                 {feedback.reason && (
                   <p className="mt-2 font-display text-sm text-muted">{feedback.reason}</p>
                 )}

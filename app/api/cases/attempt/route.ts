@@ -4,7 +4,11 @@ import { getCase } from "@/lib/grammar/cases";
 import { CaseId } from "@/lib/grammar/types";
 import { bumpStreakAndXp } from "@/lib/progress/streak";
 import { declineNoun } from "@/lib/grammar/decline";
-import { normalizeAnswer, resolveExerciseNoun } from "@/lib/grammar/exercise-generator";
+import {
+  acceptableForms,
+  normalizeAnswer,
+  resolveExerciseNoun,
+} from "@/lib/grammar/exercise-generator";
 import { getTrigger } from "@/lib/grammar/triggers";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
 import { consumeQuota, recordTokens } from "@/lib/ai/quota";
@@ -133,7 +137,8 @@ export async function POST(req: Request) {
   // le client n'envoie que l'identifiant du nom et le cas. L'accord de
   // l'adjectif a son propre module (app/api/adjectives/attempt) depuis qu'il
   // a quitté cet onglet.
-  const expectedForm = declineNoun(noun, targetCase, plural).form;
+  const declension = declineNoun(noun, targetCase, plural);
+  const expectedForm = declension.form;
 
   // "Je ne sais pas" compte comme un échec quoi qu'il y ait dans le champ de
   // saisie : sans ce drapeau, une bonne réponse déjà tapée puis révélée
@@ -141,7 +146,18 @@ export async function POST(req: Request) {
   let correct = false;
   let reason: string | null = null;
   if (!revealed) {
-    correct = normalizeAnswer(userAnswer) === normalizeAnswer(expectedForm);
+    // Les DEUX formes du dictionnaire, quand il en donne deux : « дочеря́ми »
+    // vaut « дочерьми́ ». Le même énumérateur sert au client, sinon l'écran
+    // et la base pourraient rendre deux verdicts différents.
+    const acceptable = acceptableForms({
+      correctForm: expectedForm,
+      variantForm: declension.variant,
+    });
+    const given = normalizeAnswer(userAnswer);
+    correct = acceptable.some((form) => normalizeAnswer(form) === given);
+    // La relecture par le modèle n'a plus ces 148 cas à rattraper : elle
+    // coûtait un appel, n'arrivait qu'après un verdict négatif, et le plan
+    // gratuit ne l'a pas.
     if (!correct && !multipleChoice && userAnswer.trim()) {
       const verdict = await aiSecondOpinion(supabase, {
         lemma: noun.lemma,
