@@ -71,20 +71,40 @@ export function getAlphabetSkill(id: string): Skill | undefined {
 // 1. La valeur des lettres
 // ─────────────────────────────────────────────────────────────────
 
+/**
+ * Les 33 lettres, y compris les six qui se lisent comme en français.
+ *
+ * А, Е, К, М, О, Т manquaient. L'omission se comprend — leur forme ET leur
+ * son sont ceux du latin, donc « rien à apprendre » — mais le résumé de la
+ * compétence promet « trente-trois lettres », l'apprenant compte, et il
+ * trouve vingt-sept. Surtout, Е n'appartient pas à cette famille : sa forme
+ * est latine, sa lecture ne l'est pas (« ye »), et c'est exactement le
+ * genre de lettre qu'on croit connaître.
+ *
+ * L'alphabet est la seule liste du russe qu'il faut savoir par cœur : la
+ * servir incomplète, c'est laisser six trous dans la seule chose qui doit
+ * être close.
+ */
 const LETTERS: { letter: string; sound: string; example: string }[] = [
+  { letter: "А", sound: "a de patte", example: "а́дрес" },
   { letter: "Б", sound: "b de bon", example: "брат" },
   { letter: "В", sound: "v de vent", example: "вода́" },
   { letter: "Г", sound: "g de gare", example: "год" },
   { letter: "Д", sound: "d de date", example: "дом" },
+  { letter: "Е", sound: "ye de yeux", example: "е́сли" },
   { letter: "Ж", sound: "j de jour", example: "жена́" },
   { letter: "З", sound: "z de zéro", example: "зима́" },
   { letter: "И", sound: "i de midi", example: "и́мя" },
   { letter: "Й", sound: "y de yaourt", example: "мой" },
+  { letter: "К", sound: "k de kilo", example: "кот" },
   { letter: "Л", sound: "l de lac", example: "луна́" },
+  { letter: "М", sound: "m de mer", example: "ма́ма" },
   { letter: "Н", sound: "n de nord", example: "нос" },
+  { letter: "О", sound: "o de porte, quand il est accentué", example: "о́блако" },
   { letter: "П", sound: "p de page", example: "план" },
   { letter: "Р", sound: "r roulé", example: "рука́" },
   { letter: "С", sound: "s de sac", example: "суп" },
+  { letter: "Т", sound: "t de table", example: "там" },
   { letter: "У", sound: "ou de tout", example: "у́тро" },
   { letter: "Ф", sound: "f de fil", example: "фильм" },
   { letter: "Х", sound: "kh, la jota espagnole", example: "хлеб" },

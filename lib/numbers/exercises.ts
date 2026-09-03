@@ -308,14 +308,42 @@ const MONTHS_NOM = [
   "ию́ль", "а́вгуст", "сентя́брь", "октя́брь", "ноя́брь", "дека́брь",
 ];
 
+/**
+ * Les trente et un quantièmes, au nominatif neutre et au génitif.
+ *
+ * Il n'y en avait dix, et le tirage s'arrêtait donc au 10 — jamais de
+ * « оди́ннадцатое », jamais de « два́дцать пе́рвого », c'est-à-dire jamais les
+ * formes composées ni les « adolescents » en -надцатое, qui sont la seule
+ * difficulté réelle de cet exercice. Les dix premiers ordinaux sont aussi
+ * les dix qu'on apprend en premier ailleurs.
+ *
+ * Au-delà de 20, seul le DERNIER élément se décline : « два́дцать пе́рвого »,
+ * pas « двадца́того пе́рвого ». La table est écrite en entier plutôt que
+ * composée à la volée — trente et une lignes se relisent, une règle de
+ * composition se déboguerait.
+ */
 const DAY_ORDINAL_NOM = [
   "пе́рвое", "второ́е", "тре́тье", "четвёртое", "пя́тое", "шесто́е",
   "седьмо́е", "восьмо́е", "девя́тое", "деся́тое",
+  "оди́ннадцатое", "двена́дцатое", "трина́дцатое", "четы́рнадцатое",
+  "пятна́дцатое", "шестна́дцатое", "семна́дцатое", "восемна́дцатое",
+  "девятна́дцатое", "двадца́тое",
+  "два́дцать пе́рвое", "два́дцать второ́е", "два́дцать тре́тье",
+  "два́дцать четвёртое", "два́дцать пя́тое", "два́дцать шесто́е",
+  "два́дцать седьмо́е", "два́дцать восьмо́е", "два́дцать девя́тое",
+  "тридца́тое", "три́дцать пе́рвое",
 ];
 
 const DAY_ORDINAL_GEN = [
   "пе́рвого", "второ́го", "тре́тьего", "четвёртого", "пя́того", "шесто́го",
   "седьмо́го", "восьмо́го", "девя́того", "деся́того",
+  "оди́ннадцатого", "двена́дцатого", "трина́дцатого", "четы́рнадцатого",
+  "пятна́дцатого", "шестна́дцатого", "семна́дцатого", "восемна́дцатого",
+  "девятна́дцатого", "двадца́того",
+  "два́дцать пе́рвого", "два́дцать второ́го", "два́дцать тре́тьего",
+  "два́дцать четвёртого", "два́дцать пя́того", "два́дцать шесто́го",
+  "два́дцать седьмо́го", "два́дцать восьмо́го", "два́дцать девя́того",
+  "тридца́того", "три́дцать пе́рвого",
 ];
 
 /**
@@ -336,7 +364,7 @@ const MONTHS_FR = [
 ];
 
 function dateExercise(random: Rng): PracticeExercise {
-  const day = 1 + Math.floor(random() * 10);
+  const day = 1 + Math.floor(random() * DAY_ORDINAL_NOM.length);
   const month = Math.floor(random() * 12);
   const situate = random() < 0.5;
 
@@ -573,7 +601,11 @@ export function checkNumberAnswer(itemId: string, answer: string): boolean | nul
       const day = Number(rest[0]);
       const month = Number(rest[1]);
       const situate = rest[2] === "when";
-      if (!(day >= 1 && day <= 10) || !(month >= 0 && month <= 11)) return null;
+      // La borne suit la table, elle n'est plus écrite en dur : elle disait
+      // 10 quand la table en comptait 10, et aurait rejeté comme invalide
+      // tout item produit par une table plus longue.
+      if (!(day >= 1 && day <= DAY_ORDINAL_NOM.length)) return null;
+      if (!(month >= 0 && month <= 11)) return null;
       const expected = `${(situate ? DAY_ORDINAL_GEN : DAY_ORDINAL_NOM)[day - 1]} ${MONTHS_GEN[month]}`;
       return expected === answer;
     }

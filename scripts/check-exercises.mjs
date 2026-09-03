@@ -262,6 +262,36 @@ require_(
   `lib/exercises/routes.ts ne correspond plus au catalogue : ${EXERCISE_ROUTES.join(", ")}`
 );
 
+// ─── L'alphabet est une liste CLOSE ────────────────────────────────
+//
+// Le résumé de la compétence promet « trente-trois lettres ». La banque en
+// avait vingt-sept : А, Е, К, М, О, Т manquaient, parce que leur forme et
+// leur son sont ceux du latin. Sauf que Е se lit « ye », et qu'un apprenant
+// qui compte trouve six trous dans la seule liste du russe qui doive être
+// close.
+//
+// Le contrôle compare la banque à l'alphabet, pas à un nombre : ajouter une
+// lettre en double ou en oublier une se voit également.
+{
+  const RUSSIAN_ALPHABET = [
+    ..."АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ",
+  ];
+  const inBank = new Set(alphabet.LETTERS.map((l) => l.letter));
+  for (const letter of RUSSIAN_ALPHABET) {
+    require_(inBank.has(letter), `alphabet : la lettre « ${letter} » manque à la banque`);
+  }
+  for (const letter of inBank) {
+    require_(
+      RUSSIAN_ALPHABET.includes(letter),
+      `alphabet : « ${letter} » n'appartient pas à l'alphabet russe`
+    );
+  }
+  require_(
+    alphabet.LETTERS.length === RUSSIAN_ALPHABET.length,
+    `alphabet : ${alphabet.LETTERS.length} entrées pour ${RUSSIAN_ALPHABET.length} lettres — doublon ?`
+  );
+}
+
 // ─── Rapport ─────────────────────────────────────────────────────
 //
 // LES ÉCHECS D'ABORD. Le résumé s'imprimait avant eux, si bien qu'un run

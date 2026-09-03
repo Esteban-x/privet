@@ -211,24 +211,51 @@ export function generateMcqExercise(
   const base = generateSentenceExercise(targetCase, trigger, pool, wantPlural);
   const otherCases = CASES.map((c) => c.id).filter((id) => id !== targetCase);
 
-  const distractors = new Set<string>();
+  // La déduplication se fait sur la forme NORMALISÉE, celle qui sert à
+  // corriger. Comparer les chaînes brutes laissait passer deux boutons que
+  // le serveur aurait tous deux comptés justes — « судьёй » et « судьей »
+  // sont la même réponse pour `normalizeAnswer`, pas pour `Set<string>`.
+  const taken = new Set([normalizeAnswer(base.correctForm)]);
+  const distractors: string[] = [];
+  const offer = (form: string): boolean => {
+    const key = normalizeAnswer(form);
+    if (taken.has(key)) return false;
+    taken.add(key);
+    distractors.push(form);
+    return true;
+  };
+
   for (const c of shuffle(otherCases)) {
-    if (distractors.size >= 3) break;
-    const form = declineNoun(base.noun, c, base.plural).form;
-    if (form !== base.correctForm) distractors.add(form);
-  }
-  // Filet de sécurité si le nom a trop de formes identiques (syncrétisme) :
-  // complète avec un autre nom du pool décliné au même cas.
-  let guard = 0;
-  while (distractors.size < 3 && guard < 10) {
-    guard += 1;
-    const otherNoun = pickRandom(pool);
-    if (otherNoun.id === base.noun.id) continue;
-    const form = declineNoun(otherNoun, targetCase, base.plural).form;
-    if (form !== base.correctForm) distractors.add(form);
+    if (distractors.length >= 3) break;
+    offer(declineNoun(base.noun, c, base.plural).form);
   }
 
-  const options = shuffle([base.correctForm, ...Array.from(distractors).slice(0, 3)]);
+  // Filet de sécurité quand le nom a trop de formes identiques
+  // (syncrétisme) : on complète avec un AUTRE nom, décliné au même cas.
+  //
+  // Il tire dans le vivier du déclencheur, pas dans le pool brut : « Я ем
+  // ___ » propose des aliments, et ses distracteurs aussi. Et il balaie le
+  // vivier au lieu d'y piocher dix fois au hasard — l'ancienne boucle
+  // pouvait abandonner et rendre un QCM à deux ou trois boutons, sans que
+  // rien ne le signale.
+  if (distractors.length < 3) {
+    for (const other of shuffle(poolFor(base.trigger!, pool))) {
+      if (distractors.length >= 3) break;
+      if (other.id === base.noun.id) continue;
+      offer(declineNoun(other, targetCase, base.plural).form);
+    }
+  }
+  // Dernier recours : la banque entière. Elle contient 451 noms, donc trois
+  // formes distinctes s'y trouvent toujours.
+  if (distractors.length < 3) {
+    for (const other of shuffle(DECLINABLE_NOUNS)) {
+      if (distractors.length >= 3) break;
+      if (other.id === base.noun.id) continue;
+      offer(declineNoun(other, targetCase, base.plural).form);
+    }
+  }
+
+  const options = shuffle([base.correctForm, ...distractors.slice(0, 3)]);
   return { ...base, kind: "trigger-mcq", options };
 }
 

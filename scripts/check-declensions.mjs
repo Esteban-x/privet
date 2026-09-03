@@ -36,6 +36,7 @@ const { ADJECTIVES } = await jiti.import("../lib/grammar/adjectives-data.ts");
 const { CASE_ORDER } = await jiti.import("../lib/grammar/types.ts");
 const {
   acceptableForms,
+  generateMcqExercise,
   generateSentenceExercise,
   generateNumeralExercise,
   normalizeAnswer,
@@ -825,6 +826,42 @@ let demandingTriggers = 0;
       shouldPass
     );
   }
+}
+
+// ─── 9bis. Le QCM a toujours quatre boutons distincts ──────────────
+//
+// Les distracteurs sont les AUTRES cas du même nom — c'est ce qui fait du
+// QCM un exercice de discrimination casuelle et non de vocabulaire. Mais un
+// nom très syncrétique (neutre inanimé : nominatif = accusatif, génitif =
+// accusatif…) n'en fournit pas trois, et le filet de secours abandonnait
+// après dix tirages au hasard : l'exercice sortait alors avec deux ou trois
+// boutons, sans que rien ne le dise.
+//
+// Deux invariants, sur des tirages réels : quatre options, et quatre
+// options DISTINCTES UNE FOIS NORMALISÉES — deux boutons que le serveur
+// compterait tous deux justes seraient pires qu'un bouton manquant.
+{
+  const DRAWS = 400;
+  let short = 0;
+  let duplicated = 0;
+  let missingAnswer = 0;
+  for (const c of CASE_ORDER) {
+    for (const plural of [false, true]) {
+      for (let i = 0; i < DRAWS; i += 1) {
+        const ex = generateMcqExercise(c, undefined, NOUNS, plural);
+        if (ex.options.length !== 4) short += 1;
+        if (new Set(ex.options.map(normalizeAnswer)).size !== 4) duplicated += 1;
+        if (!ex.options.includes(ex.correctForm)) missingAnswer += 1;
+      }
+    }
+  }
+  const draws = CASE_ORDER.length * 2 * DRAWS;
+  require_(short === 0, `${short}/${draws} QCM avec moins de quatre options`);
+  require_(
+    duplicated === 0,
+    `${duplicated}/${draws} QCM dont deux options se confondent après normalisation`
+  );
+  require_(missingAnswer === 0, `${missingAnswer}/${draws} QCM sans leur bonne réponse`);
 }
 
 // ─── 10. Ce qu'on met derrière un chiffre ──────────────────────────
