@@ -19,17 +19,95 @@
  * ne sert qu'à couvrir ce qu'elle ne contient pas. En cas de doublon, c'est
  * la banque qui gagne — voir la fusion dans build-lexicon.mjs.
  *
+ * CE QUE LE MODÈLE NE DÉCIDE PLUS. Un modèle ne se trompe pas au hasard :
+ * il se trompe de façon PLAUSIBLE. Il a produit « абва́к » pour
+ * « alphabet », « береце́т » pour « béret », « буста́льтер » pour
+ * « soutien-gorge » — des mots qui n'existent pas mais qui ressemblent à du
+ * russe — et 304 accents toniques faux, « аптека́ » pour « апте́ка ». Rien ne
+ * les arrêtait : l'apprenant les ajoutait à sa liste, ils devenaient des
+ * cartes, puis des réponses à taper. Chaque proposition passe désormais par
+ * le dictionnaire (scripts/lib/lexicon-gate.mjs) : mot inconnu supprimé,
+ * accent corrigé par la source, ё rétabli.
+ *
  *   npm run build:lexicon:ai            # ~2 000 mots, une fois
  *   npm run build:lexicon:ai -- --dry   # montre le plan et le coût
+ *   npm run build:lexicon:ai -- --prune # repasse le fichier existant au
+ *                                       # filtre, sans appeler le modèle
  */
 import fs from "node:fs";
 import path from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
+import { loadDictionary } from "./lib/dictionary.mjs";
+import { reviseAll } from "./lib/lexicon-gate.mjs";
 
 const root = process.cwd();
-for (const line of fs.readFileSync(path.join(root, ".env.local"), "utf8").split(/\r?\n/)) {
-  const m = line.match(/^\s*([A-Z_0-9]+)=(.*)$/);
-  if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
+const OUT = path.join(root, "lib/vocabulary/lexicon-ai.generated.ts");
+const prune = process.argv.includes("--prune");
+// `--prune` ne parle qu'au dictionnaire local : il ne doit exiger ni clé
+// d'API, ni même un .env.local.
+if (!prune) {
+  for (const line of fs.readFileSync(path.join(root, ".env.local"), "utf8").split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z_0-9]+)=(.*)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
+  }
+}
+
+/**
+ * Écrit le fichier généré. Partagé par la génération et par --prune, pour
+ * que les deux chemins produisent exactement le même format.
+ */
+function writeLexicon(rows) {
+  const sorted = [...rows].sort((a, b) => a[0].localeCompare(b[0], "ru"));
+  const out = `// GÉNÉRÉ PAR scripts/build-lexicon-ai.mjs — NE PAS ÉDITER À LA MAIN.
+//
+// Vocabulaire produit par un modèle À LA CONSTRUCTION, pour élargir
+// l'autocomplétion au-delà des banques curées. Il ne sert QU'À la
+// complétion : rien ici n'alimente le moteur de déclinaison, qui reste
+// nourri exclusivement par lib/grammar/nouns-data.ts.
+//
+// Chaque entrée a été confrontée au dictionnaire OpenRussian : un mot
+// qu'il ignore est supprimé, un accent tonique qu'il contredit est
+// corrigé. Voir scripts/lib/lexicon-gate.mjs.
+//
+// La banque curée l'emporte en cas de doublon (voir build-lexicon.mjs).
+
+export const AI_LEXICON: readonly (readonly [string, string, string])[] = [
+${sorted
+    .map(([w, t, k]) => `  [${JSON.stringify(w)}, ${JSON.stringify(t)}, ${JSON.stringify(k)}],`)
+    .join(String.fromCharCode(10))}
+];
+`;
+  fs.writeFileSync(OUT, out, "utf8");
+}
+
+/** Le détail de ce que le filtre a changé — il doit rester lisible dans un commit. */
+function report({ dropped, fixed }) {
+  if (fixed.length) {
+    console.log(`${fixed.length} accents corrigés par le dictionnaire :`);
+    for (const f of fixed) console.log(`   ${f.from} -> ${f.to}`);
+  }
+  if (dropped.length) {
+    console.log(`${dropped.length} mots supprimés (absents du dictionnaire) :`);
+    for (const d of dropped) console.log(`   ${d.display}  (${d.translation})`);
+  }
+}
+
+// --prune : repasser le fichier déjà généré au filtre, sans appeler le
+// modèle. C'est ce qui permet de nettoyer un lexique existant sans payer
+// une nouvelle génération, et de rejouer le filtre quand il s'améliore.
+if (prune) {
+  const text = fs.readFileSync(OUT, "utf8");
+  const ENTRY = /\["([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"(\w+)"\]/g;
+  const existing = [...text.matchAll(ENTRY)].map((m) => [m[1], m[2], m[3]]);
+  const dict = await loadDictionary();
+  const revised = reviseAll(existing, dict, { generated: true });
+  report(revised);
+  writeLexicon(revised.kept);
+  console.log(
+    `${existing.length} entrées relues : ${revised.kept.length} gardées, ` +
+      `${revised.dropped.length} supprimées, ${revised.fixed.length} accents corrigés.`
+  );
+  process.exit(0);
 }
 
 const dry = process.argv.includes("--dry");
@@ -154,21 +232,10 @@ for (const [domain, examples] of DOMAINS) {
   }
 }
 
-const sorted = [...rows.values()].sort((a, b) => a[0].localeCompare(b[0], "ru"));
-const out = `// GÉNÉRÉ PAR scripts/build-lexicon-ai.mjs — NE PAS ÉDITER À LA MAIN.
-//
-// Vocabulaire produit par un modèle À LA CONSTRUCTION, pour élargir
-// l'autocomplétion au-delà des banques curées. Il ne sert QU'À la
-// complétion : rien ici n'alimente le moteur de déclinaison, qui reste
-// nourri exclusivement par lib/grammar/nouns-data.ts.
-//
-// La banque curée l'emporte en cas de doublon (voir build-lexicon.mjs).
-
-export const AI_LEXICON: readonly (readonly [string, string, string])[] = [
-${sorted.map(([w, t, k]) => `  [${JSON.stringify(w)}, ${JSON.stringify(t)}, ${JSON.stringify(k)}],`).join("\n")}
-];
-`;
-
-fs.writeFileSync(path.join(root, "lib/vocabulary/lexicon-ai.generated.ts"), out, "utf8");
-console.log(`\nTerminé : ${sorted.length} mots retenus, ${failed} domaine(s) en échec.`);
+// Le filtre du dictionnaire, appliqué à TOUT ce que le modèle propose.
+const dict = await loadDictionary();
+const revised = reviseAll([...rows.values()], dict, { generated: true });
+report(revised);
+writeLexicon(revised.kept);
+console.log(`\nTerminé : ${revised.kept.length} mots retenus, ${failed} domaine(s) en échec.`);
 console.log("Lance maintenant `npm run build:lexicon` pour fusionner.");

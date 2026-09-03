@@ -18,6 +18,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { loadDictionary } from "./lib/dictionary.mjs";
+import { gate } from "./lib/lexicon-gate.mjs";
 
 const root = process.cwd();
 const require = createRequire(import.meta.url);
@@ -27,6 +29,21 @@ const load = (rel) => jiti(path.join(root, rel));
 /** Accent tonique et ё retirés : c'est la forme sur laquelle on compare. */
 const bare = (w) =>
   w.normalize("NFC").replace(/́/g, "").replace(/ё/g, "е").trim().toLowerCase();
+
+/**
+ * Le dictionnaire OpenRussian, seul arbitre de deux questions que ce
+ * script ne savait pas poser : ce mot existe-t-il, et son accent tonique
+ * est-il au bon endroit ?
+ *
+ * Il ne servait jusqu'ici qu'à bâtir la banque de noms. L'index
+ * d'autocomplétion, lui, agrégeait des banques écrites à la main et un
+ * lexique produit par un modèle, sans que rien ne les confronte à une
+ * source : 138 mots inexistants et 234 accents faux y avaient pris place.
+ */
+const dict = await loadDictionary();
+/** Ce que le filtre a corrigé ou supprimé — imprimé à la fin, pour le commit. */
+const fixedByDictionary = [];
+const droppedByDictionary = [];
 
 /** Une entrée par mot : [affichage accentué, traduction, nature]. */
 const entries = new Map();
@@ -81,6 +98,20 @@ function isDeformation(key, translation) {
 
 function add(display, translation, kind, generated = false) {
   if (!display || !translation) return;
+
+  // LE FILTRE EST ICI, pas dans les sources. Chaque banque a sa raison de
+  // se tromper — une glose de leçon recopiée sans accent, un mot inventé
+  // par un modèle — et une seule porte donne sur l'index : autant la garder.
+  const verdict = gate(display, dict, { generated });
+  if (verdict.action === "drop") {
+    droppedByDictionary.push(`${display} (${translation})`);
+    return;
+  }
+  if (verdict.action === "fix") {
+    fixedByDictionary.push(`${display} -> ${verdict.display}`);
+    display = verdict.display;
+  }
+
   const key = bare(display);
   if (!key || entries.has(key)) return;
   if (generated && isDeformation(key, translation)) {
@@ -120,17 +151,17 @@ for (const p of load("lib/aspect/verbs.ts").ASPECT_PAIRS) {
   add(p.imperfective, p.translation, "v");
   add(p.perfective, p.translation, "v");
 }
-try {
-  const motion = load("lib/motion/verbs.ts");
-  for (const p of motion.MOTION_PAIRS ?? []) {
-    for (const form of [p.unidirectional, p.multidirectional]) {
-      if (typeof form === "string") add(form, p.translation, "v");
-      else if (form?.infinitive) add(form.infinitive, p.translation, "v");
-    }
+// Les champs s'appellent `uni` et `multi` — pas `unidirectional`. La
+// version précédente lisait les mauvais noms et le `catch` avalait le
+// résultat vide : les douze verbes de mouvement, les plus fréquents de la
+// langue, n'ont jamais atteint l'autocomplétion. Un `catch` muet autour
+// d'un accès de champ ne protège de rien, il cache.
+{
+  const { MOTION_PAIRS } = load("lib/motion/verbs.ts");
+  for (const pair of MOTION_PAIRS) {
+    add(pair.uni, pair.translation, "v");
+    add(pair.multi, pair.translation, "v");
   }
-} catch {
-  // La banque de mouvement a une autre forme selon les versions : son
-  // absence n'empêche pas l'index d'être utile.
 }
 
 // ─── Mots isolés glosés dans les leçons ─────────────────────────
@@ -220,6 +251,14 @@ fs.writeFileSync(target, out, "utf8");
 
 if (dropped.length) {
   console.log(`Écartés (déformation d'un mot curé) : ${dropped.join(", ")}`);
+}
+if (fixedByDictionary.length) {
+  console.log(`Accents corrigés par le dictionnaire : ${fixedByDictionary.length}`);
+  for (const f of fixedByDictionary) console.log(`   ${f}`);
+}
+if (droppedByDictionary.length) {
+  console.log(`Supprimés (absents du dictionnaire) : ${droppedByDictionary.length}`);
+  for (const d of droppedByDictionary) console.log(`   ${d}`);
 }
 
 const byKind = rows.reduce((acc, r) => ({ ...acc, [r[2]]: (acc[r[2]] ?? 0) + 1 }), {});

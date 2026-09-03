@@ -1,0 +1,70 @@
+# Rejoue les contrôles du projet à chaque poussée et chaque pull request.
+#
+# POURQUOI CE FICHIER EXISTE. La suite `npm run check` compte plus de 90 000
+# assertions — paradigmes témoins, tirages réels d'exercices, invariants de
+# banque — et jusqu'ici RIEN ne l'exécutait. Elle ne tournait que si
+# quelqu'un pensait à la lancer, c'est-à-dire au moment précis où l'on est le
+# moins disposé à lire un rapport d'erreur : juste avant de livrer.
+#
+# Une app d'apprentissage affiche la forme qu'elle calcule comme LA bonne
+# réponse. Une terminaison fausse n'y est pas un défaut d'affichage, c'est
+# une faute enseignée à quelqu'un qui n'a aucun moyen de la détecter. Le
+# coût d'une régression n'est donc pas symétrique, et c'est ce qui justifie
+# de bloquer la fusion plutôt que de signaler après coup.
+#
+# L'ORDRE DES ÉTAPES EST DÉLIBÉRÉ. `check` d'abord : il est le plus rapide à
+# échouer et le plus précis à lire. `lint` ensuite. `build` en dernier,
+# parce qu'il est le plus lent et que ses échecs sont presque toujours déjà
+# révélés par les deux premiers.
+
+name: Contrôles
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Une nouvelle poussée sur la même branche annule la précédente : seul le
+# dernier état compte, et les contrôles coûtent quelques minutes.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Le dictionnaire OpenRussian (11 Mo, quatre CSV) n'est pas versionné :
+      # les scripts le téléchargent au premier lancement. Le cacher évite de
+      # le retélécharger à chaque exécution — et permet aux contrôles de
+      # passer même si la source est momentanément indisponible.
+      - name: Cache du dictionnaire
+        uses: actions/cache@v4
+        with:
+          path: scripts/.cache
+          key: openrussian-v1
+
+      - run: npm ci
+
+      - name: Contrôles de contenu
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # Le build rend des pages qui lisent la configuration ; des valeurs
+          # factices suffisent, aucune requête n'est faite au moment du rendu.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
