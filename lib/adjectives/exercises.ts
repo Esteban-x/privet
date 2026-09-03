@@ -2,6 +2,7 @@ import { CaseId, Gender } from "@/lib/grammar/types";
 import { getAdjective } from "@/lib/grammar/adjectives-data";
 import { getNoun } from "@/lib/grammar/nouns-data";
 import { declineAdjective } from "@/lib/grammar/decline-adjective";
+import { stripAccent } from "@/lib/grammar/decline";
 import { declineNoun } from "@/lib/grammar/decline";
 
 /**
@@ -606,13 +607,13 @@ function distractors(
   ];
   // Même case du tableau, autre cas — puis autre genre, puis l'autre nombre.
   for (const c of cases) {
-    variants.push(declineAdjective(adjective, c, noun.gender, plural, noun.animacy).form);
+    variants.push(declineAdjective(adjective, c, noun.gender, plural, noun.animacy).accented);
   }
   for (const g of ["masculine", "feminine", "neuter"] as Gender[]) {
-    variants.push(declineAdjective(adjective, context.case, g, plural, noun.animacy).form);
+    variants.push(declineAdjective(adjective, context.case, g, plural, noun.animacy).accented);
   }
   variants.push(
-    declineAdjective(adjective, context.case, noun.gender, !plural, noun.animacy).form
+    declineAdjective(adjective, context.case, noun.gender, !plural, noun.animacy).accented
   );
 
   const unique = [...new Set(variants)].filter((f) => f !== correct);
@@ -635,7 +636,11 @@ export function generateAdjectiveExercise(
   if (!resolved) throw new Error(`Contexte invalide : ${context.id}`);
   const { noun, plural, adjResult, nounResult } = resolved;
 
-  const correct = adjResult.form;
+  // La forme ACCENTUÉE : la phrase au-dessus l'est (« На на́шей у́лице ___
+  // дом. »), et des boutons nus juste en dessous donnaient deux
+  // typographies dans un même écran. L'accent n'est jamais exigé de
+  // l'apprenant — la correction le retire des deux côtés.
+  const correct = adjResult.accented;
   const options = [correct, ...distractors(context, correct, random)];
   for (let i = options.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
@@ -665,7 +670,9 @@ export function checkAdjectiveAnswer(itemId: string, answer: string): boolean | 
   if (!context) return null;
   const resolved = resolve(context);
   if (!resolved) return null;
-  return resolved.adjResult.form === answer;
+  // Comparaison sans accent : l'apprenant clique une option accentuée, mais
+  // une réponse enregistrée avant que la banque le soit doit rester juste.
+  return stripAccent(resolved.adjResult.accented) === stripAccent(answer);
 }
 
 export { CONTEXTS as ADJECTIVE_CONTEXTS };

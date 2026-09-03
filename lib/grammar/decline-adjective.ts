@@ -5,8 +5,15 @@ import { Adjective, Animacy, CaseId, DeclensionResult, Gender } from "./types";
  * noms, dont les formes viennent du dictionnaire. C'est justifié ici : la
  * déclinaison de l'adjectif long est un système fermé et entièrement
  * régulier (trois tables + deux règles d'orthographe), sans voyelle mobile
- * ni supplétisme. `accented` reprend donc la forme calculée : la banque
- * d'adjectifs ne porte pas d'accent tonique.
+ * ni supplétisme.
+ *
+ * L'ACCENT, LUI, EST UNE DONNÉE. La banque n'en portait pas, si bien que le
+ * module affichait une phrase accentuée (« На на́шей у́лице ___ дом. ») et,
+ * juste en dessous, des boutons nus — новый / нового / новому. Les lemmes
+ * viennent maintenant accentués du dictionnaire, et les formes calculées
+ * gardent l'accent : il ne bouge qu'entre deux schémas, sur le radical
+ * (краси́вый → краси́вого) ou sur la désinence (большо́й → большо́го), et
+ * `stressedEnding` disait déjà lequel des deux s'applique.
  *
  * Trois familles :
  * - "hard"  : radical dur, désinences -ый/-ая/-ое/-ые (новый, старый…).
@@ -22,9 +29,46 @@ import { Adjective, Animacy, CaseId, DeclensionResult, Gender } from "./types";
 
 const SOFTENING_HISSING = ["ж", "ч", "ш", "щ"];
 
-function stemOf(adj: Adjective): { stem: string; lastLetter: string } {
-  const stem = adj.lemmaM.slice(0, -2); // -ый/-ий/-ой font toujours 2 caractères
-  return { stem, lastLetter: stem[stem.length - 1] };
+const ACCENT = "́";
+
+/**
+ * Le radical, et l'endroit où tombe l'accent.
+ *
+ * `slice(0, -2)` sur le lemme ACCENTUÉ ne marche pas : l'accent combinant
+ * est un caractère, si bien que « большо́й » perdrait « ́й » et garderait le
+ * о. On découpe donc la forme nue, et on retient à part si le radical
+ * portait l'accent.
+ */
+function stemOf(adj: Adjective): { stem: string; lastLetter: string; stemStress: number } {
+  const bare = adj.lemmaM.replace(/́/g, "");
+  const stem = bare.slice(0, -2); // -ый/-ий/-ой font toujours 2 caractères
+  // Position de l'accent DANS le radical, ou -1 s'il est sur la désinence.
+  const at = adj.lemmaM.indexOf(ACCENT);
+  const stemStress = at > 0 && at - 1 < stem.length ? at - 1 : -1;
+  return { stem, lastLetter: stem[stem.length - 1], stemStress };
+}
+
+/**
+ * Repose l'accent sur la forme calculée.
+ *
+ * Deux schémas, et c'est tout : soit l'accent reste où le lemme l'avait dans
+ * le radical (краси́вый → краси́вого), soit il vit sur la désinence et suit
+ * sa première voyelle (большо́й → большо́го, больши́х).
+ */
+function withStress(stem: string, ending: string, stemStress: number): string {
+  // Le ё porte l'accent par lui-même et n'est donc jamais marqué : un lemme
+  // comme « тёплый » n'a pas de signe, ce qui ne veut pas dire que la
+  // désinence est accentuée. Sans cette ligne, le moteur produisait
+  // « тёплы́й », deux accents dans un mot qui n'en a qu'un.
+  if (stem.includes("ё")) return stem + ending;
+  if (stemStress >= 0) {
+    return stem.slice(0, stemStress + 1) + ACCENT + stem.slice(stemStress + 1) + ending;
+  }
+  const vowel = [...ending].findIndex((c) => "аеёиоуыэюя".includes(c));
+  if (vowel < 0) return stem + ending;
+  // Le ё porte l'accent par lui-même : pas de marque en plus.
+  if (ending[vowel] === "ё") return stem + ending;
+  return stem + ending.slice(0, vowel + 1) + ACCENT + ending.slice(vowel + 1);
 }
 
 function applySpelling(ending: string, adj: Adjective, lastLetter: string): string {
@@ -68,8 +112,9 @@ function nonAccusativeForm(
   gender: Gender,
   plural: boolean,
   stem: string,
-  lastLetter: string
-): { form: string; rule: string } {
+  lastLetter: string,
+  stemStress: number
+): { form: string; accented: string; rule: string } {
   const table = adj.stemType === "soft" ? SOFT : HARD;
   const set = table[group];
   let raw = plural ? set.pl : gender === "masculine" ? set.masc : gender === "feminine" ? set.fem : set.neut;
@@ -79,7 +124,11 @@ function nonAccusativeForm(
   }
 
   const ending = applySpelling(raw, adj, lastLetter);
-  return { form: stem + ending, rule: `adjectif ${adj.stemType} : ${group} ${plural ? "pl." : gender} -${ending}` };
+  return {
+    form: stem + ending,
+    accented: withStress(stem, ending, stemStress),
+    rule: `adjectif ${adj.stemType} : ${group} ${plural ? "pl." : gender} -${ending}`,
+  };
 }
 
 export function declineAdjective(
@@ -89,11 +138,11 @@ export function declineAdjective(
   plural: boolean,
   animacy: Animacy
 ): DeclensionResult {
-  const { stem, lastLetter } = stemOf(adj);
+  const { stem, lastLetter, stemStress } = stemOf(adj);
 
   if (targetCase === "nominative") {
-    const r = nonAccusativeForm(adj, "nom", gender, plural, stem, lastLetter);
-    return { case: targetCase, form: r.form, accented: r.form, ruleApplied: r.rule, isIrregular: false };
+    const r = nonAccusativeForm(adj, "nom", gender, plural, stem, lastLetter, stemStress);
+    return { case: targetCase, form: r.form, accented: r.accented, ruleApplied: r.rule, isIrregular: false };
   }
 
   if (targetCase === "accusative") {
@@ -103,25 +152,25 @@ export function declineAdjective(
       return {
         case: targetCase,
         form: stem + ending,
-        accented: stem + ending,
+        accented: withStress(stem, ending, stemStress),
         ruleApplied: `adjectif fém. : accusatif -${ending}`,
         isIrregular: false,
       };
     }
     if (!plural && gender === "neuter") {
-      const r = nonAccusativeForm(adj, "nom", gender, plural, stem, lastLetter);
-      return { case: targetCase, form: r.form, accented: r.form, ruleApplied: "adjectif neutre : accusatif = nominatif", isIrregular: false };
+      const r = nonAccusativeForm(adj, "nom", gender, plural, stem, lastLetter, stemStress);
+      return { case: targetCase, form: r.form, accented: r.accented, ruleApplied: "adjectif neutre : accusatif = nominatif", isIrregular: false };
     }
     // masculin singulier et pluriel (tous genres) : dépend de l'animacité
     if (animacy === "animate") {
-      const r = nonAccusativeForm(adj, "gen", gender, plural, stem, lastLetter);
-      return { case: targetCase, form: r.form, accented: r.form, ruleApplied: "adjectif animé : accusatif = génitif", isIrregular: false };
+      const r = nonAccusativeForm(adj, "gen", gender, plural, stem, lastLetter, stemStress);
+      return { case: targetCase, form: r.form, accented: r.accented, ruleApplied: "adjectif animé : accusatif = génitif", isIrregular: false };
     }
-    const r = nonAccusativeForm(adj, "nom", gender, plural, stem, lastLetter);
-    return { case: targetCase, form: r.form, accented: r.form, ruleApplied: "adjectif inanimé : accusatif = nominatif", isIrregular: false };
+    const r = nonAccusativeForm(adj, "nom", gender, plural, stem, lastLetter, stemStress);
+    return { case: targetCase, form: r.form, accented: r.accented, ruleApplied: "adjectif inanimé : accusatif = nominatif", isIrregular: false };
   }
 
   const group = targetCase === "genitive" ? "gen" : targetCase === "dative" ? "dat" : targetCase === "instrumental" ? "instr" : "prep";
-  const r = nonAccusativeForm(adj, group, gender, plural, stem, lastLetter);
-  return { case: targetCase, form: r.form, accented: r.form, ruleApplied: r.rule, isIrregular: false };
+  const r = nonAccusativeForm(adj, group, gender, plural, stem, lastLetter, stemStress);
+  return { case: targetCase, form: r.form, accented: r.accented, ruleApplied: r.rule, isIrregular: false };
 }

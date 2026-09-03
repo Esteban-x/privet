@@ -138,7 +138,7 @@ for (const skill of ADJECTIVE_SKILLS) {
       for (const g of ["masculine", "feminine", "neuter"]) {
         for (const pl of [false, true]) {
           for (const an of ["animate", "inanimate"]) {
-            paradigm.add(declineAdjective(adjective, c, g, pl, an).form);
+            paradigm.add(declineAdjective(adjective, c, g, pl, an).accented);
           }
         }
       }

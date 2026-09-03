@@ -42,6 +42,9 @@ const {
   poolFor,
 } = await jiti.import("../lib/grammar/exercise-generator.ts");
 import { mixedScript, accentOnConsonant } from "./lib/cyrillic.mjs";
+import { accentuate, canonicalForms, loadDictionary } from "./lib/dictionary.mjs";
+
+const adjectiveDictionary = await loadDictionary(["adjectives"]);
 
 const { TRIGGERS, PROPER_NOUN_TRIGGER_ID, triggerNumber } = await jiti.import(
   "../lib/grammar/triggers.ts"
@@ -388,9 +391,54 @@ const ADJ_ANIMATE_ACC = {
   "большой": { masculine: "большого", plural: "больших" },
   "синий": { masculine: "синего", plural: "синих" },
 };
+// LES 18 ADJECTIFS, CONTRE LE DICTIONNAIRE. Les tables témoins ci-dessus
+// n'en couvraient que 5 : `if (!table) continue` laissait passer les treize
+// autres sans une assertion, et ce sont eux qu'on ajoute quand on enrichit
+// la banque. adjectives.csv donne les 24 formes déclinées de 11 942
+// adjectifs, accentuées — on peut donc vérifier la totalité, accent
+// compris, ce que les tables écrites à la main ne font pas.
+{
+  const A = adjectiveDictionary.of("adjectives");
+  const COLUMN = { masculine: "m", feminine: "f", neuter: "n" };
+  const SUFFIX = {
+    nominative: "nom",
+    genitive: "gen",
+    dative: "dat",
+    accusative: "acc",
+    instrumental: "inst",
+    prepositional: "prep",
+  };
+  let compared = 0;
+  for (const adj of ADJECTIVES) {
+    const row = A.get(stripAccent(adj.lemmaM));
+    require_(row, `${adj.lemmaM} : absent du dictionnaire des adjectifs`);
+    if (!row) continue;
+    const cells = [];
+    for (const [gender, code] of Object.entries(COLUMN)) {
+      for (const c of CASE_ORDER) cells.push([`${gender} ${c}`, `decl_${code}_${SUFFIX[c]}`, gender, c, false]);
+    }
+    for (const c of CASE_ORDER) cells.push([`pluriel ${c}`, `decl_pl_${SUFFIX[c]}`, "masculine", c, true]);
+
+    for (const [label, column, gender, c, plural] of cells) {
+      const expected = canonicalForms(row[column]).map(accentuate);
+      if (!expected.length) continue;
+      compared += 1;
+      const got = declineAdjective(adj, c, gender, plural, "inanimate").accented;
+      require_(
+        expected.includes(got),
+        `${adj.lemmaM} ${label} : le moteur donne "${got}", le dictionnaire "${expected.join(" ou ")}"`
+      );
+    }
+  }
+  require_(
+    compared > 400,
+    `seulement ${compared} formes d'adjectif comparées au dictionnaire`
+  );
+}
+
 for (const adj of ADJECTIVES) {
   const table = ADJ_TABLE[adj.lemmaM];
-  if (!table) continue; // couverture par famille : un modèle représentatif suffit
+  if (!table) continue; // les témoins écrits à la main, en plus du dictionnaire
   for (const key of ["masculine", "feminine", "neuter", "plural"]) {
     const plural = key === "plural";
     const gender = plural ? "masculine" : key;
