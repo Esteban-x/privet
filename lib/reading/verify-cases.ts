@@ -35,7 +35,9 @@ function buildFormIndex(): Map<string, Set<CaseId>> {
   for (const noun of [...NOUNS, ...RUSSIAN_NAMES]) {
     for (const forms of [noun.forms.singular, noun.forms.plural]) {
       forms.forEach((accented, i) => {
-        const bare = stripAccent(accented).toLowerCase();
+        // Le ё est replié sur е ICI AUSSI, sinon l'index et la recherche ne
+        // parlent pas la même langue.
+        const bare = fold(accented);
         const set = index.get(bare) ?? new Set<CaseId>();
         set.add(CASE_ORDER[i]);
         index.set(bare, set);
@@ -47,13 +49,27 @@ function buildFormIndex(): Map<string, Set<CaseId>> {
 
 const FORM_INDEX = buildFormIndex();
 
-/** Ponctuation collée au mot dans le texte : on la retire avant de comparer. */
-function normalise(word: string): string {
-  return word
+/**
+ * Repli commun à l'index et à la recherche : minuscules, accent tonique
+ * retiré, ё ramené à е, ponctuation ôtée.
+ *
+ * La ligne `.replace(/ё/g, "ё")` remplaçait ё PAR LUI-MÊME — les deux côtés
+ * étaient le même caractère U+0451. Une ligne morte, et le repli qu'elle
+ * était censée faire n'avait jamais lieu : un texte de lecture écrit
+ * « ребенок » ne retrouvait pas « ребёнок » dans la banque, et son tag de
+ * cas restait « invérifiable » au lieu d'être confirmé.
+ *
+ * Corriger la ligne seule n'aurait rien donné : l'index est bâti avec le
+ * même repli, et il gardait le ё. Les deux devaient bouger ensemble.
+ */
+function fold(word: string): string {
+  return stripAccent(word)
     .toLowerCase()
-    .replace(/ё/g, "ё")
-    .replace(/[^а-яёa-z-]/gi, "");
+    .replace(/ё/g, "е")
+    .replace(/[^а-яa-z-]/gi, "");
 }
+
+const normalise = fold;
 
 export type CaseTagStatus = "confirmed" | "unverified";
 

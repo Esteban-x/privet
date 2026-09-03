@@ -135,6 +135,26 @@ require_(
   `ponctuation et majuscule ne doivent pas empêcher la vérification (${punctuated.report.confirmed}/2)`
 );
 
+// Le ё écrit е, et l'inverse.
+//
+// Le russe courant écrit rarement le ё : un texte de lecture dit
+// « ребенок » là où la banque a « ребёнок ». Le repli existait — une ligne
+// `.replace(/ё/g, "ё")` — mais remplaçait ё par LUI-MÊME, les deux côtés
+// étant le même caractère. Elle ne faisait donc rien, et le tag de ces mots
+// restait « invérifiable ».
+{
+  const withoutYo = V.verifyCaseTags([[w("ребенка", "accusative")]]);
+  require_(
+    withoutYo.report.confirmed === 1,
+    `« ребенка » sans ё doit retrouver « ребёнка » dans la banque (${withoutYo.report.confirmed}/1)`
+  );
+  const withYo = V.verifyCaseTags([[w("ребёнка", "accusative")]]);
+  require_(
+    withYo.report.confirmed === 1,
+    `« ребёнка » avec ё doit rester reconnu (${withYo.report.confirmed}/1)`
+  );
+}
+
 // Ce qui n'a pas de tag n'est pas touché.
 const untagged = V.verifyCaseTags([[{ ru: "и", gloss: "et" }]]);
 require_(

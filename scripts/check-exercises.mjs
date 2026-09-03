@@ -263,6 +263,18 @@ require_(
 );
 
 // ─── Rapport ─────────────────────────────────────────────────────
+//
+// LES ÉCHECS D'ABORD. Le résumé s'imprimait avant eux, si bien qu'un run
+// qui échoue commençait par deux lignes rassurantes — « 8 modules,
+// 40 compétences » — avant d'annoncer ce qui n'allait pas. Sur un terminal
+// qui défile, c'est la première ligne qu'on lit.
+if (failures.length > 0) {
+  console.error(`\n${failures.length} problème(s) sur ${checks} contrôles :`);
+  for (const failure of failures.slice(0, 40)) console.error(`  - ${failure}`);
+  if (failures.length > 40) console.error(`  … et ${failures.length - 40} autres`);
+  process.exit(1);
+}
+
 const skillTotal = EXERCISE_MODULES.reduce((sum, m) => sum + m.skills.length, 0);
 console.log(
   `Exercices : ${EXERCISE_MODULES.length} modules, ${skillTotal} compétences, ${DRAWS} tirages par onglet`
@@ -270,10 +282,4 @@ console.log(
 console.log(
   `Banque de verbes : ${VERBS.length} verbes, ${conjugation.SHIFTING_VERBS.length} à accent mobile au passé`
 );
-
-if (failures.length > 0) {
-  console.error(`\n${failures.length} problème(s) sur ${checks} contrôles :`);
-  for (const failure of failures.slice(0, 40)) console.error(`  - ${failure}`);
-  process.exit(1);
-}
 console.log(`${checks} contrôles passés.`);

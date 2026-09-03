@@ -12,8 +12,13 @@
  *
  * Ce qui est écrit ici est ce qu'un dictionnaire donne : les six personnes
  * du présent, le passé masculin et féminin, l'impératif. `npm run
- * check:conjugation` vérifie la cohérence interne — pas de doublon, chaque
+ * check:exercises` vérifie la cohérence interne — pas de doublon, chaque
  * forme accentuée, terminaisons conformes à la classe déclarée.
+ *
+ * (Ce commentaire nommait `check:conjugation`, un script qui n'a jamais
+ * existé : la vérification vit dans check-exercises.mjs, section « Banque
+ * de verbes ». Un renvoi vers un script absent laisse croire à une
+ * couverture qu'on n'a pas.)
  *
  * Le champ `naive` porte la faute que fait un francophone quand il applique
  * la règle sans connaître l'alternance : « писа́ю » au lieu de « пишу́ ». Il
