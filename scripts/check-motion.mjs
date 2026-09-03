@@ -20,6 +20,7 @@
 import { createJiti } from "jiti";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inspect } from "./lib/cyrillic.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
@@ -55,12 +56,12 @@ const ids = new Set();
 for (const pair of V.MOTION_PAIRS) {
   require_(!ids.has(pair.id), `identifiant en double : ${pair.id}`);
   ids.add(pair.id);
-  const expected = EXPECTED_PAIRS[pair.uni];
+  const expected = EXPECTED_PAIRS[stripAccent(pair.uni)];
   if (!expected) {
     failures.push(`${pair.uni} absent de la table de référence de check-motion.mjs`);
     continue;
   }
-  require_(pair.multi === expected.multi, `${pair.uni} : multidirectionnel "${pair.multi}" au lieu de "${expected.multi}"`);
+  require_(stripAccent(pair.multi) === expected.multi, `${pair.uni} : multidirectionnel "${pair.multi}" au lieu de "${expected.multi}"`);
   const uni = [pair.uniForms.present1, pair.uniForms.present3, pair.uniForms.pastM, pair.uniForms.pastF];
   const mult = [pair.multiForms.present1, pair.multiForms.present3, pair.multiForms.pastM, pair.multiForms.pastF];
   // La table témoin est écrite sans accent : c'est l'ORTHOGRAPHE qu'elle
@@ -105,14 +106,17 @@ const EXPECTED_PREFIXES = {
 };
 
 for (const p of V.MOTION_PREFIXES) {
-  const expected = EXPECTED_PREFIXES[p.perfective];
+  // Les tables témoins gardent l'ORTHOGRAPHE, pas l'accent : la position de
+  // l'accent est vérifiée contre le dictionnaire (§5) et par l'hygiène plus
+  // bas. La recopier ici la figerait à deux endroits.
+  const expected = EXPECTED_PREFIXES[stripAccent(p.perfective)];
   if (!expected) {
     failures.push(`${p.perfective} absent de la table de référence`);
     continue;
   }
-  require_(p.imperfective === expected.imp, `${p.perfective} : imperfectif "${p.imperfective}" au lieu de "${expected.imp}"`);
-  require_(p.pastM === expected.pastM, `${p.perfective} : passé masculin "${p.pastM}" au lieu de "${expected.pastM}"`);
-  require_(p.pastF === expected.pastF, `${p.perfective} : passé féminin "${p.pastF}" au lieu de "${expected.pastF}"`);
+  require_(stripAccent(p.imperfective) === expected.imp, `${p.perfective} : imperfectif "${p.imperfective}" au lieu de "${expected.imp}"`);
+  require_(stripAccent(p.pastM) === expected.pastM, `${p.perfective} : passé masculin "${p.pastM}" au lieu de "${expected.pastM}"`);
+  require_(stripAccent(p.pastF) === expected.pastF, `${p.perfective} : passé féminin "${p.pastF}" au lieu de "${expected.pastF}"`);
   require_(p.governs === expected.governs, `${p.perfective} : régit "${p.governs}" au lieu de "${expected.governs}"`);
 }
 
@@ -223,6 +227,30 @@ require_(
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────
+const ACCENTED_FORMS = V.MOTION_PAIRS.flatMap((p) =>
+  [...Object.values(p.uniForms), ...Object.values(p.multiForms)].filter(Boolean)
+);
+
+// ─── Hygiène de l'accent tonique ───────────────────────────────────
+//
+// Trois défauts qu'aucune table témoin ne voit, parce qu'elles comparent
+// l'ORTHOGRAPHE et pas la typographie :
+//
+//   un polysyllabe sans accent      l'apprenant ne peut pas le prononcer
+//   un accent posé sur une consonne invisible, et il fausse la lecture
+//   deux accents dans un mot        « тёплы́й » — un mot n'en a qu'un
+//
+// Le ё porte l'accent par lui-même : il compte comme marque.
+{
+  for (const form of ACCENTED_FORMS) {
+    for (const problem of inspect(form, form)) require_(false, problem);
+    require_(
+      (form.match(/́/g) ?? []).length <= 1,
+      `« ${form} » porte plus d'un accent tonique`
+    );
+  }
+}
+
 if (failures.length) {
   console.error(`\n✗ ${failures.length} problème(s) sur ${checks} contrôles :\n`);
   for (const f of failures) console.error(`  ${f}`);

@@ -70,7 +70,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   // ─── Préfixation : le perfectif ajoute un préfixe ────────────────
   {
     id: "delat",
-    imperfective: "делать", perfective: "сделать", translation: "faire",
+    imperfective: "де́лать", perfective: "сде́лать", translation: "faire",
     formation: "prefixe",
     impPast: "де́лал", perfPast: "сде́лал",
     impPastF: "де́лала", perfPastF: "сде́лала",
@@ -80,7 +80,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "pisat",
-    imperfective: "писать", perfective: "написать", translation: "écrire",
+    imperfective: "писа́ть", perfective: "написа́ть", translation: "écrire",
     formation: "prefixe",
     impPast: "писа́л", perfPast: "написа́л",
     impPastF: "писа́ла", perfPastF: "написа́ла",
@@ -90,7 +90,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "chitat",
-    imperfective: "читать", perfective: "прочитать", translation: "lire",
+    imperfective: "чита́ть", perfective: "прочита́ть", translation: "lire",
     formation: "prefixe",
     impPast: "чита́л", perfPast: "прочита́л",
     impPastF: "чита́ла", perfPastF: "прочита́ла",
@@ -100,7 +100,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "smotret",
-    imperfective: "смотреть", perfective: "посмотреть", translation: "regarder",
+    imperfective: "смотре́ть", perfective: "посмотре́ть", translation: "regarder",
     formation: "prefixe",
     impPast: "смотре́л", perfPast: "посмотре́л",
     impPastF: "смотре́ла", perfPastF: "посмотре́ла",
@@ -110,7 +110,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "gotovit",
-    imperfective: "готовить", perfective: "приготовить", translation: "préparer",
+    imperfective: "гото́вить", perfective: "пригото́вить", translation: "préparer",
     formation: "prefixe",
     impPast: "гото́вил", perfPast: "пригото́вил",
     impPastF: "гото́вила", perfPastF: "пригото́вила",
@@ -120,7 +120,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "stroit",
-    imperfective: "строить", perfective: "построить", translation: "construire",
+    imperfective: "стро́ить", perfective: "постро́ить", translation: "construire",
     formation: "prefixe",
     impPast: "стро́ил", perfPast: "постро́ил",
     impPastF: "стро́ила", perfPastF: "постро́ила",
@@ -130,7 +130,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "uchit",
-    imperfective: "учить", perfective: "выучить", translation: "apprendre (par cœur)",
+    imperfective: "учи́ть", perfective: "вы́учить", translation: "apprendre (par cœur)",
     formation: "prefixe",
     impPast: "учи́л", perfPast: "вы́учил",
     impPastF: "учи́ла", perfPastF: "вы́учила",
@@ -140,7 +140,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "pit",
-    imperfective: "пить", perfective: "выпить", translation: "boire",
+    imperfective: "пить", perfective: "вы́пить", translation: "boire",
     formation: "prefixe",
     impPast: "пил", perfPast: "вы́пил",
     impPastF: "пила́", perfPastF: "вы́пила",
@@ -160,7 +160,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "zvonit",
-    imperfective: "звонить", perfective: "позвонить", translation: "téléphoner",
+    imperfective: "звони́ть", perfective: "позвони́ть", translation: "téléphoner",
     formation: "prefixe",
     impPast: "звони́л", perfPast: "позвони́л",
     impPastF: "звони́ла", perfPastF: "позвони́ла",
@@ -170,7 +170,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "videt",
-    imperfective: "видеть", perfective: "увидеть", translation: "voir",
+    imperfective: "ви́деть", perfective: "уви́деть", translation: "voir",
     formation: "prefixe",
     impPast: "ви́дел", perfPast: "уви́дел",
     impPastF: "ви́дела", perfPastF: "уви́дела",
@@ -184,7 +184,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "zavtrakat",
-    imperfective: "завтракать", perfective: "позавтракать", translation: "prendre le petit-déjeuner",
+    imperfective: "за́втракать", perfective: "поза́втракать", translation: "prendre le petit-déjeuner",
     formation: "prefixe",
     impPast: "за́втракал", perfPast: "поза́втракал",
     impPastF: "за́втракала", perfPastF: "поза́втракала",
@@ -196,7 +196,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   // ─── Suffixation : l'imperfectif est dérivé du perfectif ─────────
   {
     id: "reshat",
-    imperfective: "решать", perfective: "решить", translation: "résoudre, décider",
+    imperfective: "реша́ть", perfective: "реши́ть", translation: "résoudre, décider",
     formation: "suffixe",
     impPast: "реша́л", perfPast: "реши́л",
     impPastF: "реша́ла", perfPastF: "реши́ла",
@@ -206,7 +206,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "zabyvat",
-    imperfective: "забывать", perfective: "забыть", translation: "oublier",
+    imperfective: "забыва́ть", perfective: "забы́ть", translation: "oublier",
     formation: "suffixe",
     impPast: "забыва́л", perfPast: "забы́л",
     impPastF: "забыва́ла", perfPastF: "забы́ла",
@@ -216,7 +216,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "poluchat",
-    imperfective: "получать", perfective: "получить", translation: "recevoir",
+    imperfective: "получа́ть", perfective: "получи́ть", translation: "recevoir",
     formation: "suffixe",
     impPast: "получа́л", perfPast: "получи́л",
     impPastF: "получа́ла", perfPastF: "получи́ла",
@@ -226,7 +226,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "obyasnyat",
-    imperfective: "объяснять", perfective: "объяснить", translation: "expliquer",
+    imperfective: "объясня́ть", perfective: "объясни́ть", translation: "expliquer",
     formation: "suffixe",
     impPast: "объясня́л", perfPast: "объясни́л",
     impPastF: "объясня́ла", perfPastF: "объясни́ла",
@@ -236,7 +236,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "povtoryat",
-    imperfective: "повторять", perfective: "повторить", translation: "répéter",
+    imperfective: "повторя́ть", perfective: "повтори́ть", translation: "répéter",
     formation: "suffixe",
     impPast: "повторя́л", perfPast: "повтори́л",
     impPastF: "повторя́ла", perfPastF: "повтори́ла",
@@ -246,7 +246,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "otvechat",
-    imperfective: "отвечать", perfective: "ответить", translation: "répondre",
+    imperfective: "отвеча́ть", perfective: "отве́тить", translation: "répondre",
     formation: "suffixe",
     impPast: "отвеча́л", perfPast: "отве́тил",
     impPastF: "отвеча́ла", perfPastF: "отве́тила",
@@ -256,7 +256,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "vstrechat",
-    imperfective: "встречать", perfective: "встретить", translation: "rencontrer",
+    imperfective: "встреча́ть", perfective: "встре́тить", translation: "rencontrer",
     formation: "suffixe",
     impPast: "встреча́л", perfPast: "встре́тил",
     impPastF: "встреча́ла", perfPastF: "встре́тила",
@@ -266,7 +266,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "pokupat",
-    imperfective: "покупать", perfective: "купить", translation: "acheter",
+    imperfective: "покупа́ть", perfective: "купи́ть", translation: "acheter",
     formation: "suffixe",
     impPast: "покупа́л", perfPast: "купи́л",
     impPastF: "покупа́ла", perfPastF: "купи́ла",
@@ -276,7 +276,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "otkryvat",
-    imperfective: "открывать", perfective: "открыть", translation: "ouvrir",
+    imperfective: "открыва́ть", perfective: "откры́ть", translation: "ouvrir",
     formation: "suffixe",
     impPast: "открыва́л", perfPast: "откры́л",
     impPastF: "открыва́ла", perfPastF: "откры́ла",
@@ -286,7 +286,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "zakryvat",
-    imperfective: "закрывать", perfective: "закрыть", translation: "fermer",
+    imperfective: "закрыва́ть", perfective: "закры́ть", translation: "fermer",
     formation: "suffixe",
     impPast: "закрыва́л", perfPast: "закры́л",
     impPastF: "закрыва́ла", perfPastF: "закры́ла",
@@ -296,7 +296,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "nachinat",
-    imperfective: "начинать", perfective: "начать", translation: "commencer",
+    imperfective: "начина́ть", perfective: "нача́ть", translation: "commencer",
     formation: "suffixe",
     impPast: "начина́л", perfPast: "на́чал",
     impPastF: "начина́ла", perfPastF: "начала́",
@@ -306,7 +306,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "zakanchivat",
-    imperfective: "заканчивать", perfective: "закончить", translation: "terminer",
+    imperfective: "зака́нчивать", perfective: "зако́нчить", translation: "terminer",
     formation: "suffixe",
     impPast: "зака́нчивал", perfPast: "зако́нчил",
     impPastF: "зака́нчивала", perfPastF: "зако́нчила",
@@ -316,7 +316,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "vstavat",
-    imperfective: "вставать", perfective: "встать", translation: "se lever",
+    imperfective: "встава́ть", perfective: "встать", translation: "se lever",
     formation: "suffixe",
     impPast: "встава́л", perfPast: "встал",
     impPastF: "встава́ла", perfPastF: "вста́ла",
@@ -326,7 +326,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "davat",
-    imperfective: "давать", perfective: "дать", translation: "donner",
+    imperfective: "дава́ть", perfective: "дать", translation: "donner",
     formation: "suffixe",
     impPast: "дава́л", perfPast: "дал",
     impPastF: "дава́ла", perfPastF: "дала́",
@@ -336,7 +336,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "izuchat",
-    imperfective: "изучать", perfective: "изучить", translation: "étudier (à fond)",
+    imperfective: "изуча́ть", perfective: "изучи́ть", translation: "étudier (à fond)",
     formation: "suffixe",
     impPast: "изуча́л", perfPast: "изучи́л",
     impPastF: "изуча́ла", perfPastF: "изучи́ла",
@@ -348,7 +348,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   // ─── Supplétion : aucun rapport de forme entre les deux ──────────
   {
     id: "govorit",
-    imperfective: "говорить", perfective: "сказать", translation: "dire",
+    imperfective: "говори́ть", perfective: "сказа́ть", translation: "dire",
     formation: "suppletion",
     impPast: "говори́л", perfPast: "сказа́л",
     impPastF: "говори́ла", perfPastF: "сказа́ла",
@@ -368,17 +368,17 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "klast",
-    imperfective: "класть", perfective: "положить", translation: "poser (à plat)",
+    imperfective: "класть", perfective: "положи́ть", translation: "poser (à plat)",
     formation: "suppletion",
     impPast: "клал", perfPast: "положи́л",
-    impPastF: "клала", perfPastF: "положи́ла",
+    impPastF: "кла́ла", perfPastF: "положи́ла",
     impPresent1: "кладу́", perfFuture1: "положу́",
     impImperative: "клади́те", perfImperative: "положи́те",
     impImperativeTy: "клади́", perfImperativeTy: "положи́",
   },
   {
     id: "sadit",
-    imperfective: "садиться", perfective: "сесть", translation: "s'asseoir",
+    imperfective: "сади́ться", perfective: "сесть", translation: "s'asseoir",
     formation: "suppletion",
     impPast: "сади́лся", perfPast: "сел",
     impPastF: "сади́лась", perfPastF: "се́ла",
@@ -388,7 +388,7 @@ export const ASPECT_PAIRS: AspectPair[] = [
   },
   {
     id: "lozhitsya",
-    imperfective: "ложиться", perfective: "лечь", translation: "se coucher",
+    imperfective: "ложи́ться", perfective: "лечь", translation: "se coucher",
     formation: "suppletion",
     impPast: "ложи́лся", perfPast: "лёг",
     impPastF: "ложи́лась", perfPastF: "легла́",

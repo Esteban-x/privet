@@ -15,6 +15,7 @@
 import { createJiti } from "jiti";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inspect } from "./lib/cyrillic.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
@@ -73,7 +74,7 @@ const ids = new Set();
 for (const pair of V.ASPECT_PAIRS) {
   require_(!ids.has(pair.id), `identifiant en double : ${pair.id}`);
   ids.add(pair.id);
-  const expected = EXPECTED[pair.imperfective];
+  const expected = EXPECTED[stripAccent(pair.imperfective)];
   if (!expected) {
     failures.push(`${pair.imperfective} absent de la table de référence de check-aspect.mjs`);
     continue;
@@ -305,6 +306,43 @@ const CYRILLIC_WORD = (alternatives) =>
           `mais address vaut "${context.address}"`
       );
     }
+  }
+}
+
+const ACCENTED_FORMS = V.ASPECT_PAIRS.flatMap((p) =>
+  [
+    p.imperfective,
+    p.perfective,
+    p.impPast,
+    p.perfPast,
+    p.impPastF,
+    p.perfPastF,
+    p.impPresent1,
+    p.perfFuture1,
+    p.impImperative,
+    p.perfImperative,
+    p.impImperativeTy,
+    p.perfImperativeTy,
+  ].filter(Boolean)
+);
+
+// ─── Hygiène de l'accent tonique ───────────────────────────────────
+//
+// Trois défauts qu'aucune table témoin ne voit, parce qu'elles comparent
+// l'ORTHOGRAPHE et pas la typographie :
+//
+//   un polysyllabe sans accent      l'apprenant ne peut pas le prononcer
+//   un accent posé sur une consonne invisible, et il fausse la lecture
+//   deux accents dans un mot        « тёплы́й » — un mot n'en a qu'un
+//
+// Le ё porte l'accent par lui-même : il compte comme marque.
+{
+  for (const form of ACCENTED_FORMS) {
+    for (const problem of inspect(form, form)) require_(false, problem);
+    require_(
+      (form.match(/́/g) ?? []).length <= 1,
+      `« ${form} » porte plus d'un accent tonique`
+    );
   }
 }
 

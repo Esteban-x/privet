@@ -15,6 +15,7 @@
 import { createJiti } from "jiti";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inspect } from "./lib/cyrillic.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
@@ -28,7 +29,10 @@ function require_(condition, message) {
   if (!condition) failures.push(message);
 }
 
-const CYRILLIC = /^[а-яёА-ЯЁ]+$/;
+// L'accent tonique combinant fait partie des formes depuis que la banque
+// est accentuée.
+const CYRILLIC = /^[а-яёА-ЯЁ\u0301]+$/;
+const stripAccent = (f) => f.replace(/\u0301/g, "");
 
 // ─── 1. Formes : table de référence ────────────────────────────────
 // [actif présent, actif passé imp., actif passé perf., passif passé,
@@ -63,7 +67,7 @@ const ids = new Set();
 for (const verb of V.PARTICIPLE_VERBS) {
   require_(!ids.has(verb.id), `identifiant en double : ${verb.id}`);
   ids.add(verb.id);
-  const expected = EXPECTED[verb.imperfective];
+  const expected = EXPECTED[stripAccent(verb.imperfective)];
   if (!expected) {
     failures.push(`${verb.imperfective} absent de la table de référence de check-participles.mjs`);
     continue;
@@ -80,9 +84,13 @@ for (const verb of V.PARTICIPLE_VERBS) {
     "actif présent", "actif passé imp.", "actif passé perf.",
     "passif passé", "gérondif imp.", "gérondif perf.",
   ];
+  // La table témoin garde l'ORTHOGRAPHE ; l'accent est vérifié à part
+  // (présent, sur une voyelle, unique), parce que les participes ne
+  // figurent pas dans le dictionnaire et qu'aucune source ne peut trancher
+  // à notre place.
   got.forEach((form, i) => {
     require_(
-      form === expected[i],
+      (form === null ? null : stripAccent(form)) === expected[i],
       `${verb.imperfective} : ${labels[i]} « ${form ?? "—"} » au lieu de « ${expected[i] ?? "—"} »`
     );
     if (form !== null) {
@@ -110,8 +118,13 @@ for (const verb of V.PARTICIPLE_VERBS) {
     const unstressed = base.replace(/ё(?=[^ё]*$)/, "е");
     for (const [key, ending] of Object.entries(SHORT_ENDINGS)) {
       const got = verb.passiveShort[key];
+      // Comparaison sans accent : la place de l'accent bouge justement dans
+      // cette alternance (решён -> решена́) et aucune source ne peut la
+      // trancher ici. Elle est vérifiée à part : présente, sur une voyelle,
+      // et unique.
+      const bare = stripAccent(got);
       require_(
-        got === base + ending || got === unstressed + ending,
+        bare === stripAccent(base) + ending || bare === stripAccent(unstressed) + ending,
         `${verb.imperfective} : forme courte « ${got} » incohérente avec « ${base} »`
       );
     }
@@ -222,6 +235,40 @@ require_(
 require_(X.checkParticipleAnswer("", "") === null, "un identifiant vide doit être rejeté");
 
 // ─── Rapport ───────────────────────────────────────────────────────
+const ACCENTED_FORMS = V.PARTICIPLE_VERBS.flatMap((v) =>
+  [
+    v.imperfective,
+    v.perfective,
+    v.activePresent,
+    v.activePastImp,
+    v.activePastPerf,
+    v.passivePast,
+    v.gerundImp,
+    v.gerundPerf,
+    ...(v.passiveShort ? Object.values(v.passiveShort) : []),
+  ].filter(Boolean)
+);
+
+// ─── Hygiène de l'accent tonique ───────────────────────────────────
+//
+// Trois défauts qu'aucune table témoin ne voit, parce qu'elles comparent
+// l'ORTHOGRAPHE et pas la typographie :
+//
+//   un polysyllabe sans accent      l'apprenant ne peut pas le prononcer
+//   un accent posé sur une consonne invisible, et il fausse la lecture
+//   deux accents dans un mot        « тёплы́й » — un mot n'en a qu'un
+//
+// Le ё porte l'accent par lui-même : il compte comme marque.
+{
+  for (const form of ACCENTED_FORMS) {
+    for (const problem of inspect(form, form)) require_(false, problem);
+    require_(
+      (form.match(/́/g) ?? []).length <= 1,
+      `« ${form} » porte plus d'un accent tonique`
+    );
+  }
+}
+
 if (failures.length) {
   console.error(`\n✗ ${failures.length} problème(s) sur ${checks} contrôles :\n`);
   for (const f of failures) console.error(`  ${f}`);
