@@ -10,7 +10,7 @@ export const UNIT_CAS: Unit = {
   title: "Le nom et ses six cas",
   titleRu: "Шесть падежей",
   subtitle:
-    "Ce que devient un nom selon sa fonction : les six cas au singulier, puis au pluriel, irréguliers compris.",
+    "Ce que devient un nom selon sa fonction : les six cas, chacun donné en entier — singulier et pluriel — irréguliers compris.",
   color: "#8B2FA0",
   lessons: [
     {
@@ -70,6 +70,7 @@ export const UNIT_CAS: Unit = {
           body: [
             "La déclinaison paraît être un obstacle ajouté à la langue. C'est en réalité un échange : le russe demande des terminaisons et rend en échange la liberté de l'ordre des mots, l'absence d'articles, et l'absence de verbe « être » au présent.",
             "Six cas × trois genres × deux nombres semblent faire trente-six tableaux. En pratique, beaucoup de cases se répètent, et une dizaine de terminaisons couvrent l'essentiel de la langue parlée.",
+            "Chaque leçon de cette unité prend d'ailleurs un cas et le donne en entier : ses terminaisons du singulier, puis celles du pluriel. Le pluriel d'un cas n'est pas un autre chapitre — c'est la seconde moitié du même.",
           ],
         },
         {
@@ -89,10 +90,20 @@ export const UNIT_CAS: Unit = {
       title: "Le nominatif",
       titleRu: "Именительный падеж",
       level: "A0",
-      minutes: 7,
+      minutes: 15,
       summary:
-        "Le cas du sujet, et la forme sous laquelle un mot est donné dans le dictionnaire. Celui qu'on connaît déjà sans le savoir.",
-      keywords: ["nominatif", "именительный", "sujet", "dictionnaire", "attribut"],
+        "Le cas du sujet, et la forme sous laquelle un mot est donné dans le dictionnaire — puis son pluriel : deux terminaisons, les masculins en -а́ accentué, et les irréguliers.",
+      keywords: [
+        "nominatif",
+        "именительный",
+        "sujet",
+        "dictionnaire",
+        "attribut",
+        "nominatif pluriel",
+        "дома",
+        "друзья",
+        "люди",
+      ],
       sections: [
         {
           kind: "prose",
@@ -129,12 +140,64 @@ export const UNIT_CAS: Unit = {
           ],
         },
         {
+          kind: "table",
+          title: "Au pluriel : les formes régulières",
+          head: ["Genre", "Terminaison", "Exemples"],
+          rows: [
+            ["Masculin dur", "-ы", "стол → столы́, студе́нт → студе́нты"],
+            ["Masculin en -й / -ь", "-и", "музе́й → музе́и, слова́рь → словари́"],
+            ["Féminin en -а", "-ы", "ко́мната → ко́мнаты"],
+            ["Féminin en -я / -ь", "-и", "неде́ля → неде́ли, ночь → но́чи"],
+            ["Neutre en -о", "-а", "окно́ → о́кна"],
+            ["Neutre en -е", "-я", "мо́ре → моря́"],
+          ],
+          note: "Après г, к, х, ж, ш, ч, щ, la terminaison -ы devient -и : кни́га → кни́ги.",
+        },
+        {
+          kind: "prose",
+          title: "Les masculins en -а́",
+          body: [
+            "Une centaine de masculins courants forment leur pluriel en -а́ / -я́ accentué au lieu de -ы : дом → дома́, го́род → города́, ве́чер → вечера́, по́езд → поезда́, глаз → глаза́, а́дрес → адреса́, учи́тель → учителя́, до́ктор → доктора́, па́спорт → паспорта́.",
+            "Il n'y a pas de règle : c'est une liste, mais une liste utile, car ces mots sont parmi les plus employés. Quelques mots ont même deux pluriels de sens différents : учи́тели (les maîtres à penser) / учителя́ (les enseignants).",
+          ],
+        },
+        {
+          kind: "table",
+          title: "Les pluriels irréguliers à connaître",
+          head: ["Singulier", "Pluriel", "Sens"],
+          rows: [
+            ["брат", "бра́тья", "frères"],
+            ["друг", "друзья́", "amis"],
+            ["сын", "сыновья́", "fils"],
+            ["стул", "сту́лья", "chaises"],
+            ["де́рево", "дере́вья", "arbres"],
+            ["челове́к", "лю́ди", "gens"],
+            ["ребёнок", "де́ти", "enfants"],
+            ["мать", "ма́тери", "mères"],
+            ["дочь", "до́чери", "filles"],
+            ["и́мя", "имена́", "prénoms"],
+          ],
+        },
+        {
+          kind: "examples",
+          title: "Le pluriel en phrase",
+          items: [
+            { ru: "В го́роде но́вые дома́.", fr: "Il y a de nouvelles maisons dans la ville." },
+            { ru: "Мои́ бра́тья живу́т в Ки́еве.", fr: "Mes frères habitent à Kiev." },
+            { ru: "Э́ти лю́ди ждут авто́бус.", fr: "Ces gens attendent le bus." },
+            { ru: "У них дво́е дете́й.", fr: "Ils ont deux enfants." },
+          ],
+        },
+        {
           kind: "keypoints",
           items: [
             "Questions : кто? что?",
             "Cas du sujet et de l'attribut sans verbe.",
             "Forme de dictionnaire : c'est elle qu'on mémorise.",
             "Le nominatif russe ne coïncide pas toujours avec le sujet français.",
+            "Pluriel : -ы / -и pour les masculins et les féminins, -а / -я pour les neutres.",
+            "Une série fréquente de masculins fait -а́ accentué : дома́, города́.",
+            "бра́тья, друзья́, сту́лья, дере́вья en -ья ; лю́ди et де́ти remplacent leur singulier.",
           ],
         },
       ],
@@ -145,10 +208,10 @@ export const UNIT_CAS: Unit = {
       title: "Le prépositionnel",
       titleRu: "Предложный падеж",
       level: "A1",
-      minutes: 10,
+      minutes: 12,
       summary:
-        "Le cas du lieu où l'on est et du sujet dont on parle. Le plus simple des cas obliques : presque tout finit en -е.",
-      keywords: ["prépositionnel", "предложный", "в", "на", "о", "lieu", "где"],
+        "Le cas du lieu où l'on est et du sujet dont on parle. Le plus simple des cas obliques : presque tout finit en -е au singulier, et tout finit en -ах au pluriel.",
+      keywords: ["prépositionnel", "предложный", "в", "на", "о", "lieu", "где", "-ах"],
       sections: [
         {
           kind: "prose",
@@ -199,12 +262,32 @@ export const UNIT_CAS: Unit = {
           ],
         },
         {
+          kind: "table",
+          title: "Au pluriel",
+          head: ["Radical", "Terminaison", "Exemple"],
+          rows: [
+            ["dur", "-ах", "в города́х — dans les villes"],
+            ["mou", "-ях", "о друзья́х — au sujet des amis"],
+          ],
+          note: "Une seule terminaison pour les trois genres : au pluriel, le prépositionnel, le datif et l'instrumental cessent de distinguer masculin, féminin et neutre. Seule la mouillure du radical joue encore.",
+        },
+        {
+          kind: "examples",
+          title: "Le pluriel en phrase",
+          items: [
+            { ru: "В э́тих города́х краси́вые па́рки.", fr: "Dans ces villes, les parcs sont beaux." },
+            { ru: "Мы говори́ли о фи́льмах.", fr: "Nous avons parlé des films." },
+            { ru: "Она́ ду́мает о де́тях.", fr: "Elle pense aux enfants.", note: "де́тях : pluriel irrégulier de ребёнок" },
+          ],
+        },
+        {
           kind: "keypoints",
           items: [
             "Toujours après une préposition : в, на, о, при.",
             "Terminaison -е dans la grande majorité des cas.",
             "-ия / -ие / -ий font -ии ; les féminins en -ь font -и.",
             "в pour le clos, на pour les surfaces et les activités — avec une liste à apprendre.",
+            "Pluriel : -ах / -ях, sans distinction de genre.",
           ],
         },
       ],
@@ -215,10 +298,18 @@ export const UNIT_CAS: Unit = {
       title: "L'accusatif",
       titleRu: "Винительный падеж",
       level: "A1",
-      minutes: 11,
+      minutes: 13,
       summary:
-        "Le cas de l'objet direct et de la direction. Sa vraie difficulté n'est pas sa forme : c'est la règle animé / inanimé.",
-      keywords: ["accusatif", "винительный", "objet direct", "animé", "куда", "direction"],
+        "Le cas de l'objet direct et de la direction. Sa vraie difficulté n'est pas sa forme : c'est la règle animé / inanimé, qui décide aussi de tout son pluriel.",
+      keywords: [
+        "accusatif",
+        "винительный",
+        "objet direct",
+        "animé",
+        "куда",
+        "direction",
+        "accusatif pluriel",
+      ],
       sections: [
         {
           kind: "prose",
@@ -261,6 +352,27 @@ export const UNIT_CAS: Unit = {
           ],
         },
         {
+          kind: "table",
+          title: "Au pluriel",
+          head: ["Nominatif pluriel", "Accusatif pluriel", "Règle"],
+          rows: [
+            ["столы́ (inanimé)", "столы́", "= nominatif pluriel"],
+            ["кни́ги (inanimé)", "кни́ги", "= nominatif pluriel"],
+            ["бра́тья (animé)", "бра́тьев", "= génitif pluriel"],
+            ["сёстры (animé)", "сестёр", "= génitif pluriel"],
+          ],
+          note: "L'accusatif pluriel n'a aucune forme à lui : il emprunte au nominatif ou au génitif selon l'animation. Et cette fois les féminins et les neutres sont concernés eux aussi, alors qu'au singulier la règle ne touchait que les masculins.",
+        },
+        {
+          kind: "examples",
+          title: "Le pluriel en phrase",
+          items: [
+            { ru: "Я чита́ю кни́ги.", fr: "Je lis des livres.", note: "inanimé : forme du nominatif" },
+            { ru: "Я жду друзе́й.", fr: "J'attends mes amis.", note: "animé : forme du génitif" },
+            { ru: "Она́ лю́бит соба́к.", fr: "Elle aime les chiens.", note: "animé, féminin : la règle vaut aussi" },
+          ],
+        },
+        {
           kind: "pitfall",
           title: "Les verbes qui ne prennent pas l'accusatif",
           body: [
@@ -274,6 +386,7 @@ export const UNIT_CAS: Unit = {
             "Objet direct et direction (в / на + accusatif).",
             "Féminin -а → -у, -я → -ю ; neutre et masculin inanimé inchangés.",
             "Masculin animé : forme identique au génitif.",
+            "Pluriel : inanimé = nominatif, animé = génitif — pour les trois genres.",
             "в + accusatif = j'y vais ; в + prépositionnel = j'y suis.",
           ],
         },
@@ -285,10 +398,22 @@ export const UNIT_CAS: Unit = {
       title: "Le génitif",
       titleRu: "Родительный падеж",
       level: "A1",
-      minutes: 12,
+      minutes: 24,
       summary:
-        "Le cas le plus employé du russe : possession, absence, quantité, et une longue série de prépositions.",
-      keywords: ["génitif", "родительный", "possession", "нет", "много", "из", "от"],
+        "Le cas le plus employé du russe : possession, absence, quantité, prépositions. Et, au pluriel, la forme la plus redoutée de la langue — régie par une règle en balance.",
+      keywords: [
+        "génitif",
+        "родительный",
+        "possession",
+        "нет",
+        "много",
+        "из",
+        "от",
+        "génitif pluriel",
+        "-ов",
+        "-ей",
+        "книг",
+      ],
       sections: [
         {
           kind: "prose",
@@ -340,12 +465,69 @@ export const UNIT_CAS: Unit = {
           ],
         },
         {
+          kind: "prose",
+          title: "Au pluriel : la règle en balance",
+          body: [
+            "Le génitif pluriel a une réputation de cauchemar. Elle est imméritée : il obéit à une logique en balance. Les noms dont le nominatif singulier se termine par une consonne (donc « nus ») prennent une terminaison lourde, -ов ou -ей ; ceux dont le nominatif se termine par une voyelle (-а, -о) la perdent entièrement et finissent par… rien.",
+            "Cette terminaison « zéro » est ce qui déroute : кни́га donne книг, окно́ donne о́кон. Le mot semble amputé, alors qu'il est exactement à la forme attendue.",
+          ],
+        },
+        {
+          kind: "table",
+          title: "Les terminaisons du pluriel",
+          head: ["Nominatif singulier", "Génitif pluriel", "Exemple"],
+          rows: [
+            ["masculin en consonne dure", "-ов", "стол → столо́в"],
+            ["masculin en -й", "-ев", "музе́й → музе́ев"],
+            ["masculin en -ь", "-ей", "слова́рь → словаре́й"],
+            ["masculin en ж, ш, ч, щ", "-ей", "врач → враче́й"],
+            ["féminin en -а", "∅ (rien)", "кни́га → книг"],
+            ["féminin en -я", "-ь", "неде́ля → неде́ль"],
+            ["féminin en -ия", "-ий", "ста́нция → ста́нций"],
+            ["féminin en -ь", "-ей", "ночь → ноче́й"],
+            ["neutre en -о", "∅ (rien)", "ме́сто → мест"],
+            ["neutre en -е", "-ей", "мо́ре → море́й"],
+            ["neutre en -ие", "-ий", "зда́ние → зда́ний"],
+          ],
+        },
+        {
+          kind: "prose",
+          title: "La voyelle d'appui",
+          body: [
+            "Quand la terminaison zéro laisserait deux consonnes impossibles à prononcer en fin de mot, le russe insère une voyelle : о ou е. окно́ → о́кон, де́вушка → де́вушек, сестра́ → сестёр, де́ньги → де́нег, ру́чка → ру́чек.",
+            "Le choix entre о et е suit la mouillure : е après une consonne molle ou une sifflante, о sinon. C'est mécanique, mais mieux vaut vérifier les mots fréquents une fois pour toutes.",
+          ],
+        },
+        {
+          kind: "examples",
+          title: "Là où le génitif pluriel apparaît",
+          items: [
+            { ru: "У меня́ мно́го книг.", fr: "J'ai beaucoup de livres.", note: "après мно́го" },
+            { ru: "В го́роде пять теа́тров.", fr: "Il y a cinq théâtres dans la ville.", note: "après un nombre ≥ 5" },
+            { ru: "Здесь нет свобо́дных мест.", fr: "Il n'y a pas de places libres ici." },
+            { ru: "Он прие́хал из Соединённых Шта́тов.", fr: "Il est arrivé des États-Unis." },
+            { ru: "Не́сколько дней спустя́…", fr: "Quelques jours plus tard…" },
+          ],
+        },
+        {
+          kind: "pitfall",
+          title: "Les formes qu'on croit fausses",
+          body: [
+            "Quelques génitifs pluriels ressemblent au nominatif singulier et donnent l'impression d'une erreur : раз → пять раз, солда́т → мно́го солда́т, челове́к → пять челове́к (mais мно́го люде́й), год → пять лет (emprunté à ле́то).",
+            "Ce sont des formes attestées et obligatoires, pas des raccourcis. пять лет est la seule façon de dire « cinq ans ».",
+          ],
+        },
+        {
           kind: "keypoints",
           items: [
             "Masculin et neutre : -а / -я. Féminin : -ы / -и.",
             "Possession, absence, quantité, nombres ≥ 5, une famille de prépositions.",
             "нет + génitif est LA construction d'absence.",
             "Sous négation, l'objet direct glisse souvent à l'accusatif → génitif.",
+            "Pluriel — nominatif nu (consonne) ⇒ terminaison lourde : -ов, -ев, -ей.",
+            "Pluriel — nominatif en voyelle ⇒ terminaison zéro : книг, мест. -ия / -ие ⇒ -ий.",
+            "Voyelle d'appui о/е quand la fin devient imprononçable : о́кон, сестёр.",
+            "пять лет, пять раз, пять челове́к : formes figées à mémoriser.",
           ],
         },
       ],
@@ -356,10 +538,20 @@ export const UNIT_CAS: Unit = {
       title: "Le datif",
       titleRu: "Дательный падеж",
       level: "A2",
-      minutes: 10,
+      minutes: 12,
       summary:
-        "Le cas du destinataire — et celui de la personne qui ressent : c'est lui qui porte l'âge, le froid, l'envie et le besoin.",
-      keywords: ["datif", "дательный", "destinataire", "мне", "нравится", "надо", "к", "по"],
+        "Le cas du destinataire — et celui de la personne qui ressent : c'est lui qui porte l'âge, le froid, l'envie et le besoin. Au pluriel, une seule terminaison : -ам.",
+      keywords: [
+        "datif",
+        "дательный",
+        "destinataire",
+        "мне",
+        "нравится",
+        "надо",
+        "к",
+        "по",
+        "-ам",
+      ],
       sections: [
         {
           kind: "prose",
@@ -413,9 +605,29 @@ export const UNIT_CAS: Unit = {
           ],
         },
         {
+          kind: "table",
+          title: "Au pluriel",
+          head: ["Radical", "Terminaison", "Exemple"],
+          rows: [
+            ["dur", "-ам", "Я пишу́ студе́нтам. — J'écris aux étudiants."],
+            ["mou", "-ям", "Я пишу́ друзья́м. — J'écris à mes amis."],
+          ],
+          note: "Comme au prépositionnel et à l'instrumental, la terminaison est la même pour les trois genres.",
+        },
+        {
+          kind: "examples",
+          title: "Le pluriel en phrase",
+          items: [
+            { ru: "Он помога́ет роди́телям.", fr: "Il aide ses parents." },
+            { ru: "Де́тям на́до спать.", fr: "Les enfants doivent dormir.", note: "construction impersonnelle au pluriel" },
+            { ru: "Мне нра́вятся э́ти пе́сни.", fr: "J'aime ces chansons.", note: "le verbe s'accorde avec пе́сни, pas avec мне" },
+          ],
+        },
+        {
           kind: "keypoints",
           items: [
             "Masculin / neutre : -у / -ю. Féminin : -е (ou -и pour -ия et -ь).",
+            "Pluriel : -ам / -ям, sans distinction de genre.",
             "Destinataire : дать, сказа́ть, писа́ть, звони́ть, помога́ть.",
             "к + datif = vers quelqu'un ; по + datif = sur, par, selon.",
             "Toutes les constructions de sensation et d'obligation passent par le datif.",
@@ -429,10 +641,19 @@ export const UNIT_CAS: Unit = {
       title: "L'instrumental",
       titleRu: "Творительный падеж",
       level: "A2",
-      minutes: 10,
+      minutes: 12,
       summary:
-        "Le cas du moyen (« avec quoi »), de l'accompagnement (« avec qui ») et de l'attribut variable (« il est devenu médecin »).",
-      keywords: ["instrumental", "творительный", "с", "moyen", "profession", "стать"],
+        "Le cas du moyen (« avec quoi »), de l'accompagnement (« avec qui ») et de l'attribut variable (« il est devenu médecin »). Au pluriel : -ами.",
+      keywords: [
+        "instrumental",
+        "творительный",
+        "с",
+        "moyen",
+        "profession",
+        "стать",
+        "-ами",
+        "людьми",
+      ],
       sections: [
         {
           kind: "prose",
@@ -477,9 +698,29 @@ export const UNIT_CAS: Unit = {
           ],
         },
         {
+          kind: "table",
+          title: "Au pluriel",
+          head: ["Radical", "Terminaison", "Exemple"],
+          rows: [
+            ["dur", "-ами", "со студе́нтами — avec les étudiants"],
+            ["mou", "-ями", "с друзья́ми — avec des amis"],
+          ],
+          note: "Trois irréguliers fréquents gardent un -ьми ancien : людьми́, детьми́, дочерьми́.",
+        },
+        {
+          kind: "examples",
+          title: "Le pluriel en phrase",
+          items: [
+            { ru: "Она́ интересу́ется языка́ми.", fr: "Elle s'intéresse aux langues." },
+            { ru: "Мы е́здили с детьми́ на мо́ре.", fr: "Nous sommes allés à la mer avec les enfants.", note: "детьми́ : irrégulier" },
+            { ru: "Они́ ста́ли врача́ми.", fr: "Ils sont devenus médecins.", note: "attribut de стать, au pluriel" },
+          ],
+        },
+        {
           kind: "keypoints",
           items: [
             "Masculin / neutre : -ом / -ем. Féminin : -ой / -ей, et -ью pour les -ь.",
+            "Pluriel : -ами / -ями, sans distinction de genre — sauf людьми́, детьми́, дочерьми́.",
             "Sans с : le moyen. Avec с : l'accompagnement.",
             "Attribut de быть au passé/futur, стать, рабо́тать : instrumental.",
             "Prépositions с, над, под, пе́ред, ме́жду, за (position).",
@@ -489,216 +730,11 @@ export const UNIT_CAS: Unit = {
       practice: [{ href: "/cases/instrumental", label: "Exercice : l'instrumental" }],
     },
     {
-      slug: "nominatif-pluriel",
-      title: "Le nominatif pluriel",
-      titleRu: "Именительный падеж множественного числа",
-      level: "A1",
-      minutes: 9,
-      summary:
-        "Deux terminaisons principales, une série de masculins en -а́ accentué, et une poignée de pluriels franchement irréguliers.",
-      keywords: ["pluriel", "nominatif pluriel", "дома", "друзья", "люди", "множественное"],
-      sections: [
-        {
-          kind: "table",
-          title: "Formes régulières",
-          head: ["Genre", "Terminaison", "Exemples"],
-          rows: [
-            ["Masculin dur", "-ы", "стол → столы́, студе́нт → студе́нты"],
-            ["Masculin en -й / -ь", "-и", "музе́й → музе́и, слова́рь → словари́"],
-            ["Féminin en -а", "-ы", "ко́мната → ко́мнаты"],
-            ["Féminin en -я / -ь", "-и", "неде́ля → неде́ли, ночь → но́чи"],
-            ["Neutre en -о", "-а", "окно́ → о́кна"],
-            ["Neutre en -е", "-я", "мо́ре → моря́"],
-          ],
-          note: "Après г, к, х, ж, ш, ч, щ, la terminaison -ы devient -и : кни́га → кни́ги.",
-        },
-        {
-          kind: "prose",
-          title: "Les masculins en -а́",
-          body: [
-            "Une centaine de masculins courants forment leur pluriel en -а́ / -я́ accentué au lieu de -ы : дом → дома́, го́род → города́, ве́чер → вечера́, по́езд → поезда́, глаз → глаза́, а́дрес → адреса́, учи́тель → учителя́, до́ктор → доктора́, па́спорт → паспорта́.",
-            "Il n'y a pas de règle : c'est une liste, mais une liste utile, car ces mots sont parmi les plus employés. Quelques mots ont même deux pluriels de sens différents : учи́тели (les maîtres à penser) / учителя́ (les enseignants).",
-          ],
-        },
-        {
-          kind: "table",
-          title: "Les irréguliers à connaître",
-          head: ["Singulier", "Pluriel", "Sens"],
-          rows: [
-            ["брат", "бра́тья", "frères"],
-            ["друг", "друзья́", "amis"],
-            ["сын", "сыновья́", "fils"],
-            ["стул", "сту́лья", "chaises"],
-            ["де́рево", "дере́вья", "arbres"],
-            ["челове́к", "лю́ди", "gens"],
-            ["ребёнок", "де́ти", "enfants"],
-            ["мать", "ма́тери", "mères"],
-            ["дочь", "до́чери", "filles"],
-            ["и́мя", "имена́", "prénoms"],
-          ],
-        },
-        {
-          kind: "examples",
-          items: [
-            { ru: "В го́роде но́вые дома́.", fr: "Il y a de nouvelles maisons dans la ville." },
-            { ru: "Мои́ бра́тья живу́т в Ки́еве.", fr: "Mes frères habitent à Kiev." },
-            { ru: "Э́ти лю́ди ждут авто́бус.", fr: "Ces gens attendent le bus." },
-            { ru: "У них дво́е дете́й.", fr: "Ils ont deux enfants." },
-          ],
-        },
-        {
-          kind: "keypoints",
-          items: [
-            "-ы / -и pour masculins et féminins, -а / -я pour les neutres.",
-            "Une série fréquente de masculins fait -а́ accentué : дома́, города́.",
-            "бра́тья, друзья́, сту́лья, дере́вья : pluriels en -ья.",
-            "лю́ди et де́ти remplacent complètement leur singulier.",
-          ],
-        },
-      ],
-    },
-    {
-      slug: "genitif-pluriel",
-      title: "Le génitif pluriel",
-      titleRu: "Родительный падеж множественного числа",
-      level: "B1",
-      minutes: 13,
-      summary:
-        "La forme la plus redoutée du russe, et pourtant régie par une règle en miroir : plus le nominatif est chargé, plus le génitif pluriel est nu.",
-      keywords: ["génitif pluriel", "-ов", "-ей", "zéro", "родительный множественного", "книг"],
-      sections: [
-        {
-          kind: "prose",
-          body: [
-            "Le génitif pluriel a une réputation de cauchemar. Elle est imméritée : il obéit à une logique en balance. Les noms dont le nominatif singulier se termine par une consonne (donc « nus ») prennent une terminaison lourde, -ов ou -ей ; ceux dont le nominatif se termine par une voyelle (-а, -о) la perdent entièrement et finissent par… rien.",
-            "Cette terminaison « zéro » est ce qui déroute : кни́га donne книг, окно́ donne о́кон. Le mot semble amputé, alors qu'il est exactement à la forme attendue.",
-          ],
-        },
-        {
-          kind: "table",
-          title: "La règle en balance",
-          head: ["Nominatif singulier", "Génitif pluriel", "Exemple"],
-          rows: [
-            ["masculin en consonne dure", "-ов", "стол → столо́в"],
-            ["masculin en -й", "-ев", "музе́й → музе́ев"],
-            ["masculin en -ь", "-ей", "слова́рь → словаре́й"],
-            ["masculin en ж, ш, ч, щ", "-ей", "врач → враче́й"],
-            ["féminin en -а", "∅ (rien)", "кни́га → книг"],
-            ["féminin en -я", "-ь", "неде́ля → неде́ль"],
-            ["féminin en -ия", "-ий", "ста́нция → ста́нций"],
-            ["féminin en -ь", "-ей", "ночь → ноче́й"],
-            ["neutre en -о", "∅ (rien)", "ме́сто → мест"],
-            ["neutre en -е", "-ей", "мо́ре → море́й"],
-            ["neutre en -ие", "-ий", "зда́ние → зда́ний"],
-          ],
-        },
-        {
-          kind: "prose",
-          title: "La voyelle d'appui",
-          body: [
-            "Quand la terminaison zéro laisserait deux consonnes impossibles à prononcer en fin de mot, le russe insère une voyelle : о ou е. окно́ → о́кон, де́вушка → де́вушек, сестра́ → сестёр, де́ньги → де́нег, ру́чка → ру́чек.",
-            "Le choix entre о et е suit la mouillure : е après une consonne molle ou une sifflante, о sinon. C'est mécanique, mais mieux vaut vérifier les mots fréquents une fois pour toutes.",
-          ],
-        },
-        {
-          kind: "examples",
-          title: "Là où il apparaît",
-          items: [
-            { ru: "У меня́ мно́го книг.", fr: "J'ai beaucoup de livres.", note: "après мно́го" },
-            { ru: "В го́роде пять теа́тров.", fr: "Il y a cinq théâtres dans la ville.", note: "après un nombre ≥ 5" },
-            { ru: "Здесь нет свобо́дных мест.", fr: "Il n'y a pas de places libres ici." },
-            { ru: "Он прие́хал из Соединённых Шта́тов.", fr: "Il est arrivé des États-Unis." },
-            { ru: "Не́сколько дней спустя́…", fr: "Quelques jours plus tard…" },
-          ],
-        },
-        {
-          kind: "pitfall",
-          title: "Les formes qu'on croit fausses",
-          body: [
-            "Quelques génitifs pluriels ressemblent au nominatif singulier et donnent l'impression d'une erreur : раз → пять раз, солда́т → мно́го солда́т, челове́к → пять челове́к (mais мно́го люде́й), год → пять лет (emprunté à ле́то).",
-            "Ce sont des formes attestées et obligatoires, pas des raccourcis. пять лет est la seule façon de dire « cinq ans ».",
-          ],
-        },
-        {
-          kind: "keypoints",
-          items: [
-            "Nominatif nu (consonne) ⇒ terminaison lourde : -ов, -ев, -ей.",
-            "Nominatif en voyelle ⇒ terminaison zéro : книг, мест.",
-            "-ия / -ие ⇒ -ий : ста́нций, зда́ний.",
-            "Voyelle d'appui о/е quand la fin devient imprononçable : о́кон, сестёр.",
-            "пять лет, пять раз, пять челове́к : formes figées à mémoriser.",
-          ],
-        },
-      ],
-      practice: [{ href: "/cases/genitive", label: "Exercice : le génitif" }],
-    },
-    {
-      slug: "pluriel-des-autres-cas",
-      title: "Datif, instrumental et prépositionnel pluriels",
-      titleRu: "Множественное число: Д, Т, П",
-      level: "B1",
-      minutes: 8,
-      summary:
-        "Trois cas, trois terminaisons, aucune exception de genre : -ам, -ами, -ах. La meilleure nouvelle de toute la déclinaison.",
-      keywords: ["pluriel", "-ам", "-ами", "-ах", "datif pluriel", "instrumental pluriel"],
-      sections: [
-        {
-          kind: "prose",
-          body: [
-            "Au pluriel, le genre cesse de compter pour trois cas sur six. Le datif, l'instrumental et le prépositionnel ont une terminaison unique pour les masculins, les féminins et les neutres — un cadeau après le génitif pluriel.",
-            "La seule variation est la mouillure : -ам / -ями selon que le radical est dur ou mou, exactement comme au singulier.",
-          ],
-        },
-        {
-          kind: "table",
-          title: "Terminaisons du pluriel",
-          head: ["Cas", "Dur", "Mou", "Exemple"],
-          rows: [
-            ["Datif", "-ам", "-ям", "Я пишу́ друзья́м."],
-            ["Instrumental", "-ами", "-ями", "Я говорю́ с друзья́ми."],
-            ["Prépositionnel", "-ах", "-ях", "Я ду́маю о друзья́х."],
-          ],
-        },
-        {
-          kind: "table",
-          title: "Un nom, six cas, deux nombres",
-          head: ["Cas", "Singulier", "Pluriel"],
-          rows: [
-            ["Nominatif", "студе́нт", "студе́нты"],
-            ["Génitif", "студе́нта", "студе́нтов"],
-            ["Datif", "студе́нту", "студе́нтам"],
-            ["Accusatif", "студе́нта", "студе́нтов"],
-            ["Instrumental", "студе́нтом", "студе́нтами"],
-            ["Prépositionnel", "о студе́нте", "о студе́нтах"],
-          ],
-          note: "Animé : l'accusatif copie le génitif, au singulier comme au pluriel.",
-        },
-        {
-          kind: "examples",
-          items: [
-            { ru: "Он помога́ет роди́телям.", fr: "Il aide ses parents." },
-            { ru: "Мы е́здили с детьми́ на мо́ре.", fr: "Nous sommes allés à la mer avec les enfants.", note: "детьми́ : irrégulier" },
-            { ru: "В э́тих города́х краси́вые па́рки.", fr: "Dans ces villes, les parcs sont beaux." },
-            { ru: "Она́ интересу́ется языка́ми.", fr: "Elle s'intéresse aux langues." },
-          ],
-        },
-        {
-          kind: "keypoints",
-          items: [
-            "-ам / -ами / -ах : les trois cas obliques du pluriel, tous genres confondus.",
-            "Variante molle -ям / -ями / -ях après radical mou.",
-            "L'accusatif pluriel suit l'animation : animé = génitif, inanimé = nominatif.",
-            "Trois formes irrégulières fréquentes : людьми́, детьми́, дочерьми́.",
-          ],
-        },
-      ],
-    },
-    {
       slug: "noms-irreguliers",
       title: "Les noms irréguliers",
       titleRu: "Особые склонения",
       level: "B1",
-      minutes: 9,
+      minutes: 10,
       summary:
         "Quatre familles à part : мать et дочь, les neutres en -мя, les mots en -ия/-ие, et les noms qui n'existent qu'au pluriel.",
       keywords: ["irréguliers", "мать", "время", "имя", "склонение", "exceptions"],
@@ -753,6 +789,18 @@ export const UNIT_CAS: Unit = {
           ],
         },
         {
+          kind: "examples",
+          title: "Les irréguliers en phrase",
+          items: [
+            { ru: "Я говори́л с ма́терью вчера́.", fr: "J'ai parlé avec ma mère hier.", note: "instrumental de мать : ма́терью" },
+            { ru: "У меня́ нет вре́мени.", fr: "Je n'ai pas le temps.", note: "génitif de вре́мя : вре́мени" },
+            { ru: "Он верну́лся к до́чери.", fr: "Il est retourné auprès de sa fille.", note: "datif de дочь : до́чери" },
+            { ru: "Как ва́ше и́мя и о́тчество?", fr: "Quels sont votre prénom et votre patronyme ?" },
+            { ru: "Где мои́ очки́? Они́ на столе́.", fr: "Où sont mes lunettes ? Elles sont sur la table.", note: "очки́ n'a pas de singulier : verbe et pronom restent au pluriel" },
+            { ru: "У меня́ ма́ло де́нег.", fr: "J'ai peu d'argent.", note: "génitif pluriel de де́ньги : де́нег" },
+          ],
+        },
+        {
           kind: "keypoints",
           items: [
             "мать / дочь insèrent -ер- à tous les cas obliques.",
@@ -771,7 +819,7 @@ export const UNIT_CAS: Unit = {
       minutes: 7,
       summary:
         "Une voyelle qui disparaît dès que le mot se décline : день → дня. Ce n'est pas une exception, c'est un mécanisme.",
-      keywords: ["voyelle mobile", "беглые гласные", "день", "отец", "génitif", "радикal"],
+      keywords: ["voyelle mobile", "беглые гласные", "день", "отец", "génitif", "radical"],
       sections: [
         {
           kind: "prose",
@@ -829,7 +877,7 @@ export const UNIT_CAS: Unit = {
       level: "A2",
       minutes: 6,
       summary:
-        "Кофе, метро, такси, пальто : des mots qui ne changent jamais de forme, et dont le genre se décide autrement.",
+        "Ко́фе, метро́, такси́, пальто́ : des mots qui ne changent jamais de forme, et dont le genre se décide autrement.",
       keywords: ["indéclinable", "несклоняемые", "кофе", "метро", "emprunts", "noms propres"],
       sections: [
         {
@@ -852,8 +900,8 @@ export const UNIT_CAS: Unit = {
           kind: "prose",
           title: "Les noms propres étrangers",
           body: [
-            "Les noms de famille étrangers en -о, -и, -е, -у ne se déclinent pas : фильм Куросто́ун, о Дюма́, у Го́голя (déclinable, car russe). Les prénoms féminins terminés par une consonne ne se déclinent pas non plus : с Ка́рмен, о Жаклин.",
-            "En revanche, un nom de famille masculin terminé par une consonne se décline, même étranger : у Смирно́ва comme у Шмидта. Une femme portant ce même nom garde la forme non déclinée : у Шмидт.",
+            "Les noms de famille étrangers en -о, -и, -е, -у ne se déclinent pas : фильм Таранти́но, о Дюма́, у Го́голя (déclinable, car russe). Les prénoms féminins terminés par une consonne ne se déclinent pas non plus : с Ка́рмен, о Жакли́н.",
+            "En revanche, un nom de famille masculin terminé par une consonne se décline, même étranger : у Смирно́ва comme у Шми́дта. Une femme portant ce même nom garde la forme non déclinée : у Шмидт.",
           ],
         },
         {
@@ -872,7 +920,7 @@ export const UNIT_CAS: Unit = {
       title: "Choisir le bon cas",
       titleRu: "Как выбрать падеж",
       level: "B1",
-      minutes: 9,
+      minutes: 11,
       summary:
         "La méthode en trois questions qui remplace l'hésitation : préposition, verbe, fonction — dans cet ordre.",
       keywords: ["méthode", "choisir", "cas", "récapitulatif", "падеж", "révision"],
@@ -918,6 +966,20 @@ export const UNIT_CAS: Unit = {
             ["Prépositionnel", "в / на (lieu), о, при"],
           ],
           note: "в, на et за figurent deux fois : elles changent de cas selon qu'il y a mouvement ou position.",
+        },
+        {
+          kind: "table",
+          title: "Un nom, six cas, deux nombres",
+          head: ["Cas", "Singulier", "Pluriel"],
+          rows: [
+            ["Nominatif", "студе́нт", "студе́нты"],
+            ["Génitif", "студе́нта", "студе́нтов"],
+            ["Datif", "студе́нту", "студе́нтам"],
+            ["Accusatif", "студе́нта", "студе́нтов"],
+            ["Instrumental", "студе́нтом", "студе́нтами"],
+            ["Prépositionnel", "о студе́нте", "о студе́нтах"],
+          ],
+          note: "Animé : l'accusatif copie le génitif, au singulier comme au pluriel. Et au pluriel, datif, instrumental et prépositionnel n'ont plus qu'une forme pour les trois genres — -ам, -ами, -ах.",
         },
         {
           kind: "examples",

@@ -7,7 +7,7 @@ import { buildSearchIndex, TOTAL_LESSONS, TOTAL_MINUTES, UNITS } from "@/lib/cou
 export const metadata: Metadata = {
   title: "Cours de russe complet en ligne, gratuit",
   description:
-    "130 leçons, de l'alphabet cyrillique aux registres littéraires : grammaire expliquée, " +
+    "127 leçons, de l'alphabet cyrillique aux registres littéraires : grammaire expliquée, " +
     "tableaux et exemples traduits. Accès libre, sans compte.",
   alternates: { canonical: "/cours" },
   openGraph: {
@@ -89,7 +89,7 @@ export default function CoursesPage() {
         faible qu'une page puisse occuper : le site lui-même ne se portait pas
         garant d'elles. Elles avaient été oubliées, tout simplement.
         Elles sont à leur place au bas du programme : quelqu'un qui vient de
-        parcourir 130 leçons cherche exactement ça — la table à rouvrir quand
+        parcourir 127 leçons cherche exactement ça — la table à rouvrir quand
         la règle est sue mais la forme oubliée.
       */}
       <div className="mt-14">
@@ -116,7 +116,7 @@ export default function CoursesPage() {
         d'autre : découvrables, mais rattachés au site par un fil unique. Ce
         lien-ci part de la page que les moteurs explorent le plus souvent
         après l'accueil, et il est à sa place pour un lecteur — quelqu'un qui
-        parcourt un programme de 130 leçons sans savoir par où entrer est
+        parcourt un programme de 127 leçons sans savoir par où entrer est
         exactement le destinataire de ces pages.
       */}
       <div className="mt-14 border-t border-border pt-8">

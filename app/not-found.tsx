@@ -35,7 +35,7 @@ const EXITS = [
   {
     href: "/cours",
     label: "Le cours",
-    detail: "130 leçons, de l'alphabet au discours rapporté",
+    detail: "127 leçons, de l'alphabet au discours rapporté",
     Icon: BookIcon,
   },
   {

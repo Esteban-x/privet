@@ -58,7 +58,7 @@ export default function CourseExplorer({
    * LES UNITÉS SONT FERMÉES TANT QU'ON N'A PAS TAPÉ DESSUS.
    *
    * L'état inverse — tout ouvert, on replie ce dont on ne veut pas — servait
-   * les 130 leçons d'un coup : plusieurs mètres de page où l'unité 7 ne
+   * les 127 leçons d'un coup : plusieurs mètres de page où l'unité 7 ne
    * s'atteignait qu'au défilement, et où le PLAN — c'est-à-dire ce que cette
    * page est — ne se voyait nulle part. Fermées, les douze unités tiennent
    * sous la recherche : on lit le parcours, puis on ouvre ce qu'on vient
@@ -366,7 +366,7 @@ export default function CourseExplorer({
                       hauteur tombe à zéro, mais les liens restent dans le
                       document, tabulables et lus par les lecteurs d'écran.
                       Tant qu'un repli était l'exception, ça se discutait ;
-                      maintenant que tout part fermé, c'était 130 liens
+                      maintenant que tout part fermé, c'était 127 liens
                       invisibles à traverser à la tabulation avant d'atteindre
                       le pied de page. */}
                   <div className="overflow-hidden" inert={!isOpen}>

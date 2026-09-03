@@ -932,14 +932,14 @@ export const GUIDES: Guide[] = [
         detail: "Le module qui décide de l'épreuve de grammaire",
       },
       {
-        href: "/cours/genitif-pluriel",
-        label: "Le génitif pluriel",
-        detail: "La forme la plus testée, et la plus ratée",
+        href: "/cours/genitif",
+        label: "Le génitif",
+        detail: "Ses emplois, et le pluriel le plus testé — et le plus raté",
       },
       {
         href: "/cours",
         label: "Le programme complet",
-        detail: "130 leçons, du A0 aux registres littéraires",
+        detail: "127 leçons, du A0 aux registres littéraires",
       },
     ],
     related: [

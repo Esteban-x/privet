@@ -83,7 +83,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
             level: lesson.level,
             unitTitle: unit.title,
           }),
-          // Sur 130 pages profondes, c'est le fil d'Ariane qui rend le
+          // Sur 127 pages profondes, c'est le fil d'Ariane qui rend le
           // résultat lisible : « Privetik › Cours › L'alphabet cyrillique »
           // au lieu d'une URL tronquée au milieu du slug.
           breadcrumb([
