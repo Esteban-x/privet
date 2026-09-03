@@ -734,28 +734,26 @@ export default function AddWordForm({
           l'écart minimal avec ce qui précède quand le formulaire est court. */}
       {bare && <div aria-hidden className="h-6 shrink-0" />}
 
-      {/* UN PIED COLLANT, PAS UN BOUTON EN BAS DE PAGE.
-          `mt-auto` seul le posait au bas du FORMULAIRE : très bien tant que
-          le formulaire tenait dans la feuille, faux dès qu'il la dépassait.
-          Sur un iPhone, clavier ouvert, il restait deux champs de 112 px, la
-          barre des langues et l'en-tête du dialogue au-dessus de lui — le
-          bouton passait sous la ligne de flottaison, et il fallait faire
-          défiler pour valider un mot de six lettres. Pire, la validation au
-          clavier (« retour ») marchait mais ne se voyait pas : les points
-          d'attente et le « ✓ ajouté » étaient eux aussi hors de l'écran, si
-          bien que rien ne répondait au geste.
+      {/* LE BOUTON SUIT LES CHAMPS, IL NE FLOTTE PAS DEVANT.
+          `sticky bottom-0` le gardait bien visible au-dessus du clavier — au
+          prix de le poser SUR le champ de traduction, c'est-à-dire sur la
+          seule chose qu'on est venu lire. Un bouton qu'on voit toujours ne
+          vaut rien s'il masque la réponse ; des deux défauts, celui-là était
+          le pire.
 
-          `sticky bottom-0` garde les deux comportements : en bas quand la
-          feuille est courte, épinglé au-dessus du clavier quand elle ne l'est
-          pas. Les marges négatives vont chercher le rembourrage de la
-          feuille, pour que le fond du pied file jusqu'aux bords. */}
-      <div
-        className={
-          bare
-            ? "sticky bottom-0 z-10 mt-auto -mx-5 -mb-8 border-t border-border bg-bg2 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-7 sm:-mb-7 sm:px-7 sm:pb-5"
-            : "mt-5"
-        }
-      >
+          `mt-auto` seul donne les deux comportements voulus, parce que le
+          formulaire est une colonne en `min-h-full` : quand la feuille est
+          plus haute que le contenu — pas de clavier — il reste du vide à
+          répartir, et le bouton descend au bas de la feuille, à portée du
+          pouce. Quand le contenu déborde — clavier ouvert — il n'y a plus
+          rien à répartir, et le bouton se range juste sous les champs,
+          quitte à être entamé par le bord du clavier. C'est ce qu'on veut :
+          entamé, mais vu.
+
+          Pour qu'il le reste, c'est le HAUT qui a maigri — l'en-tête du
+          dialogue se replie tant que le clavier est là (`data-kb`, dans
+          Modal), et le plancher des champs tombe à 80 px sur téléphone. */}
+      <div className={bare ? "mt-auto" : "mt-5"}>
         {/* Le résultat du dernier ajout est ANNONCÉ ICI, à côté du bouton qui
             vient de servir — c'est là que le regard est. En tête de
             formulaire, il se retrouvait hors champ au moment précis où il
@@ -988,11 +986,18 @@ function Field({
 
            `min-h-[112px]` : la taille d'un champ dit ce qu'on attend dedans.
            À 48 px il annonçait un mot ; les gens y collent des expressions
-           entières, et c'est très bien. */
+           entières, et c'est très bien.
+
+           SOUS 640 px LE PLANCHER TOMBE À 80 px — la hauteur qu'une seule
+           ligne occupe déjà avec ses commandes, donc le champ y prend
+           exactement la taille de ce qu'il contient, et grandit avec lui.
+           Les 30 px d'air en trop se payaient deux fois, sur un écran où il
+           ne reste que ~370 px au-dessus du clavier, et c'est le bouton de
+           validation qui les payait. */
         /* `pb-11` quand le champ porte des commandes : elles flottent en bas
            à droite, et sans cette réserve une expression longue passerait
            dessous. */
-        className={`block max-h-64 min-h-[112px] w-full resize-none overflow-hidden px-4 pt-3.5 font-display leading-snug text-text placeholder:text-muted/50 focus:bg-accent/[0.045] focus:outline-none ${
+        className={`block max-h-64 min-h-[80px] w-full resize-none overflow-hidden px-4 pt-3.5 font-display leading-snug sm:min-h-[112px] text-text placeholder:text-muted/50 focus:bg-accent/[0.045] focus:outline-none ${
           actions ? "pb-11" : "pb-3.5"
         } ${sizeFor(value)} ${suggested ? "bg-accent2/[0.06]" : "bg-transparent"}`}
       />

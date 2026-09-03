@@ -171,14 +171,30 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
   // L'URL suit la sélection sans provoquer de navigation : `replaceState`
   // plutôt que router.replace, qui remonterait jusqu'au serveur pour un
   // changement purement local.
+  //
+  // LE MARQUE-PAGE N'EST ÉCRIT QU'UNE FOIS LES LISTES ARRIVÉES, et c'est
+  // tout ce qui manquait pour qu'il serve enfin à quelque chose. Cet effet
+  // part aussi AU MONTAGE, où `activeId` vaut null tant que la requête n'a
+  // pas répondu : il effaçait donc le marque-page (`saveLastVocabList(null)`
+  // fait un `removeItem`) quelques millisecondes avant que le rappel de
+  // `fetchLists` ne vienne le lire. On revenait de la lecture ou des cas, on
+  // retombait sur l'écran des listes, et le marque-page — pourtant écrit,
+  // pourtant relu — n'avait jamais rien à dire. Il ne consigne donc plus que
+  // des sélections VUES : celle qu'on ouvre, et celle qu'on quitte pour
+  // remonter aux listes, qui doit bien être oubliée.
+  //
+  // `loaded` plutôt que `lists` en dépendance : `lists` est réécrit à chaque
+  // recomptage (syncCounts), ce qui rejouerait un `replaceState` par mot
+  // ajouté. Le booléen, lui, ne bascule qu'une fois.
+  const loaded = lists !== null;
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
     if (activeId) url.searchParams.set("list", activeId);
     else url.searchParams.delete("list");
     window.history.replaceState(null, "", url);
-    saveLastVocabList(activeId);
-  }, [activeId]);
+    if (loaded) saveLastVocabList(activeId);
+  }, [activeId, loaded]);
 
   const totals = useMemo(() => {
     if (!lists) return null;

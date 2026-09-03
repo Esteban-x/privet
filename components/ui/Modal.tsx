@@ -127,6 +127,20 @@ export default function Modal({
    * ÉCRIT DIRECTEMENT DANS LE STYLE DU NŒUD, pas via un état : `scroll` se
    * déclenche à chaque image pendant que le clavier glisse, et un rendu React
    * par image ferait traîner le panneau derrière le clavier.
+   *
+   * IL POSE AUSSI `data-kb`, ET C'EST LUI QUI FAIT DE LA PLACE. Aucune API
+   * ne dit si le clavier virtuel est ouvert : on mesure donc sa CONSÉQUENCE
+   * — il ne reste presque plus rien de visible. Sous 520 px de hauteur
+   * visible, l'en-tête du dialogue se replie (`group-data-[kb]:` plus bas) ;
+   * sur les ~370 px qui survivent au-dessus d'un clavier d'iPhone, les 60 px
+   * du titre et du sous-titre sont exactement ce qui décide si le bouton de
+   * validation est à l'écran ou dessous.
+   *
+   * Mesurer la conséquence plutôt que la cause a un avantage : ça marche
+   * aussi là où le clavier RÉTRÉCIT la fenêtre de mise en page (Android),
+   * cas où l'écart entre les deux fenêtres — le signal évident — reste nul.
+   * Et le seuil ne se déclenche pas tout seul : le plus petit iPhone garde
+   * 555 px sous la barre d'adresse, clavier fermé.
    */
   useEffect(() => {
     if (!open) return;
@@ -142,6 +156,8 @@ export default function Modal({
       el.style.bottom = "auto";
       el.style.width = `${view.width}px`;
       el.style.height = `${view.height}px`;
+      if (view.height < 520) el.dataset.kb = "";
+      else delete el.dataset.kb;
     }
 
     sync();
@@ -167,7 +183,7 @@ export default function Modal({
   return createPortal(
     <div
       ref={rootRef}
-      className={`fixed inset-0 z-50 flex justify-center ${
+      className={`group fixed inset-0 z-50 flex justify-center ${
         sheet ? "items-stretch sm:items-center sm:p-4" : "items-center p-4"
       }`}
       role="dialog"
@@ -222,22 +238,56 @@ export default function Modal({
           </svg>
         </button>
 
-        <div className={`relative shrink-0 pb-2 ${sheet ? "px-5 pt-6 sm:px-7 sm:pt-7" : "px-7 pt-7"}`}>
-          {icon && <div className="mb-4">{icon}</div>}
-          <h2 className="pr-10 font-display text-2xl font-extrabold tracking-tight">{title}</h2>
+        {/* L'EN-TÊTE MAIGRIT QUAND LE CLAVIER MONTE, et seulement alors.
+            Le sous-titre d'une feuille explique quoi taper : il a tout son
+            sens tant que le champ est vide, et plus aucun une fois qu'on
+            tape dedans — moment précis où ses deux lignes, le titre en
+            24 px et le pictogramme prennent la place du bouton de
+            validation. Repliés, ils la rendent ; refermez le clavier, ils
+            reviennent. Réservé à la feuille : un dialogue centré a sa
+            place, et son sous-titre porte souvent la question elle-même
+            (« … seront perdus. C'est définitif. »). */}
+        <div
+          className={`relative shrink-0 pb-2 ${
+            sheet ? "px-5 pt-6 group-data-[kb]:pt-4 sm:px-7 sm:pt-7" : "px-7 pt-7"
+          }`}
+        >
+          {icon && <div className={`mb-4 ${sheet ? "group-data-[kb]:hidden" : ""}`}>{icon}</div>}
+          <h2
+            className={`pr-10 font-display text-2xl font-extrabold tracking-tight ${
+              sheet ? "group-data-[kb]:text-lg" : ""
+            }`}
+          >
+            {title}
+          </h2>
           {description && (
-            <p className="mt-1.5 max-w-sm font-display text-sm leading-relaxed text-muted">
+            <p
+              className={`mt-1.5 max-w-sm font-display text-sm leading-relaxed text-muted ${
+                sheet ? "group-data-[kb]:hidden" : ""
+              }`}
+            >
               {description}
             </p>
           )}
         </div>
         <div
-          /* `scroll-pb-28` : quand le navigateur amène de lui-même le champ
+          /* `scroll-pb-16` : quand le navigateur amène de lui-même le champ
              qu'on vient de toucher dans la zone visible, il le colle au bas
-             du conteneur — c'est-à-dire derrière le pied collant du
-             formulaire. Cette réserve de défilement lui dit où s'arrêter. */
+             du conteneur — donc juste au-dessus du bouton de validation, qui
+             sort alors de l'écran. Cette réserve de défilement, à la hauteur
+             du bouton, lui dit de s'arrêter un cran plus haut et de le garder
+             en vue. (Elle valait 28 du temps où le pied était collant : il
+             fallait alors réserver de quoi ne pas passer DERRIÈRE lui.)
+
+             Le rembourrage bas suit la zone sûre : sans clavier, le bouton se
+             cale au bas de la feuille, c'est-à-dire à l'endroit exact où
+             l'iPhone dessine sa barre d'accueil. Avec le clavier, celle-ci
+             est dessous — la réserve n'a plus lieu d'être et rend ses pixels
+             au formulaire. */
           className={`relative pt-5 ${
-            sheet ? "flex-1 scroll-pb-28 overflow-y-auto px-5 pb-8 sm:px-7 sm:pb-7" : "px-7 pb-7"
+            sheet
+              ? "flex-1 scroll-pb-16 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))] group-data-[kb]:pt-3 group-data-[kb]:pb-4 sm:px-7 sm:pb-7"
+              : "px-7 pb-7"
           }`}
         >
           {children}
