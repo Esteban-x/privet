@@ -189,15 +189,55 @@ vérifiées.**
 Une partie de la morphologie russe n'est pas dérivable de l'orthographe du
 lemme — voyelle mobile (`кусо́к → куск-` mais `уро́к → урок-`), schéma
 accentuel (`врачо́м` vs `ме́сяцем`), pluriels supplétifs (`челове́к → лю́ди`).
-Mesuré sur les 17 800 noms du dictionnaire, un moteur de règles retrouve la
-bonne forme dans ~76 % des cas. C'est assez pour EXPLIQUER une terminaison,
-pas pour la produire. D'où le partage :
+Un moteur de règles ne peut donc pas PRODUIRE la forme, seulement
+l'EXPLIQUER. D'où le partage :
 
 - **la forme** vient du paradigme importé (`lib/grammar/nouns-data.generated.ts`) ;
 - **la règle** est calculée par `lib/grammar/decline.ts`, qui sert aussi à
   repérer ce qui lui échappe : quand la règle et le paradigme divergent, le
   module ne récite pas une règle que la forme contredit, il dit à
   l'apprenant que c'est une forme à mémoriser.
+
+Le moteur de règles lit aussi **où tombe l'accent**, parce que deux règles
+russes n'en dépendent que : après un radical mou, la désinence accentuée
+s'écrit ё et l'atone е (`королём` / `учителем`) ; après une chuintante, о et
+е (`врачо́м` / `ме́сяцем`). Le schéma accentuel est une donnée du mot, comme
+sa voyelle mobile — le lire n'est pas tricher, c'est ce que fait une
+grammaire avant d'énoncer la règle.
+
+Et les cas obliques du **pluriel** se calculent depuis le nominatif pluriel,
+pas depuis le lemme : `брат → бра́тья` n'est pas dérivable, mais
+`бра́тьям / бра́тьями / бра́тьях` le sont une fois `бра́тья` connu. Ce qu'il
+faut mémoriser, c'est le nominatif pluriel ; le reste se déduit, et le
+module le dit.
+
+Mesuré sur les 5 412 formes de la banque : la règle retrouve **95,8 %** des
+formes, et « forme irrégulière : à mémoriser telle quelle » ne subsiste que
+sur **6 cellules** — друзе́й, уше́й, платьев, мечта́ний. Le reste des écarts
+est nommé : voyelle d'appui du génitif pluriel, instrumental pluriel en
+-ьми, locatif en -у́, nominatif pluriel à mémoriser.
+
+### Le nombre
+
+L'apprenant choisit **Singulier, Pluriel ou Mélange**, et la contrainte du
+gabarit l'emporte toujours sur son choix : « несколько ___ » reste au
+pluriel, « Меня́ зову́т ___ » au singulier. Chaque déclencheur déclare ce
+qu'il accepte (`number`), et `npm run check:grammar` vérifie que le garde-fou
+accepte CHAQUE nombre déclaré — pas seulement celui qui est servi
+aujourd'hui.
+
+Le pluriel est refusé aux noms qui n'en ont pas d'usage réel : les
+indénombrables (on ne demande pas « ри́сы ») et les pluriels défectifs
+(`любо́вь`, `ложь`, `мечта́`, dont le génitif pluriel de dictionnaire est
+celui d'un autre mot).
+
+### Les variantes
+
+Le dictionnaire donne deux formes pour 139 cases : `дочерьми́` ou
+`дочеря́ми`, `тёть` ou `тёте́й`. Les deux sont acceptées, et l'app le dit —
+un « faux » évité devient quelque chose d'appris. Les variantes qui ne
+diffèrent que par la place de l'accent ne sont pas retenues : la comparaison
+retire l'accent, elles étaient donc déjà acceptées.
 
 Conséquence assumée : le vocabulaire personnel de l'apprenant n'alimente
 PAS les exercices de cas. Un mot ajouté à la volée n'a pas de paradigme
@@ -216,6 +256,34 @@ problème qu'on cherche à éviter.
    écarté** : il n'entre jamais dans un exercice.
 3. `npm run check:grammar` — invariants de la banque, paradigmes témoins,
    prénoms, adjectifs, et taux d'accord moteur/dictionnaire.
+
+### L'accent tonique
+
+Toutes les banques le portent — les formes à produire comme les phrases qui
+les entourent. Il n'est jamais EXIGÉ de l'apprenant (la correction le
+retire), mais c'est l'information la moins devinable pour un francophone et
+la seule qui dise comment prononcer un mot.
+
+`node scripts/accent.mjs <fichier>` le pose sur un fichier de banque, et
+`--apply` écrit. **Il ne devine jamais** : il n'accentue que là où le
+dictionnaire ne donne qu'une lecture, et imprime ce qu'il refuse de
+trancher — homographes (`до́ма` à la maison / `дома́` des maisons), formes
+absentes du dictionnaire (participes, gérondifs), désinences citées dans une
+explication (`-ого` n'est pas un mot). Ces cas-là se règlent dans la table
+`OVERRIDES` du script, en lisant la phrase.
+
+Les contrôles refusent un polysyllabe nu, un accent posé sur une consonne,
+deux accents dans un mot, et un mot mêlant cyrillique et latin.
+
+### Le dictionnaire
+
+`scripts/lib/dictionary.mjs` charge les quatre fichiers d'OpenRussian —
+noms, verbes, adjectifs, invariables : 58 433 lemmes et 536 341 formes
+fléchies, toutes accentuées. Il répond à deux questions qu'aucun contrôle ne
+savait poser : **ce mot existe-t-il**, et **son accent est-il au bon
+endroit**. C'est lui qui a permis de vérifier les 432 formes d'adjectif, les
+paires aspectuelles, les verbes de mouvement et de conjugaison, et de
+nettoyer le lexique d'autocomplétion.
 
 ### Attribution
 
@@ -468,6 +536,15 @@ de réussite reste estimée A0.
   contenu, et les suites de contrôle valident chaque ajout.
 - L'erreur de lint pré-existante hors modules (`speech.ts`, setState dans un
   effet).
+- Les items à DEUX options : aspect (passé, marqueurs, futur, impératif),
+  mouvement (direction) et participes (forme courte) opposent deux formes,
+  ce qui est la nature de la question — mais 50 % de réussite au hasard
+  entrent dans la même statistique de précision que les items à quatre
+  options. Soit on les compte à part, soit on accepte de sous-estimer la
+  difficulté des autres.
+- Les banques les plus minces : `numbers/duration` (8 items),
+  `alphabet/spelling` (8), `alphabet/sounds` (10), `participles/subject` (8),
+  `motion/prefix` (11). Un apprenant les épuise en une séance.
 - Faire entrer `motion_progress` dans l'estimation continue du niveau : les
   seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
   demande de les recalibrer.
@@ -517,6 +594,3 @@ la console Anthropic et régénères-en une.
 L'inscription ne dit jamais si une adresse est déjà utilisée : le même écran
 « vérifie ta boîte mail » s'affiche dans tous les cas, pour éviter d'énumérer
 les comptes existants.
-#   p r i v e t 
- 
- 
