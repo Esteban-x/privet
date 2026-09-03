@@ -66,6 +66,33 @@ const ANIMACY_OVERRIDES = {
   "режиссёр": "animate",
 };
 
+/**
+ * Formes corrigées à la main, par lemme puis par case.
+ *
+ * LE DICTIONNAIRE SE TROMPE AUSSI. L'import est fidèle — les 451 noms et
+ * leurs 5 412 formes correspondent exactement à OpenRussian — mais fidèle
+ * n'est pas juste, et rien ne testait la COHÉRENCE INTERNE d'un paradigme.
+ * L'invariant d'animacité (animé => acc. pl. = gén. pl. ; inanimé =>
+ * acc. pl. = nom. pl.) suffit à sortir les trois entrées ci-dessous, et il
+ * est désormais vérifié par npm run check:grammar.
+ *
+ * Chaque correction porte sa justification : c'est une divergence assumée
+ * d'avec la source, pas une retouche de confort.
+ */
+const FORM_OVERRIDES = {
+  // тень est inanimé : l'accusatif pluriel copie le nominatif (те́ни), pas
+  // le génitif. Le dictionnaire donnait « тене́й », ce qui aurait enseigné
+  // l'accord animé sur un mot qui ne l'est pas.
+  "тень": { pl_acc: "те'ни" },
+  // при́зрак est animé en russe (при́зрака, при́зраков) ; le dictionnaire le
+  // déclarait animé mais lui donnait un paradigme inanimé, les deux se
+  // contredisant dans la même entrée.
+  "призрак": { sg_acc: "при'зрака", pl_acc: "при'зраков" },
+  // живо́тное est animé et se décline comme un adjectif : accusatif pluriel
+  // en -ых, comme le génitif.
+  "животное": { pl_acc: "живо'тных" },
+};
+
 // Translittération pour les identifiants : стол -> stol, учитель -> uchitel.
 // Stable dans le temps (les ids servent de clés dans case_progress et dans
 // les composants de référence), donc à ne pas changer à la légère.
@@ -224,7 +251,8 @@ async function main() {
       problems.push(`ligne ${w.line} : "${w.lemma}" n'a qu'un seul nombre (singularia/pluralia tantum)`);
       continue;
     }
-    const forms = FORMS.map((f) => canonicalForm(r[f]));
+    const overrides = FORM_OVERRIDES[w.lemma] ?? {};
+    const forms = FORMS.map((f) => canonicalForm(overrides[f] ?? r[f]));
     const missing = FORMS.filter((f, k) => !forms[k]);
     if (missing.length) {
       problems.push(`ligne ${w.line} : "${w.lemma}" — formes manquantes ou douteuses : ${missing.join(", ")}`);

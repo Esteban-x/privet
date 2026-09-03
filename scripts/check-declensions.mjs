@@ -37,6 +37,8 @@ const { CASE_ORDER } = await jiti.import("../lib/grammar/types.ts");
 const { generateSentenceExercise, generateNumeralExercise, poolFor } = await jiti.import(
   "../lib/grammar/exercise-generator.ts"
 );
+import { mixedScript, accentOnConsonant } from "./lib/cyrillic.mjs";
+
 const { TRIGGERS, PROPER_NOUN_TRIGGER_ID, triggerNumber } = await jiti.import(
   "../lib/grammar/triggers.ts"
 );
@@ -93,6 +95,44 @@ for (const n of NOUNS) {
       vowels <= 1 || carriesStress,
       `${n.lemma} : forme "${form}" polysyllabique sans accent tonique`
     );
+    require_(
+      !mixedScript(form),
+      `${n.lemma} : forme "${form}" mêle cyrillique et latin`
+    );
+    require_(
+      !accentOnConsonant(form),
+      `${n.lemma} : forme "${form}" porte l'accent sur une consonne`
+    );
+  }
+
+  // ─── L'accusatif pluriel dit l'animacité, et doit dire la même ─────
+  //
+  // C'est LA règle que le module enseigne : un animé copie son accusatif
+  // sur le génitif, un inanimé sur le nominatif. Elle est donc vérifiable
+  // dans l'autre sens — le paradigme importé doit s'accorder avec le
+  // drapeau `animacy`, et quand les deux se contredisent, l'app enseigne
+  // une chose et en montre une autre.
+  //
+  // Rien ne testait cette cohérence. L'import est pourtant fidèle au
+  // dictionnaire au caractère près : ces trois-là étaient des erreurs de la
+  // SOURCE, invisibles tant qu'on ne confrontait que la chaîne d'import.
+  // Voir FORM_OVERRIDES dans scripts/build-nouns.mjs.
+  {
+    const [nomPl, genPl, accPl] = [0, 1, 3].map((i) => stripAccent(n.forms.plural[i]));
+    if (accPl === genPl && accPl !== nomPl) {
+      require_(
+        n.animacy === "animate",
+        `${n.lemma} : accusatif pluriel = génitif pluriel (${accPl}), donc animé — ` +
+          `mais la banque le déclare inanimé`
+      );
+    }
+    if (accPl === nomPl && accPl !== genPl) {
+      require_(
+        n.animacy === "inanimate",
+        `${n.lemma} : accusatif pluriel = nominatif pluriel (${accPl}), donc inanimé — ` +
+          `mais la banque le déclare animé`
+      );
+    }
   }
 }
 
