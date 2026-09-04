@@ -4,6 +4,7 @@ import { getNoun } from "@/lib/grammar/nouns-data";
 import { declineAdjective } from "@/lib/grammar/decline-adjective";
 import { stripAccent } from "@/lib/grammar/decline";
 import { declineNoun } from "@/lib/grammar/decline";
+import { ADJECTIVE_CONTEXTS_EXTRA } from "./contexts.generated";
 
 /**
  * Accord de l'adjectif — module autonome.
@@ -551,6 +552,14 @@ const CONTEXTS: Record<AdjectiveSkillId, AdjectiveContext[]> = {
   oblique: OBLIQUE_CONTEXTS,
   plural: PLURAL_CONTEXTS,
 };
+
+// Les contextes écrits à la construction s'ajoutent aux douze écrits à la
+// main, qui restent en tête et donnent le style. Douze par compétence
+// plafonnaient le module à soixante exercices, à vie : c'est le nombre de
+// contextes, et lui seul, qui borne ce qu'un apprenant peut voir ici.
+for (const skill of Object.keys(CONTEXTS) as AdjectiveSkillId[]) {
+  CONTEXTS[skill] = [...CONTEXTS[skill], ...(ADJECTIVE_CONTEXTS_EXTRA[skill] ?? [])];
+}
 
 export interface AdjectiveExercise {
   skill: AdjectiveSkillId;

@@ -265,6 +265,28 @@ const PREPOSITION_VARIANTS: Record<string, string[]> = {
 const ADJECTIVAL_ENDING =
   /(ый|ий|ой|ая|яя|ое|ее|ые|ие|ого|его|ому|ему|ым|им|ых|их|ую|юю|ыми|ими|ом|ем|ей)$/;
 
+/**
+ * Pronoms personnels aux cas obliques. Ils ARRÊTENT la remontée vers le
+ * gouverneur, au lieu d'être sautés comme des épithètes.
+ *
+ * « На ней ___ пла́тье » : le trou est un sujet au nominatif, et « на »
+ * gouverne « ней », pas le trou. Sans cette liste, « ней » ressemble à une
+ * épithète (finale -ей), on le saute, on trouve « на », et on refuse une
+ * phrase parfaitement juste.
+ *
+ * Les possessifs его / её / их n'y sont pas : ils sont bel et bien des
+ * épithètes (« его́ кни́га »), et les sauter est le bon comportement.
+ */
+const OBLIQUE_PRONOUNS = new Set([
+  "меня", "мне", "мной", "мною",
+  "тебя", "тебе", "тобой", "тобою",
+  "нас", "нам", "нами",
+  "вас", "вам", "вами",
+  "него", "нему", "ним", "нём", "ней", "неё", "нею", "них", "ними",
+  "ему", "ей", "ею", "им", "ими",
+  "себя", "себе", "собой", "собою",
+]);
+
 const DETERMINERS = new Set([
   "мой", "моя", "моё", "мои", "моего", "моему", "моим", "моих", "моими", "моей", "мою", "моём",
   "твой", "твоя", "твоё", "твои", "твоего", "твоему", "твоим", "твоих", "твоими", "твоей", "твою", "твоём",
@@ -309,7 +331,11 @@ const PLURAL_DETERMINERS = new Set([
   "самые",
 ]);
 const SINGULAR_DETERMINERS = new Set([
-  "этот", "эта", "это", "этого", "этому", "этом", "этой", "эту",
+  // « это » n'y est PAS : il est aussi le présentatif (« Э́то ру́сские
+  // кни́ги », ce sont des livres russes), où il ne dit rien du nombre du
+  // groupe qui suit. Il reste dans DETERMINERS — on peut le sauter pour
+  // chercher un gouverneur —, il cesse seulement de trancher le nombre.
+  "этот", "эта", "этого", "этому", "этом", "этой", "эту",
   "тот", "та", "того", "тому", "том", "той", "ту",
   "весь", "вся", "всё", "всего", "всему",
   "мой", "моя", "моё", "моего", "моему", "моей", "мою", "моём",
@@ -345,6 +371,7 @@ const VARIANTS_N = normalizedKeys(PREPOSITION_VARIANTS);
 const DETERMINERS_N = normalizedSet(DETERMINERS);
 const PLURAL_DETERMINERS_N = normalizedSet(PLURAL_DETERMINERS);
 const SINGULAR_DETERMINERS_N = normalizedSet(SINGULAR_DETERMINERS);
+const OBLIQUE_PRONOUNS_N = normalizedSet(OBLIQUE_PRONOUNS);
 
 type Token = { kind: "word"; text: string } | { kind: "punct"; text: string };
 
@@ -419,6 +446,9 @@ export function findGovernor(sentence: string): Governor | undefined {
 
     const cases = GOVERNORS_N[word];
     if (cases) return { word, cases };
+
+    // Un pronom oblique a déjà consommé la préposition qui le précède.
+    if (OBLIQUE_PRONOUNS_N.has(word)) return undefined;
 
     if (isAdjectival(word) && skipped < 3) {
       skipped += 1;

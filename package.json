@@ -11,6 +11,7 @@
     "build:nouns": "node scripts/build-nouns.mjs",
     "curate:triggers": "node scripts/curate-trigger-nouns.mjs",
     "curate:templates": "node scripts/curate-templates.mjs",
+    "curate:adjectives": "node scripts/curate-adjectives.mjs",
     "check:leveltest": "node scripts/check-leveltest.mjs",
     "check": "npm run check:grammar && npm run check:leveltest && npm run check:progression && npm run check:motion && npm run check:aspect && npm run check:participles && npm run check:adjectives && npm run check:vocab && npm run check:courses && npm run check:guides && npm run check:seo && npm run check:exercises && npm run check:lexicon && npm run check:json",
     "check:progression": "node scripts/check-progression.mjs",

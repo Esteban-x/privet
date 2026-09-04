@@ -30,6 +30,10 @@ const { ADJECTIVE_SKILLS, ADJECTIVE_CONTEXTS, generateAdjectiveExercise, checkAd
 const { getAdjective } = await jiti.import("../lib/grammar/adjectives-data.ts");
 const { getNoun } = await jiti.import("../lib/grammar/nouns-data.ts");
 const { declineAdjective } = await jiti.import("../lib/grammar/decline-adjective.ts");
+const { declineNoun } = await jiti.import("../lib/grammar/decline.ts");
+const { validateSentence, findGovernor } = await jiti.import(
+  "../lib/grammar/sentence-guard.ts"
+);
 
 const failures = [];
 let checks = 0;
@@ -61,12 +65,65 @@ for (const skill of ADJECTIVE_SKILLS) {
     require_(getNoun(c.noun) !== undefined, `contexte « ${c.id} » : nom « ${c.noun} » inconnu`);
     expect(`contexte « ${c.id} » : une seule marque ___`, c.ru.split("___").length, 2);
     expect(`contexte « ${c.id} » : une seule marque {N}`, c.ru.split("{N}").length, 2);
+    // Les deux marques reçoivent une forme COMPLÈTE, calculée. Une désinence
+    // recollée derrière — « {N}ом » — donnait « языко́мом », et le contrôle
+    // de longueur ci-dessus n'y voyait rien.
+    for (const mark of ["___", "{N}"]) {
+      const at = c.ru.indexOf(mark);
+      require_(
+        !/[а-яёa-ź]/i.test(c.ru[at - 1] ?? " "),
+        `contexte « ${c.id} » : « ${mark} » est collé au mot qui précède`
+      );
+      require_(
+        !/[а-яёa-ź]/i.test(c.ru[at + mark.length] ?? " "),
+        `contexte « ${c.id} » : « ${mark} » est collé au mot qui suit`
+      );
+    }
     require_(c.fr.trim().length > 0, `contexte « ${c.id} » : traduction vide`);
     require_(c.why.trim().length > 0, `contexte « ${c.id} » : explication vide`);
     // La traduction française ne doit pas porter le trou : elle est ce qui
     // identifie l'adjectif à produire, un trou des deux côtés rendrait
     // l'exercice indevinable (même règle que dans le module Cas).
     require_(!c.fr.includes("___"), `contexte « ${c.id} » : la traduction française contient un trou`);
+  }
+}
+
+// ─── 1 bis. La phrase montée tient-elle debout ? ───────────────────
+// Le module n'avait aucun contrôle sur ce qui GOUVERNE le trou : un
+// contexte annoncé au prépositionnel pouvait être bâti sur un verbe
+// transitif (« На ры́нке продаю́т ___ я́блоках »), et l'exercice demandait
+// alors une forme que la phrase ne peut pas recevoir. On réutilise le
+// garde-fou du module Cas, sur la phrase une fois le nom inséré.
+for (const skill of ADJECTIVE_SKILLS) {
+  for (const c of ADJECTIVE_CONTEXTS[skill.id]) {
+    const noun = getNoun(c.noun);
+    if (!noun) continue;
+    const plural = c.plural ?? false;
+    const assembled = c.ru.replace("{N}", declineNoun(noun, c.case, plural).accented);
+    const verdict = validateSentence({ sentence: assembled, targetCase: c.case, plural });
+    require_(
+      verdict.ok,
+      `contexte « ${c.id} » : ${verdict.reason} — « ${assembled} »`
+    );
+    // Le prépositionnel ne s'emploie jamais sans préposition : c'est le seul
+    // cas russe dans ce cas, et c'est ce que le garde-fou ne peut pas voir
+    // seul (un verbe devant le trou ne gouverne rien de repérable).
+    if (c.case === "prepositional") {
+      require_(
+        findGovernor(assembled) !== undefined,
+        `contexte « ${c.id} » : prépositionnel sans préposition — « ${assembled} »`
+      );
+    }
+    // Typographie : la traduction commence par une majuscule, la phrase
+    // russe n'a ni espace avant la ponctuation ni espace double.
+    require_(
+      c.fr[0] === c.fr[0].toUpperCase(),
+      `contexte « ${c.id} » : la traduction ne commence pas par une majuscule`
+    );
+    require_(
+      !/\s[.!?]/.test(c.ru) && !/\s\s/.test(c.ru),
+      `contexte « ${c.id} » : espace avant la ponctuation, ou espace double`
+    );
   }
 }
 
@@ -232,7 +289,7 @@ if (failures.length) {
 
 console.log(`✓ ${checks} contrôles passés.`);
 console.log(
-  `  banque : ${contextCount} contextes écrits à la main sur ${ADJECTIVE_SKILLS.length} compétences ` +
+  `  banque : ${contextCount} contextes écrits sur ${ADJECTIVE_SKILLS.length} compétences ` +
     `(${ADJECTIVE_SKILLS.map((s) => `${s.id} ${ADJECTIVE_CONTEXTS[s.id].length}`).join(", ")})`
 );
 console.log(
