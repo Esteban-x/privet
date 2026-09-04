@@ -9,7 +9,6 @@ import { loadDirection, saveDirection, type VocabDirection } from "@/lib/storage
 import {
   ANSWER_LANG,
   onSpeechBusy,
-  prefetch,
   prefetchRu,
   PROMPT_LANG,
   speakIn,
@@ -108,15 +107,13 @@ function VoiceInner() {
   // changement de mot, pas un simple ajustement d'état React.
   useEffect(() => {
     if (!current) return;
-    if (direction === "ru-first") {
-      void speakRu(current.ru);
-    } else {
-      // On prépare ce que le bouton JOUERA — le français, la consigne — et
-      // aussi le russe, qui sera proposé une fois la réponse révélée. Sans
-      // ça le son arrive après que l'apprenant a fini de lire.
-      prefetch("fr", current.fr);
-      prefetchRu(current.ru);
-    }
+    // LA CONSIGNE EST ÉNONCÉE, jamais écrite : c'est elle qu'il faut avoir
+    // entendue pour répondre. Les deux sens se comportent donc pareil — seul
+    // change ce qui est prononcé, le russe ou le français.
+    void speakIn(PROMPT_LANG[direction], direction === "ru-first" ? current.ru : current.fr);
+    // Le mot russe sera proposé à la révélation : on le prépare pendant que
+    // l'apprenant cherche, sinon le son arrive après coup.
+    if (direction === "fr-first") prefetchRu(current.ru);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id]);
 
@@ -226,22 +223,28 @@ function VoiceInner() {
 
       <div className="rounded-[20px] surface p-8 text-center shadow-float">
         <p className="font-display text-sm text-muted">
-          {listenAndRecall ? "Écoute, et dis le sens en français :" : "Dis ce mot en russe :"}
+          {listenAndRecall
+            ? "Écoute le mot russe, et dis son sens en français :"
+            : "Écoute le mot français, et dis-le en russe :"}
         </p>
 
-        {/* LA SEULE DIFFÉRENCE ENTRE LES DEUX SENS. En « dis ce mot », le
-            français est la consigne ; en « écoute et devine », le mot EST la
-            réponse et ne peut pas s'afficher. La ligne reste occupée par un
-            point d'interrogation de même taille pour que les commandes, en
-            dessous, tombent exactement au même endroit dans les deux cartes —
-            on ne cherche pas le bouton après avoir changé de sens. */}
-        {listenAndRecall ? (
-          <p className="mt-2 font-display text-3xl font-bold text-muted/40" aria-hidden>
-            ?
-          </p>
-        ) : (
-          <p className="mt-2 font-display text-3xl font-bold text-accent2">{current.fr}</p>
-        )}
+        {/* RIEN N'EST ÉCRIT, DANS AUCUN DES DEUX SENS : c'est ce qui fait de
+            ce mode un exercice ORAL plutôt qu'une carte avec un micro à côté.
+
+            « Écoute et devine » cachait déjà son mot russe, et l'énonçait.
+            « Dis ce mot en russe » affichait sa consigne française — on
+            lisait donc une étiquette et on traduisait, exactement ce que fait
+            le mode Cartes. Il n'y avait plus rien à retrouver à l'oreille, et
+            le seul apport du mode, entendre puis produire, disparaissait.
+
+            La consigne se PRONONCE maintenant des deux côtés. Ce qui reste à
+            l'écran est un point d'interrogation, de même taille dans les deux
+            cas, pour que les commandes tombent au même endroit quand on
+            change de sens. Le texte apparaît à la révélation, avec la
+            réponse — c'est là qu'on vérifie, pas avant. */}
+        <p className="mt-2 font-display text-3xl font-bold text-muted/40" aria-hidden>
+          ?
+        </p>
 
         {/* Deux pastilles de même forme, même largeur, même rangée : écouter
             et parler sont deux gestes de même rang. L'ancienne carte opposait
@@ -377,6 +380,8 @@ function VoiceInner() {
               </button>
             </div>
             <p className="font-display text-sm text-muted">{current.transliteration}</p>
+            {/* La consigne n'ayant jamais été écrite, elle s'affiche ICI :
+                sans elle on ne saurait pas ce qu'on vient de rater. */}
             <p className="mt-2 font-display text-base">{current.fr}</p>
             {current.example && (
               <p className="mt-3 font-display text-sm text-muted">
