@@ -162,6 +162,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* `no-page-custom-font` met en garde contre une police déclarée
+            dans une page du Pages Router, où elle ne serait chargée que
+            pour celle-là. Ce <link> est dans le layout RACINE de l'App
+            Router : il s'applique à toutes les pages, ce que la règle
+            cherche justement à obtenir. Elle ne sait pas distinguer les
+            deux routeurs. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"

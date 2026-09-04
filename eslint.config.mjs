@@ -17,6 +17,28 @@ const eslintConfig = defineConfig([
     // rendre `npm run lint` inexploitable et faire ignorer les vraies.
     "supabase/.temp/**",
   ]),
+  {
+    /**
+     * LE SOULIGNÉ DE TÊTE VEUT DIRE « INUTILISÉ À DESSEIN ».
+     *
+     * La convention était déjà suivie dans le code — `_previous`,
+     * `_formData` de app/account/actions.ts, dont la signature est imposée
+     * par `useActionState` et non par nous — mais la règle ne la
+     * connaissait pas, et les signalait quand même. Deux avertissements
+     * permanents qu'on apprend à ignorer, ce qui est exactement ce qui
+     * fait rater le troisième.
+     */
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

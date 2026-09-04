@@ -31,6 +31,7 @@ import { createJiti } from "jiti";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { servesAPage } from "./lib/routes.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
@@ -98,8 +99,9 @@ function routeExists(href) {
 
   const segments = href.replace(/^\//, "");
   const dir = segments === "" ? ROOT + "/app" : path.join(ROOT, "app", segments);
-  return fs.existsSync(path.join(dir, "page.tsx"));
+  return servesAPage(dir);
 }
+
 
 // ── 1. Intégrité ────────────────────────────────────────────────────────
 const seen = new Set();

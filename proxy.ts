@@ -127,7 +127,46 @@ const ONBOARDING_EXEMPT_PATHS = [
   "/api/level-test/evaluate",
 ];
 
+/**
+ * LE VISITEUR SANS SESSION SUR UNE PAGE PUBLIQUE N'A RIEN À FAIRE ICI.
+ *
+ * Deux choses se réglaient ensemble en le laissant passer plus tôt.
+ *
+ * LE COÛT. `supabase.auth.getUser()` valide le jeton auprès du serveur
+ * d'authentification — un aller-retour réseau. Mesuré : 75 à 136 ms par
+ * requête pour une personne connectée, contre 2 à 3 ms sans cookie, où
+ * l'appel court-circuite de lui-même. Le construire pour quelqu'un qui n'a
+ * pas de cookie du tout, sur une page que tout le monde peut lire, ne
+ * décide de rien.
+ *
+ * LE STATUT. Renvoyer un `NextResponse.next()` fournit à Next une réponse
+ * dont le statut vaut déjà 200, et une page qui appelle ensuite
+ * `notFound()` ne parvient plus à le corriger : /cases/inexistant répondait
+ * « 200 OK » avec une page vide, en production. Ne rien renvoyer laisse Next
+ * fabriquer lui-même la réponse — et poser le 404.
+ *
+ * LA CONDITION EST DOUBLE, ET LES DEUX MOITIÉS COMPTENT. Le chemin doit
+ * être public — sinon on n'aurait plus rien à protéger — ET la requête ne
+ * doit porter aucun cookie de session, sinon on sauterait le passage par
+ * l'onboarding et on cesserait de rafraîchir le jeton de quelqu'un de
+ * connecté.
+ */
+function hasSessionCookie(request: NextRequest): boolean {
+  // @supabase/ssr nomme ses cookies `sb-<ref>-auth-token`, parfois découpés
+  // en `.0`, `.1` quand le jeton dépasse la taille d'un cookie. On cherche
+  // donc le préfixe, pas un nom exact.
+  return request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
+}
+
 export default async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  const publicPath =
+    PUBLIC_PATHS.some((p) => path === p || (path.startsWith(p + "/") && !INDEX_ONLY.includes(p))) ||
+    PREVIEW_PATHS.includes(path);
+
+  if (publicPath && !hasSessionCookie(request)) return;
+
   let response = NextResponse.next({ request });
 
   // Si Supabase n'est pas configuré (dev sans .env), on laisse passer pour
@@ -154,8 +193,6 @@ export default async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const path = request.nextUrl.pathname;
 
   // UNE ADRESSE QUI N'EXISTE PAS N'EST PAS UNE ADRESSE PROTÉGÉE. Sans ce
   // passage, le refus par défaut ci-dessous renvoyait vers /login toute URL

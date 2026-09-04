@@ -617,8 +617,6 @@ de réussite reste estimée A0.
   vient de les tripler (voir « Écrire la matière ») et `check:variety` tient
   désormais le plancher ; les compétences les plus minces restent celles qui
   ne tirent pas dans une banque de contextes.
-- L'erreur de lint pré-existante hors modules (`speech.ts`, setState dans un
-  effet).
 - La « forme courte » des participes reste aux onze contextes écrits à la
   main : son champ d'accord dépend d'un nom support que rien ne permet de
   repérer dans la phrase, donc aucune variante ne peut en hériter sans

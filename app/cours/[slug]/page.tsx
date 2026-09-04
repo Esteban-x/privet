@@ -10,6 +10,14 @@ import JsonLd from "@/components/seo/JsonLd";
 import { breadcrumb, graph, learningResource } from "@/lib/seo/structured-data";
 
 /** Toutes les leçons sont connues à la compilation : autant les prérendre. */
+/**
+ * Hors de la liste ci-dessous, le routeur répond 404 sans rien rendre.
+ * Sans ça, `notFound()` arrivait après le début de l'envoi de la
+ * coquille : statut 200 et page vide. Voir la note détaillée dans
+ * app/cases/[caseSlug]/page.tsx.
+ */
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return LESSONS.map(({ lesson }) => ({ slug: lesson.slug }));
 }

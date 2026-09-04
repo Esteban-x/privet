@@ -28,6 +28,7 @@ import { createJiti } from "jiti";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pageFileFor, servesAPage } from "./lib/routes.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
@@ -235,7 +236,9 @@ require_(
 // ─── 6. Liens et routes ──────────────────────────────────────────
 function routeExists(href) {
   const segments = href.split("/").filter(Boolean);
-  return fs.existsSync(path.join(ROOT, "app", ...segments, "page.tsx"));
+  // `servesAPage` et non `existsSync` : un index rangé dans un groupe de
+  // routes — app/cases/(index)/page.tsx — sert bien /cases.
+  return servesAPage(path.join(ROOT, "app", ...segments));
 }
 
 const catalogRoutes = new Set(["/exercices", ...EXERCISE_MODULES.map((m) => m.href)]);

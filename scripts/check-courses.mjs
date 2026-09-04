@@ -72,11 +72,25 @@ const DYNAMIC_IDS = {
 };
 
 function collectRoutes(dir, prefix, out) {
+  // La page d'un groupe sert le préfixe COURANT : app/cases/(index)/page.tsx
+  // répond sur /cases. Sans cette ligne, seuls les sous-dossiers seraient vus.
+  if (prefix && fs.existsSync(path.join(dir, "page.tsx"))) out.add(prefix);
+
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const name = entry.name;
-    // Dossiers hors routage : api, groupes, privés.
-    if (name === "api" || name.startsWith("_") || name.startsWith("(")) continue;
+    // Dossiers hors routage : api et dossiers privés.
+    if (name === "api" || name.startsWith("_")) continue;
+    // UN GROUPE DE ROUTES SE TRAVERSE, IL NE SE SAUTE PAS. `(index)`
+    // n'ajoute aucun segment à l'URL — c'est tout son intérêt — mais la page
+    // qu'il contient est bien servie. En l'ignorant, ce balayage a cessé de
+    // voir /cases, /cours et /guides à la seconde où leurs index sont entrés
+    // dans un groupe, et trois liens pratiques du catalogue sont devenus
+    // « une route absente » alors qu'ils marchaient parfaitement.
+    if (name.startsWith("(")) {
+      collectRoutes(path.join(dir, name), prefix, out);
+      continue;
+    }
     const full = path.join(dir, name);
     const isDynamic = name.startsWith("[");
     if (isDynamic) {

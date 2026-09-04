@@ -38,6 +38,7 @@ import { createJiti } from "jiti";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pageFileFor } from "./lib/routes.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const jiti = createJiti(import.meta.url, { alias: { "@": ROOT } });
@@ -122,8 +123,19 @@ if (fs.existsSync(path.join(ROOT, "app/page.tsx"))) pages.unshift("/");
 
 /** Les pages fixes : celles dont l'URL ne dépend d'aucune donnée. */
 const staticPages = pages.filter((route) => !route.includes("["));
-const sourceOf = (route) =>
-  path.join(ROOT, "app", route === "/" ? "" : route.slice(1), "page.tsx");
+/**
+ * Le fichier qui sert une route, groupe de routes compris.
+ *
+ * Un index rangé dans un groupe — app/cours/(index)/page.tsx — sert /cours
+ * sans que le chemin le dise. Le calcul direct levait ENOENT dès que les
+ * trois arbres de contenu ont adopté cette forme.
+ */
+const sourceOf = (route) => {
+  const dir = path.join(ROOT, "app", route === "/" ? "" : route.slice(1));
+  const file = pageFileFor(dir);
+  if (!file) throw new Error(`aucune page ne sert ${route}`);
+  return file;
+};
 
 /**
  * « Explorable » et « indexable » ne sont pas la même chose.
@@ -250,6 +262,59 @@ for (const route of pages) {
     }
   }
 }
+
+const NOTFOUND = /notFound\(\)/;
+
+// ── Le 404 des arbres de contenu doit pouvoir sortir ────────────────────
+//
+// CE QUI S'EST PASSÉ. /cases/inexistant répondait « 200 OK » avec une page
+// VIDE — en production. Ni le contenu, ni la 404 qui enseigne le génitif de
+// la négation. Un robot y voyait une page valide de plus, et l'adresse morte
+// entrait dans l'index.
+//
+// LA CAUSE EST UN `loading.tsx`. Il crée une frontière Suspense : Next envoie
+// la coquille, donc les EN-TÊTES, donc le statut, dès que la page suspend.
+// Quand `notFound()` s'exécute ensuite, il est trop tard pour corriger un
+// statut déjà parti. Peu importe le niveau : une frontière posée sur le
+// segment OU sur l'un de ses parents produit le même effet — c'est ce qui a
+// fait échouer deux diagnostics avant le bon.
+//
+// La parade tient dans une règle de FICHIERS, donc elle se vérifie sans
+// serveur : aucune frontière au-dessus d'un segment dynamique qui refuse des
+// identifiants. Les index gardent la leur en vivant dans un groupe `(index)`,
+// que Next ne fait pas englober ses voisins.
+{
+  const TREES = [
+    ["app/cases", "[caseSlug]"],
+    ["app/cours", "[slug]"],
+    ["app/guides", "[slug]"],
+  ];
+
+  for (const [tree, segment] of TREES) {
+    const base = path.join(ROOT, tree);
+
+    require_(
+      !fs.existsSync(path.join(base, "loading.tsx")),
+      `${tree}/loading.tsx englobe ${segment} : son 404 repartirait en 200. ` +
+        `Range l'index dans un groupe (index)/ pour lui garder son squelette.`
+    );
+    require_(
+      !fs.existsSync(path.join(base, segment, "loading.tsx")),
+      `${tree}/${segment}/loading.tsx empêche le 404 de sortir — le statut ` +
+        `part avec la coquille, avant que notFound() ne s'exécute.`
+    );
+
+    const page = path.join(base, segment, "page.tsx");
+    require_(fs.existsSync(page), `${tree}/${segment}/page.tsx a disparu`);
+    if (fs.existsSync(page)) {
+      require_(
+        NOTFOUND.test(fs.readFileSync(page, "utf8")),
+        `${tree}/${segment} n'appelle plus notFound() : un identifiant inventé serait servi`
+      );
+    }
+  }
+}
+
 
 // ── Verdict ─────────────────────────────────────────────────────────────
 if (failures.length > 0) {
