@@ -639,6 +639,16 @@ de réussite reste estimée A0.
   possède, `numbers/age` par les nombres qu'il vaut la peine de demander, et
   `aspect/markers` par la liste des adverbes qui décident vraiment de
   l'aspect. Les allonger demanderait d'inventer des items sans contenu.
+- Rendre les pages publiques cachables par le CDN. Elles sont rendues à la
+  demande à chaque visite et à chaque passage de robot — `Cache-Control:
+  private, no-store`, `X-Vercel-Cache: MISS` sur une leçon, 240 ms mesurés
+  en production. La cause n'est pas dans les pages : `/cours/[slug]` et
+  `/guides/[slug]` ne lisent RIEN de la session. C'est le layout racine qui
+  la lit, pour que la barre de navigation parte déjà connectée, et cela rend
+  toute l'application dynamique. Deux sorties : déplacer cette lecture côté
+  client (au prix d'un bref flash « déconnecté »), ou migrer vers les Cache
+  Components de Next 16, faits pour ça — coquille statique, trous dynamiques.
+  La seconde est meilleure et demande une vraie migration.
 - Faire entrer `motion_progress` dans l'estimation continue du niveau : les
   seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
   demande de les recalibrer.

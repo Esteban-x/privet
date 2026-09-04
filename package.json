@@ -27,6 +27,7 @@
     "check:exercises": "node scripts/check-exercises.mjs",
     "check:lexicon": "node scripts/check-lexicon.mjs",
     "check:variety": "node scripts/check-variety.mjs",
+    "check:browser": "node scripts/check-browser.mjs",
     "db:new": "supabase migration new",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
