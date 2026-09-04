@@ -5,7 +5,7 @@
 // de la donnée, pas un appel réseau. Voir l'en-tête du script pour le
 // raisonnement, et check:grammar pour ce qui est vérifié dessus.
 //
-// 120 déclencheurs, 6925 couples au total.
+// 120 déclencheurs, 6997 couples au total.
 
 export const TRIGGER_NOUNS: Record<string, string[]> = {
   // Il y a ___ ici.
@@ -31,7 +31,7 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // Cette lettre vient de ___.
   "prep-gen-ot": ["chelovek", "mama", "papa", "otets", "mat", "doch", "brat", "sestra", "babushka", "dedushka", "tyotya", "zhena", "muzh", "semya", "drug", "podruga", "sosed", "sosedka", "rebyonok", "malchik", "devochka", "devushka", "zhenshchina", "muzhchina", "paren", "gost", "khozyain", "starik", "zhenikh", "nevesta", "kuzen", "dama", "gospodin", "tovarishch", "priyatel", "vrach", "medsestra", "patsient", "uchitel", "student", "direktor", "nachalnik", "sekretar", "menedzher", "spetsialist", "ekspert", "klient", "advokat", "sudya", "svidetel", "prokuror", "soldat", "ofitser", "komandir", "kapitan", "voditel", "pilot", "pisatel", "avtor", "khudozhnik", "aktrisa", "operator", "rezhissyor", "chempion", "igrok", "trener", "okhotnik", "okhrannik", "pomoshchnik", "vladelets", "predsedatel", "prezident", "ministr", "gubernator", "senator", "korol", "koroleva", "prints", "printsessa", "geroy", "svyashchennik", "vrag", "shpion", "vor", "prestupnik", "kompaniya", "firma", "shkola", "universitet", "sud", "politsiya", "bolnitsa", "pravitelstvo"],
   // Je n'ai pas dormi depuis ___.
-  "prep-gen-s": ["utro", "vecher", "leto", "zima", "vesna", "osen", "ponedelnik", "vtornik", "chetverg", "voskresene", "svadba", "ekzamen"],
+  "prep-gen-s": ["utro", "vecher", "leto", "zima", "vesna", "osen", "ponedelnik", "vtornik", "chetverg", "voskresene", "svadba", "ekzamen", "noch", "operatsiya", "otpusk", "prazdnik", "vstrecha", "sobranie"],
   // Nous allons jusqu'à ___.
   "prep-gen-do": ["dom", "gorod", "strana", "ulitsa", "doroga", "ploshchad", "most", "zdanie", "tsentr", "rayon", "park", "muzey", "teatr", "shkola", "universitet", "bolnitsa", "gostinitsa", "vokzal", "stantsiya", "aeroport", "ostanovka", "more", "ozero", "reka", "les", "gora", "ostrov", "dvor", "sosed", "babushka", "dedushka", "kvartira", "restoran", "magazin", "rynok"],
   // Je viendrai après ___.
@@ -43,7 +43,7 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // Les enfants couraient autour de ___.
   "prep-gen-vokrug": ["mama", "papa", "otets", "mat", "babushka", "dedushka", "dom", "kvartira", "stol", "stul", "kreslo", "divan", "krovat", "dvor", "sad", "zdanie", "gorod", "tsentr", "park", "muzey", "teatr", "shkola", "universitet", "bolnitsa", "ozero", "reka", "les", "pole", "gora", "ostrov", "derevo", "kamen", "ogon", "mashina", "avtobus", "poezd", "korabl", "lodka", "velosiped", "ploshchad", "most"],
   // Nous nous sommes promenés le long de ___.
-  "prep-gen-vdol": ["reka", "ozero", "more", "okean", "ulitsa", "doroga", "stena", "les", "pole", "sad", "park", "zdanie", "dom"],
+  "prep-gen-vdol": ["reka", "ozero", "more", "okean", "ulitsa", "doroga", "stena", "les", "pole", "sad", "park", "zdanie", "dom", "most", "gora", "muzey", "vokzal", "universitet"],
   // Je suis passé devant ___.
   "prep-gen-mimo": ["chelovek", "mama", "papa", "otets", "mat", "brat", "sestra", "babushka", "dedushka", "zhena", "muzh", "drug", "podruga", "sosed", "sosedka", "rebyonok", "malchik", "devochka", "devushka", "zhenshchina", "muzhchina", "paren", "starik", "malysh", "dama", "gospodin", "vrach", "uchitel", "student", "direktor", "ofitser", "soldat", "voditel", "okhotnik", "okhrannik", "vladelets", "svyashchennik", "vor", "prestupnik", "vrag", "kot", "koshka", "sobaka", "loshad", "ptitsa", "medved", "volk", "zmeya", "svinya", "dom", "kvartira", "dver", "okno", "stena", "podval", "dvor", "sad", "stol", "kholodilnik", "magazin", "rynok", "restoran", "gorod", "ulitsa", "doroga", "ploshchad", "most", "zdanie", "tsentr", "park", "muzey", "teatr", "shkola", "universitet", "bolnitsa", "gostinitsa", "vokzal", "stantsiya", "aeroport", "ostanovka", "mashina", "avtobus", "poezd", "korabl", "lodka", "velosiped", "mototsikl", "gruzovik", "ozero", "reka", "les", "pole", "gora", "ostrov", "derevo", "tsvetok", "kamen", "angel", "prizrak", "ofis", "kabinet", "klub", "basseyn"],
   // Le café est en face de ___.
@@ -55,7 +55,7 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // Tout le monde est venu, sauf ___.
   "prep-gen-krome": ["chelovek", "mama", "papa", "otets", "mat", "doch", "brat", "sestra", "babushka", "dedushka", "tyotya", "zhena", "muzh", "drug", "podruga", "sosed", "sosedka", "rebyonok", "malchik", "devochka", "devushka", "zhenshchina", "muzhchina", "paren", "gost", "starik", "malysh", "zhenikh", "nevesta", "kuzen", "dama", "tovarishch", "priyatel", "vrach", "medsestra", "patsient", "uchitel", "student", "direktor", "nachalnik", "sekretar", "menedzher", "spetsialist", "ekspert", "klient", "advokat", "sudya", "svidetel", "prokuror", "soldat", "ofitser", "komandir", "kapitan", "voditel", "pilot", "pisatel", "avtor", "khudozhnik", "aktrisa", "operator", "rezhissyor", "chempion", "igrok", "trener", "okhotnik", "okhrannik", "pomoshchnik", "vladelets", "predsedatel", "prezident", "ministr", "gubernator", "senator", "korol", "koroleva", "prints", "printsessa", "geroy", "svyashchennik", "kot", "koshka", "sobaka"],
   // Prends du thé au lieu de ___.
-  "prep-gen-vmesto": ["voda", "sok", "vino", "pivo", "napitok", "lekarstvo"],
+  "prep-gen-vmesto": ["voda", "sok", "vino", "pivo", "napitok", "lekarstvo", "sup", "zavtrak", "obed", "uzhin"],
   // Je suis arrivé en retard à cause de ___.
   "prep-gen-izza": ["mama", "papa", "otets", "mat", "brat", "sestra", "babushka", "dedushka", "zhena", "muzh", "drug", "podruga", "sosed", "sosedka", "rebyonok", "doch", "gost", "khozyain", "nachalnik", "direktor", "sekretar", "klient", "voditel", "pogoda", "dozhd", "sneg", "avtobus", "poezd", "samolyot", "mashina", "doroga", "rabota", "vstrecha", "sobranie", "son", "bolezn", "bol", "opyt", "oshibka", "problema", "ekzamen", "urok", "shum", "razgovor", "vecherinka", "prazdnik", "zdorove", "student", "zadacha", "otchyot", "dogovor", "proekt", "gruzovik", "most", "lift", "tsena"],
   // Le chat est sorti de dessous ___.
@@ -75,9 +75,9 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // J'évite ___.
   "verb-gen-izbegat": ["chelovek", "mama", "papa", "otets", "mat", "brat", "sestra", "drug", "sosed", "sosedka", "muzhchina", "zhenshchina", "devushka", "gost", "starik", "vrach", "uchitel", "student", "direktor", "nachalnik", "klient", "advokat", "soldat", "voditel", "vor", "prestupnik", "vrag", "shpion", "sobaka", "kot", "volk", "zmeya", "dom", "kvartira", "kukhnya", "dver", "okno", "podval", "dvor", "kholodilnik", "razgovor", "vstrecha", "sobranie", "problema", "oshibka", "vopros", "otvet", "vybor", "bol", "smert", "bolezn", "rabota", "shkola", "gorod", "ulitsa", "doroga", "shum", "solntse", "voyna", "politsiya", "sud", "tyurma", "vnimanie", "sakhar"],
   // Je te souhaite ___.
-  "verb-gen-zhelat": ["zdorove", "schaste", "uspekh", "lyubov", "radost", "pobeda"],
+  "verb-gen-zhelat": ["zdorove", "schaste", "uspekh", "lyubov", "radost", "pobeda", "otdykh"],
   // J'exige ___.
-  "verb-gen-trebovat": ["otvet", "vnimanie", "dokument", "podpis", "otchyot", "reshenie", "svoboda", "pravo"],
+  "verb-gen-trebovat": ["otvet", "vnimanie", "dokument", "podpis", "otchyot", "reshenie", "svoboda", "pravo", "vstrecha", "rezultat"],
   // Ça concerne ___.
   "verb-gen-kasatsya": ["chelovek", "mama", "papa", "otets", "mat", "doch", "brat", "sestra", "semya", "drug", "rebyonok", "zhenshchina", "muzhchina", "vrach", "uchitel", "student", "direktor", "nachalnik", "sekretar", "menedzher", "spetsialist", "ekspert", "klient", "advokat", "sudya", "svidetel", "soldat", "voditel", "pisatel", "vladelets", "prezident", "ministr", "dom", "kvartira", "rabota", "delo", "kompaniya", "firma", "otdel", "sobranie", "vstrecha", "dogovor", "proekt", "plan", "zadacha", "zadanie", "otchyot", "dokument", "podpis", "spisok", "programma", "sistema", "uroven", "razmer", "kolichestvo", "chislo", "summa", "uspekh", "pobeda", "opyt", "obrazovanie", "ekzamen", "urok", "kurs", "nauka", "issledovanie", "analiz", "rezultat", "metod", "sposob", "prichina", "reshenie", "otvet", "vopros", "problema", "oshibka", "vybor", "vozmozhnost", "sluchay", "primer", "pravilo", "zakon", "vlast", "pravitelstvo", "obshchestvo", "narod", "voyna", "armiya", "politsiya", "sud", "prestuplenie", "svoboda", "pravo", "novost", "sobytie", "statya", "informatsiya", "soobshchenie", "razgovor", "rech", "yazyk", "istoriya", "zdorove", "bolezn", "zhizn", "smert", "vozrast", "srok", "tsena", "schyot", "otdykh", "otpusk", "prazdnik", "interes", "vnimanie", "ideya", "mysl", "mechta", "nadezhda", "lyubov", "strakh", "chuvstvo", "kharakter", "nastroenie", "sila", "pravda", "lozh", "tayna", "sekret", "tsel", "smysl", "znachenie", "vkus", "obraz"],
   // Nous avons atteint ___.
@@ -89,11 +89,11 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // N'aie pas honte de ___.
   "verb-gen-stesnyatsya": ["chelovek", "mama", "papa", "otets", "mat", "brat", "sestra", "babushka", "dedushka", "tyotya", "zhena", "muzh", "drug", "podruga", "sosed", "sosedka", "rebyonok", "malchik", "devochka", "devushka", "zhenshchina", "muzhchina", "paren", "gost", "starik", "vrach", "medsestra", "uchitel", "student", "direktor", "nachalnik", "klient", "soldat", "voditel", "chempion", "vozrast", "bolezn", "oshibka", "vopros", "pravda", "strakh", "sluchay", "vybor"],
   // Les enfants obéissent à ___.
-  "verb-gen-slushatsya": ["mama", "papa", "otets", "mat", "babushka", "dedushka", "tyotya", "brat", "sestra", "uchitel", "trener", "vrach", "medsestra", "direktor"],
+  "verb-gen-slushatsya": ["mama", "papa", "otets", "mat", "babushka", "dedushka", "tyotya", "brat", "sestra", "uchitel", "trener", "vrach", "medsestra", "direktor", "muzhchina", "zhenshchina", "starik", "khozyain", "sosed", "sosedka", "koroleva", "korol", "svyashchennik"],
   // Le verre est plein de ___.
   "expr-gen-polnyy": ["voda", "chay", "sok", "vino", "pivo", "napitok", "sol", "sakhar", "ris"],
   // Il est digne de ___.
-  "expr-gen-dostoin": ["lyubov", "vnimanie", "pobeda", "uspekh", "zhizn", "schaste", "svoboda", "pravda", "geroy", "chempion", "gospodin"],
+  "expr-gen-dostoin": ["lyubov", "vnimanie", "pobeda", "uspekh", "zhizn", "schaste", "svoboda", "pravda", "geroy", "chempion", "gospodin", "mesto", "rol", "otdykh"],
   // Je suis désolé pour ___.
   "expr-gen-zhal": ["chelovek", "mama", "papa", "otets", "mat", "doch", "brat", "sestra", "babushka", "dedushka", "tyotya", "zhena", "muzh", "semya", "drug", "podruga", "sosed", "sosedka", "rebyonok", "malchik", "devochka", "devushka", "zhenshchina", "muzhchina", "paren", "gost", "khozyain", "starik", "malysh", "zhenikh", "nevesta", "kuzen", "dama", "gospodin", "tovarishch", "priyatel", "geniy", "vrach", "medsestra", "patsient", "uchitel", "student", "direktor", "nachalnik", "sekretar", "menedzher", "spetsialist", "ekspert", "klient", "advokat", "sudya", "svidetel", "prokuror", "soldat", "ofitser", "komandir", "kapitan", "voditel", "pilot", "pisatel", "avtor", "khudozhnik", "aktrisa", "operator", "rezhissyor", "chempion", "igrok", "trener", "okhotnik", "okhrannik", "pomoshchnik", "vladelets", "predsedatel", "prezident", "ministr", "gubernator", "senator", "korol", "koroleva", "prints", "printsessa", "geroy", "svyashchennik", "angel", "prizrak", "vedma", "vor", "prestupnik", "vrag", "shpion", "kot", "koshka", "sobaka", "loshad", "ptitsa", "medved", "volk", "zmeya", "krolik", "krysa", "svinya", "dom", "kvartira", "vremya", "den", "noch", "nedelya", "mesyats", "chas", "minuta", "moment", "sekunda", "leto", "zima", "vesna", "osen", "zhizn", "smert", "rabota", "otpusk", "vozmozhnost", "sluchay"],
   // Je vais vers ___.
@@ -145,7 +145,7 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // Les spectateurs applaudissent ___.
   "verb-dat-aplodirovat": ["chelovek", "mama", "papa", "otets", "mat", "brat", "sestra", "babushka", "dedushka", "zhena", "muzh", "drug", "podruga", "rebyonok", "malchik", "devochka", "devushka", "zhenshchina", "muzhchina", "paren", "starik", "zhenikh", "nevesta", "dama", "gospodin", "tovarishch", "priyatel", "geniy", "vrach", "uchitel", "student", "direktor", "nachalnik", "spetsialist", "ekspert", "advokat", "sudya", "soldat", "ofitser", "kapitan", "pisatel", "avtor", "khudozhnik", "aktrisa", "rezhissyor", "chempion", "igrok", "trener", "geroy", "svyashchennik", "angel", "korol", "koroleva", "prints", "printsessa", "prezident", "ministr", "gubernator", "senator", "komanda", "poet"],
   // Je sers ___.
-  "verb-dat-sluzhit": ["narod", "obshchestvo", "zakon", "iskusstvo", "nauka", "korol", "prezident", "khozyain", "semya", "strana", "vlast", "pravitelstvo", "tsel", "muzhchina"],
+  "verb-dat-sluzhit": ["narod", "obshchestvo", "zakon", "iskusstvo", "nauka", "korol", "prezident", "khozyain", "semya", "strana", "vlast", "pravitelstvo", "tsel", "muzhchina", "armiya", "kompaniya", "firma", "delo"],
   // Je vois ___.
   "verb-acc-videt": ["chelovek", "mama", "papa", "otets", "mat", "doch", "brat", "sestra", "babushka", "dedushka", "tyotya", "zhena", "muzh", "semya", "drug", "podruga", "sosed", "sosedka", "rebyonok", "malchik", "devochka", "devushka", "zhenshchina", "muzhchina", "paren", "gost", "khozyain", "starik", "malysh", "zhenikh", "nevesta", "kuzen", "dama", "gospodin", "tovarishch", "priyatel", "geniy", "vrach", "medsestra", "patsient", "uchitel", "student", "direktor", "nachalnik", "sekretar", "menedzher", "spetsialist", "ekspert", "klient", "advokat", "sudya", "svidetel", "prokuror", "soldat", "ofitser", "komandir", "kapitan", "voditel", "pilot", "pisatel", "avtor", "khudozhnik", "aktrisa", "operator", "rezhissyor", "chempion", "igrok", "trener", "okhotnik", "okhrannik", "pomoshchnik", "vladelets", "predsedatel", "prezident", "ministr", "gubernator", "senator", "korol", "koroleva", "prints", "printsessa", "geroy", "svyashchennik", "angel", "prizrak", "vedma", "vor", "prestupnik", "vrag", "shpion", "kot", "koshka", "sobaka", "loshad", "ptitsa", "medved", "volk", "zmeya", "krolik", "krysa", "svinya", "dom", "kvartira", "komnata", "kukhnya", "dver", "okno", "stena", "krysha", "podval", "dvor", "sad", "stol", "stul", "kreslo", "divan", "krovat", "zerkalo", "lampa", "yashchik", "klyuch", "kholodilnik", "televizor", "telefon", "kompyuter", "sumka", "chemodan", "koltso", "braslet", "zont", "nozh", "stakan", "bokal", "tarelka", "kniga", "pismo", "gazeta", "zhurnal", "kartina", "fotografiya", "podarok", "chek", "magazin", "rynok", "restoran", "voda", "sup", "ryba", "yabloko", "khleb", "tort", "pirog", "zdanie", "most", "lift", "park", "muzey", "teatr", "shkola", "universitet", "bolnitsa", "gostinitsa", "vokzal", "stantsiya", "aeroport", "ostanovka", "mashina", "avtobus", "poezd", "samolyot", "korabl", "lodka", "velosiped", "mototsikl", "gruzovik", "bilet", "pasport", "karta", "zemlya", "nebo", "solntse", "luna", "zvezda", "more", "okean", "ozero", "reka", "les", "pole", "gora", "ostrov", "derevo", "tsvetok", "kamen", "ogon", "sneg", "dozhd", "zhivotnoe", "planeta", "golova", "litso", "glaz", "nos", "rot", "ukho", "ruka", "noga", "palets", "plecho", "spina", "zhivot", "krov", "rana", "son", "ofis", "kabinet", "dokument", "podpis", "spisok", "nomer", "razmer", "obraz", "tsvet", "ten"],
   // Je lis ___.
@@ -171,7 +171,7 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // Je prends ___.
   "verb-acc-brat": ["kniga", "pismo", "gazeta", "zhurnal", "dnevnik", "podarok", "chek", "voda", "chay", "sok", "vino", "pivo", "napitok", "sup", "myaso", "syr", "yaytso", "ryba", "yabloko", "khleb", "sol", "sakhar", "maslo", "ris", "salat", "tort", "pirog", "pechene", "shokolad", "desert", "blyudo", "kusok", "banka", "paket", "zont", "nozh", "stakan", "bokal", "tarelka", "sumka", "chemodan", "koltso", "braslet", "telefon", "kompyuter", "polotentse", "odezhda", "plate", "rubashka", "kostyum", "pidzhak", "galstuk", "bilet", "pasport", "karta", "klyuch", "mashina", "otpusk", "otvet", "reshenie", "primer", "kurs", "rebyonok", "sobaka", "kot", "koshka"],
   // J'étudie ___.
-  "verb-acc-izuchat": ["yazyk", "istoriya", "nauka", "iskusstvo", "muzyka", "pravo", "kharakter", "sistema"],
+  "verb-acc-izuchat": ["yazyk", "istoriya", "nauka", "iskusstvo", "muzyka", "pravo", "kharakter", "sistema", "opyt", "vopros", "problema", "delo", "dokument", "otchyot", "primer", "sluchay", "chelovek"],
   // Je vais dans ___.
   "prep-acc-v": ["dom", "kvartira", "komnata", "kukhnya", "podval", "sad", "magazin", "rynok", "restoran", "shkola", "universitet", "bolnitsa", "gostinitsa", "vokzal", "aeroport", "park", "muzey", "teatr", "ofis", "kabinet", "klub", "basseyn", "tsentr", "sud", "tyurma", "armiya", "les", "pole", "gora", "gorod", "dvor"],
   // Je regarde ___.
@@ -179,15 +179,15 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // Merci pour ___.
   "prep-acc-za": ["podarok", "pismo", "zavtrak", "obed", "uzhin", "vnimanie", "interes", "otvet", "vstrecha", "razgovor", "urok", "opyt", "informatsiya", "soobshchenie", "fotografiya", "kniga", "muzyka", "pesnya", "kontsert", "otdykh", "vecher", "den", "vremya", "vozmozhnost", "rabota", "vino", "chay", "tsvetok"],
   // Nous passons par ___.
-  "prep-acc-cherez": ["gorod", "strana", "les", "pole", "gora", "most", "reka", "dvor", "ulitsa", "ploshchad", "rayon", "tsentr", "park", "ozero"],
+  "prep-acc-cherez": ["gorod", "strana", "les", "pole", "gora", "most", "reka", "dvor", "ulitsa", "ploshchad", "rayon", "tsentr", "park", "ozero", "ostrov", "doroga", "stantsiya", "vokzal", "aeroport", "zdanie", "sad", "dom"],
   // Je vois la lumière à travers ___.
-  "prep-acc-skvoz": ["okno", "dver", "stena", "les", "dozhd", "stakan", "voda"],
+  "prep-acc-skvoz": ["okno", "dver", "stena", "les", "dozhd", "stakan", "voda", "sneg", "krysha"],
   // Malgré ___, nous sommes sortis nous promener.
-  "prep-acc-nesmotrya-na": ["dozhd", "sneg", "pogoda", "bolezn", "bol", "strakh", "vozrast", "opyt", "problema", "son", "shum", "vecher", "utro", "voyna"],
+  "prep-acc-nesmotrya-na": ["dozhd", "sneg", "pogoda", "bolezn", "bol", "strakh", "vozrast", "opyt", "problema", "son", "shum", "vecher", "utro", "voyna", "noch"],
   // Je bois du thé avec ___.
   "prep-instr-s": ["sakhar", "maslo", "pechene", "shokolad", "tort", "pirog", "khleb", "syr", "drug", "mama", "papa", "brat", "sestra", "babushka", "dedushka", "sosed", "sosedka", "muzh", "zhena"],
   // Le chat dort sous ___.
-  "prep-instr-pod": ["stol", "stul", "kreslo", "divan", "krovat", "kholodilnik", "lampa", "okno", "dver", "derevo", "most", "krysha", "dom", "dozhd"],
+  "prep-instr-pod": ["stol", "stul", "kreslo", "divan", "krovat", "kholodilnik", "lampa", "okno", "dver", "derevo", "most", "krysha", "dom", "dozhd", "odezhda", "zont", "mashina"],
   // La lampe est suspendue au-dessus de ___.
   "prep-instr-nad": ["stol", "krovat", "divan", "kreslo", "dver", "okno", "kukhnya", "vkhod", "vykhod", "zerkalo", "gorod", "ulitsa", "ploshchad", "most", "dom", "sad", "dvor", "voda", "more", "reka", "ozero", "gora", "les", "pole", "zemlya", "golova", "tarelka"],
   // On se retrouve devant ___.
@@ -207,19 +207,19 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // Je suis fier de ___.
   "verb-instr-gorditsya": ["mama", "papa", "otets", "mat", "doch", "brat", "sestra", "babushka", "dedushka", "zhena", "muzh", "semya", "drug", "podruga", "rebyonok", "chelovek", "uspekh", "pobeda", "rezultat", "rabota", "strana", "narod", "gorod", "komanda", "opyt", "sila", "obrazovanie", "proekt", "kniga", "kartina", "geroy", "student", "kharakter"],
   // Je pratique ___.
-  "verb-instr-zanimatsya": ["futbol", "muzyka", "tanets", "iskusstvo", "nauka", "delo", "rabota", "proekt", "issledovanie", "analiz", "obrazovanie"],
+  "verb-instr-zanimatsya": ["futbol", "muzyka", "tanets", "iskusstvo", "nauka", "delo", "rabota", "proekt", "issledovanie", "analiz", "obrazovanie", "fotografiya"],
   // Il est passionné par ___.
-  "verb-instr-uvlekatsya": ["muzyka", "futbol", "fotografiya", "istoriya", "iskusstvo", "nauka", "tanets", "film", "kniga", "igra", "rabota"],
+  "verb-instr-uvlekatsya": ["muzyka", "futbol", "fotografiya", "istoriya", "iskusstvo", "nauka", "tanets", "film", "kniga", "igra", "rabota", "teatr"],
   // J'utilise ___.
   "verb-instr-polzovatsya": ["telefon", "kompyuter", "televizor", "kholodilnik", "avtomobil", "mashina", "velosiped", "mototsikl", "avtobus", "poezd", "samolyot", "lift", "nozh", "zont", "karta", "kniga", "lampa", "klyuch", "sumka", "chemodan", "dogovor", "dokument", "metod", "sposob", "sistema", "programma", "yazyk", "pravo", "vlast", "uspekh", "opyt", "vozmozhnost"],
   // Je maîtrise ___.
-  "verb-instr-vladet": ["yazyk", "dom", "kvartira", "mashina", "kompaniya", "firma", "gorod", "zemlya"],
+  "verb-instr-vladet": ["yazyk", "dom", "kvartira", "mashina", "kompaniya", "firma", "gorod", "zemlya", "iskusstvo", "metod", "informatsiya"],
   // Il dirige ___.
   "verb-instr-upravlyat": ["mashina", "avtomobil", "avtobus", "poezd", "samolyot", "korabl", "lodka", "velosiped", "mototsikl", "gruzovik", "kompaniya", "firma", "gorod", "strana", "narod", "otdel", "komanda", "proekt", "sistema"],
   // J'admire ___.
   "verb-instr-voskhishchatsya": ["chelovek", "mama", "papa", "otets", "mat", "brat", "sestra", "babushka", "dedushka", "zhena", "muzh", "drug", "podruga", "rebyonok", "devushka", "zhenshchina", "muzhchina", "paren", "geniy", "vrach", "uchitel", "pisatel", "avtor", "khudozhnik", "aktrisa", "rezhissyor", "chempion", "igrok", "trener", "geroy", "angel", "koroleva", "prints", "printsessa", "priroda", "gorod", "kartina", "fotografiya", "muzyka", "pesnya", "tanets", "film", "iskusstvo", "istoriya", "roman", "poet", "sila", "uspekh", "pobeda", "kharakter", "dusha", "golos", "vid", "zvezda", "nebo", "more", "gora", "ozero", "tsvetok", "vecherinka", "kontsert", "rol", "stsena", "vozrast"],
   // Ne risque pas ___.
-  "verb-instr-riskovat": ["zhizn", "zdorove", "rabota", "semya", "svoboda", "doch", "den", "mashina", "dom"],
+  "verb-instr-riskovat": ["zhizn", "zdorove", "rabota", "semya", "svoboda", "doch", "den", "mashina", "dom", "chelovek", "rebyonok", "mesto", "imya", "kompaniya", "proekt"],
   // Il fait le commerce de ___.
   "verb-instr-torgovat": ["myaso", "syr", "yaytso", "ryba", "yabloko", "khleb", "sol", "sakhar", "maslo", "ris", "salat", "tort", "pirog", "pechene", "shokolad", "napitok", "vino", "pivo", "sok", "chay", "voda", "odezhda", "plate", "rubashka", "kostyum", "pidzhak", "galstuk", "sumka", "koltso", "braslet", "zont", "nozh", "stakan", "bokal", "tarelka", "bumaga", "kniga", "gazeta", "zhurnal", "kartina", "tsvetok", "zemlya", "mashina", "avtomobil", "velosiped", "mototsikl", "kholodilnik", "televizor", "telefon", "kompyuter", "polotentse"],
   // Je tiens à ___.
@@ -227,9 +227,9 @@ export const TRIGGER_NOUNS: Record<string, string[]> = {
   // J'habite dans ___.
   "prep-prep-v": ["dom", "kvartira", "komnata", "podval", "gorod", "strana", "rayon", "tsentr", "gostinitsa", "les", "gora", "pole"],
   // Je travaille sur/à ___.
-  "prep-prep-na": ["stantsiya", "rynok", "vokzal", "ostanovka", "kukhnya", "ulitsa", "kompyuter", "televizor"],
+  "prep-prep-na": ["stantsiya", "rynok", "vokzal", "ostanovka", "kukhnya", "ulitsa", "kompyuter", "televizor", "korabl"],
   // La bibliothèque est rattachée à ___.
-  "prep-prep-pri": ["shkola", "universitet", "bolnitsa", "muzey", "teatr", "kompaniya", "firma", "ofis", "tsentr", "klub", "gostinitsa"],
+  "prep-prep-pri": ["shkola", "universitet", "bolnitsa", "muzey", "teatr", "kompaniya", "firma", "ofis", "tsentr", "klub", "gostinitsa", "pravitelstvo", "vokzal", "aeroport"],
   // La maison se trouve dans ___.
   "expr-prep-nakhoditsya": ["gorod", "strana", "tsentr", "rayon", "park", "les", "pole", "gora", "dvor", "sad", "podval", "kvartira", "komnata", "gostinitsa"],
   // Nous discutons de ___.

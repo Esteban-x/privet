@@ -508,6 +508,36 @@ for (const adj of ADJECTIVES) {
 // assistant ». Trois choses doivent tenir.
 let curatedTriggers = 0;
 let demandingTriggers = 0;
+
+/**
+ * Vivier minimal d'un déclencheur, à chaque niveau. Doit valoir MIN_POOL de
+ * lib/grammar/exercise-generator.ts — c'est ce nombre-là que l'élargissement
+ * vise, et le contrôle n'a de sens que s'il vérifie la même chose.
+ */
+const MIN_NOUNS = 12;
+
+/**
+ * Déclencheurs que la langue ne laisse pas remplir, avec la raison.
+ *
+ * Ce n'est pas une dérogation de confort : chacun a été relu, et la liste
+ * est vérifiée dans les deux sens — une entrée dont le vivier a grandi
+ * devient une erreur (voir la fin de la section 7), pour qu'elle ne serve
+ * pas d'échappatoire durable.
+ */
+const MIN_NARROW = 5;
+const NARROW = {
+  "expr-gen-stakan": "« Un verre de ___ » : la banque ne compte que six boissons.",
+  "verb-gen-vypit": "« Boire un peu de ___ » : les six mêmes boissons.",
+  "verb-acc-pit": "« Je bois ___ » : les six mêmes boissons.",
+  "prep-gen-vmesto": "« Prends du thé au lieu de ___ » : ce qu'un thé remplace, boissons et repas.",
+  "verb-gen-zhelat": "« Je te souhaite ___ » : les souhaits sont des formules figées.",
+  "verb-gen-trebovat": "« J'exige ___ » : on exige un dû, pas un objet.",
+  "verb-gen-dostigat": "« J'atteins ___ » : un but, un résultat — rien de concret.",
+  "expr-gen-polnyy": "« Le verre est plein de ___ » : ce qui se verse.",
+  "prep-acc-skvoz": "« Je vois la lumière à travers ___ » : ce qui laisse passer la lumière.",
+  "verb-instr-vladet": "« Je maîtrise ___ » : une langue, un art, une méthode.",
+  "prep-prep-na": "« Я работаю на ___ » : les lieux de travail qui prennent на et non в.",
+};
 {
   // a) La classification couvre la banque, une classe et une seule par nom.
   //    C'est ce qui rend le fichier relisable : une omission se voit ici,
@@ -534,16 +564,14 @@ let demandingTriggers = 0;
   // b) Aucun déclencheur ne peut se retrouver sans nom à servir. Une classe
   //    trop étroite viderait son pool en silence, et l'exercice retomberait
   //    sur le repli — donc sur des phrases absurdes, sans que rien ne le dise.
-  // Certains déclencheurs sont légitimement étroits : la banque ne contient
-  // que six boissons, donc « un verre de ___ » ne peut pas dépasser six.
-  const MIN_NOUNS = 4;
   for (const trigger of TRIGGERS) {
     if (!trigger.accepts) continue;
     const accepted = new Set(trigger.accepts);
     const count = NOUNS.filter((n) => accepted.has(categoryOf(n.id))).length;
+    const floor = NARROW[trigger.id] ? MIN_NARROW : MIN_NOUNS;
     expect(
-      `déclencheur « ${trigger.id} » : ${count} nom(s) disponibles, minimum ${MIN_NOUNS}`,
-      count >= MIN_NOUNS,
+      `déclencheur « ${trigger.id} » : ${count} nom(s) disponibles, minimum ${floor}`,
+      count >= floor,
       true
     );
   }
@@ -556,11 +584,10 @@ let demandingTriggers = 0;
   for (const [triggerId, ids] of Object.entries(TRIGGER_NOUNS)) {
     const trigger = TRIGGERS.find((t) => t.id === triggerId);
     expect(`liste curée « ${triggerId} » : déclencheur inconnu`, trigger !== undefined, true);
-    expect(
-      `liste curée « ${triggerId} » : ${ids.length} mot(s), minimum ${MIN_NOUNS}`,
-      ids.length >= MIN_NOUNS,
-      true
-    );
+    // La TAILLE ne se juge pas ici : une liste de quinze mots dont douze
+    // sont hors du niveau de l'apprenant ne vaut pas mieux qu'une liste de
+    // trois. Le plancher porte donc sur le vivier réellement servi, croisé
+    // avec chaque niveau — voir la section 7.
     expect(`liste curée « ${triggerId} » : doublons`, new Set(ids).size, ids.length);
     for (const id of ids) {
       expect(`liste curée « ${triggerId} » : « ${id} » hors banque`, NOUN_IDS.has(id), true);
@@ -605,9 +632,15 @@ let demandingTriggers = 0;
 // (maîtriser) recevait « рот » (bouche), « работать + » (métier) recevait
 // « женщина ».
 //
-// Ce qui doit tenir : à TOUS les niveaux, le pool d'un déclencheur est non
-// vide et entièrement compris dans ce qu'il admet. Un pool vide renverrait
-// la banque entière et ramènerait le bug en silence.
+// Ce qui doit tenir : à TOUS les niveaux, le pool d'un déclencheur est ASSEZ
+// LARGE et entièrement compris dans ce qu'il admet.
+//
+// « Assez large » et pas « non vide ». Un vivier d'un seul mot passait ce
+// contrôle : « Я рабо́таю на ___ » ne trouvait que « компью́тер » au niveau
+// A1 et rendait la même phrase, au caractère près, indéfiniment. Et le
+// plancher se mesure APRÈS croisement avec le niveau, jamais sur la liste
+// curée brute : c'est le croisement qui vidait les viviers, et lui seul
+// disait la vérité sur ce qu'un apprenant reçoit.
 {
   const NOUN_IDS = new Set(NOUNS.map((n) => n.id));
   for (const trigger of TRIGGERS) {
@@ -620,9 +653,14 @@ let demandingTriggers = 0;
             NOUNS.filter((n) => trigger.accepts.includes(categoryOf(n.id))).map((n) => n.id)
           )
         : NOUN_IDS;
+    const floor = NARROW[trigger.id] ? MIN_NARROW : MIN_NOUNS;
     for (const level of ["A0", "A1", "A2", "B1", "B2"]) {
       const served = poolFor(trigger, nounsForLevel(level));
-      expect(`pool IA « ${trigger.id} » vide au niveau ${level}`, served.length > 0, true);
+      expect(
+        `pool « ${trigger.id} » (${level}) : ${served.length} mot(s), minimum ${floor}`,
+        served.length >= floor,
+        true
+      );
       const outside = served.filter((n) => !allowed.has(n.id));
       expect(
         `pool IA « ${trigger.id} » (${level}) : ${outside.length} mot(s) non admis` +
@@ -631,6 +669,25 @@ let demandingTriggers = 0;
         0
       );
     }
+  }
+
+  // La liste des étroits ne doit pas devenir un tapis sous lequel balayer.
+  // Un déclencheur qui atteint le plancher ordinaire n'a plus rien à y
+  // faire : l'entrée est périmée, et la garder masquerait la prochaine
+  // régression sur ce déclencheur-là.
+  for (const [id, reason] of Object.entries(NARROW)) {
+    const trigger = TRIGGERS.find((t) => t.id === id);
+    expect(`déclencheur étroit « ${id} » : inconnu`, trigger !== undefined, true);
+    expect(`déclencheur étroit « ${id} » : raison manquante`, Boolean(reason), true);
+    if (!trigger) continue;
+    const served = Math.min(
+      ...["A0", "A1", "A2", "B1", "B2"].map((l) => poolFor(trigger, nounsForLevel(l)).length)
+    );
+    expect(
+      `déclencheur étroit « ${id} » : il sert ${served} mots, il n'est plus étroit — retirer l'entrée`,
+      served < MIN_NOUNS,
+      true
+    );
   }
 }
 

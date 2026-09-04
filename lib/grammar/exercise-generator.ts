@@ -30,6 +30,32 @@ import { TRIGGER_NOUNS } from "./trigger-nouns.generated";
 // banque ne contient que des mots qui se déclinent réellement.
 export const DECLINABLE_NOUNS = NOUNS;
 
+/**
+ * Vivier minimal servi à un déclencheur, quel que soit le niveau.
+ *
+ * CE QUE CE NOMBRE REMPLACE. Le repli ne se déclenchait que sur un vivier
+ * VIDE, et sautait alors d'un coup à la banque entière. Deux conséquences.
+ * Un vivier d'un seul mot était considéré comme sain : « Я рабо́таю на ___ »
+ * ne trouvait que « компью́тер » au niveau A1, et rendait la même phrase au
+ * caractère près, indéfiniment. Et le niveau s'inversait — « Дай мне кусо́к
+ * ___ » donnait 16 mots à A0 (vivier vide, donc toute la liste curée) contre
+ * 2 à A1 (deux mots, donc pas de repli) : un débutant voyait plus de variété
+ * qu'un A1.
+ *
+ * On élargit donc dès qu'on passe SOUS ce seuil, et par ordre de fréquence
+ * plutôt que d'un bond : l'élargissement d'un niveau est toujours contenu
+ * dans celui du niveau inférieur, l'inversion ne peut pas revenir.
+ *
+ * Douze : de quoi ne pas reconnaître la phrase d'un exercice à l'autre sur
+ * une série de cinquante (voir scripts/check-variety.mjs), sans forcer la
+ * curation de listes que la langue ne peut pas remplir — la banque ne
+ * contient que six boissons, « un verre de ___ » n'ira pas au-delà.
+ */
+const MIN_POOL = 12;
+
+/** Banque triée du plus courant au plus rare : l'ordre dans lequel on élargit. */
+const BY_FREQUENCY = [...NOUNS].sort((a, b) => a.rank - b.rank);
+
 export type ExerciseKind =
   | "isolated"
   | "sentence-fixed"
@@ -101,10 +127,9 @@ function shuffle<T>(arr: T[]): T[] {
  *    déclencheur ajouté depuis la dernière curation, qui produirait sinon
  *    n'importe quoi en silence.
  *
- * Le pool passé peut être réduit par niveau (un débutant ne voit que les
- * mots fréquents) et ne rien contenir d'utilisable : on élargit alors à la
- * banque entière avant de renoncer. Un mot plus rare vaut mieux qu'une
- * phrase que personne ne dirait.
+ * Le pool passé est réduit par niveau (un débutant ne voit que les mots
+ * fréquents), et ce croisement peut ne presque rien laisser : voir
+ * `MIN_POOL` pour ce qu'on fait alors.
  *
  * Exporté : la route IA (app/api/ai/exercise/route.ts) doit composer son
  * échantillon avec EXACTEMENT ce filtre. Elle tirait auparavant 40 mots au
@@ -131,9 +156,20 @@ export function poolFor(trigger: CaseTrigger, pool: Noun[]): Noun[] {
   }
 
   const filtered = pool.filter(keep);
-  if (filtered.length > 0) return filtered;
+  if (filtered.length >= MIN_POOL) return filtered;
 
-  const widened = DECLINABLE_NOUNS.filter(keep);
+  // Vivier trop maigre : on le complète par les mots ADMIS les plus
+  // fréquents, ceux que le niveau écartait. Jamais au-delà de ce que le
+  // déclencheur admet — « Я ем ___ » ne reçoit pas « дом » parce qu'il
+  // manquait des aliments.
+  const chosen = new Set(filtered.map((n) => n.id));
+  const widened = [...filtered];
+  for (const noun of BY_FREQUENCY) {
+    if (widened.length >= MIN_POOL) break;
+    if (chosen.has(noun.id) || !keep(noun)) continue;
+    widened.push(noun);
+    chosen.add(noun.id);
+  }
   return widened.length > 0 ? widened : pool;
 }
 

@@ -31,6 +31,14 @@
  *   node scripts/curate-trigger-nouns.mjs            # tout, cache réutilisé
  *   node scripts/curate-trigger-nouns.mjs --force    # ignore le cache
  *   node scripts/curate-trigger-nouns.mjs --only=verb-acc-est,prep-acc-v
+ *   node scripts/curate-trigger-nouns.mjs --top-up --only=prep-prep-na
+ *
+ * LA RELANCE (--top-up). Rejouer la même question à un modèle donne la même
+ * réponse, à peu près : ça ne rallonge pas une liste trop courte, ça la
+ * retire au sort. La relance montre au modèle ce qu'il avait retenu et lui
+ * demande ce qui MANQUE, en relisant le catalogue. Les ajouts sont fusionnés
+ * avec la liste existante, jamais substitués — une passe qui se serait
+ * montrée plus sévère ne peut pas faire perdre des mots déjà validés.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { createJiti } from "jiti";
@@ -54,8 +62,16 @@ const { NOUNS } = await jiti.import("../lib/grammar/nouns-data.ts");
 
 const args = process.argv.slice(2);
 const force = args.includes("--force");
+const topUp = args.includes("--top-up");
 const onlyArg = args.find((a) => a.startsWith("--only="));
 const only = onlyArg ? new Set(onlyArg.slice("--only=".length).split(",")) : null;
+
+// La relance part de ce qui est déjà écrit : c'est ce fichier-là qu'elle
+// complète, pas le cache (qui peut être plus ancien qu'une relecture à la
+// main).
+const EXISTING = fs.existsSync(OUT)
+  ? (await jiti.import("../lib/grammar/trigger-nouns.generated.ts")).TRIGGER_NOUNS
+  : {};
 
 const MODEL = process.env.ANTHROPIC_MODEL_CHAT || "claude-sonnet-5";
 const CONCURRENCY = 8;
@@ -117,6 +133,32 @@ Quels noms du catalogue conviennent ?`;
 }
 
 /**
+ * La relance : ce qui manque à une liste déjà écrite.
+ *
+ * Le catalogue est dans le prompt système, identique à celui de la première
+ * passe — donc toujours en cache côté API. Seule la question change.
+ */
+function topUpQuestion(trigger, kept) {
+  const already = kept.map((id) => `${id} (${BY_ID.get(id)?.translation ?? "?"})`).join(", ");
+  return `PHRASE RUSSE : ${trigger.template.ru}
+TRADUCTION   : ${trigger.template.fr}
+DÉCLENCHEUR  : ${trigger.ru} — ${trigger.meaningFr}
+
+Une première passe n'a retenu que ${kept.length} mot(s) : ${already}.
+
+C'est trop peu : l'apprenant reverra la même phrase tous les trois exercices.
+Relis le catalogue EN ENTIER et donne les AUTRES identifiants qui conviennent,
+ceux que la première passe a manqués. Même critère : dicible dans une
+conversation ordinaire, pas seulement grammaticalement possible.
+
+Ne répète pas les identifiants ci-dessus. Si la langue ne permet vraiment pas
+d'aller plus loin — le catalogue ne contient que six boissons, « boire ___ »
+n'ira pas au-delà — réponds par une liste vide : c'est une réponse juste.
+
+Réponds UNIQUEMENT par {"ids":[...]}, les ajouts seuls.`;
+}
+
+/**
  * Premier objet JSON complet d'une réponse, par comptage d'accolades.
  *
  * Une expression régulière gloutonne allait du premier « { » au dernier
@@ -153,9 +195,12 @@ function firstJsonObject(text) {
 
 async function curate(trigger) {
   const cacheFile = path.join(CACHE_DIR, `${trigger.id}.json`);
-  if (!force && fs.existsSync(cacheFile)) {
+  // La relance repart toujours du modèle : son intérêt est justement de ne
+  // pas rendre ce qui est déjà là.
+  if (!force && !topUp && fs.existsSync(cacheFile)) {
     return { ...JSON.parse(fs.readFileSync(cacheFile, "utf8")), cached: true };
   }
+  const previous = topUp ? (EXISTING[trigger.id] ?? []) : [];
 
   // Une reprise : sur 120 appels, un modèle finit toujours par encadrer son
   // JSON de deux phrases d'introduction. Plutôt que de perdre un
@@ -177,7 +222,12 @@ async function curate(trigger) {
       // sans raisonnement à facturer, une réponse longue coûte peu.
       max_tokens: 3000,
       system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: question(trigger) }],
+      messages: [
+        {
+          role: "user",
+          content: topUp ? topUpQuestion(trigger, previous) : question(trigger),
+        },
+      ],
     });
     truncated = msg.stop_reason === "max_tokens";
     const raw = msg.content
@@ -200,10 +250,13 @@ async function curate(trigger) {
 
   // Le modèle peut inventer un identifiant ou en répéter un : on ne garde
   // que ce qui existe réellement dans la banque.
+  // En relance, la liste existante est le point de départ : les ajouts s'y
+  // empilent. Un modèle plus sévère que la première passe ne peut donc pas
+  // faire disparaître des mots déjà relus.
   const seen = new Set();
   const kept = [];
   const unknown = [];
-  for (const id of ids) {
+  for (const id of [...previous, ...ids]) {
     if (!BY_ID.has(id)) {
       unknown.push(id);
       continue;
@@ -213,7 +266,7 @@ async function curate(trigger) {
     kept.push(id);
   }
 
-  const result = { ids: kept, unknown, truncated };
+  const result = { ids: kept, unknown, truncated, added: kept.length - previous.length };
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   fs.writeFileSync(cacheFile, JSON.stringify(result, null, 2), "utf8");
   return { ...result, cached: false };
@@ -242,8 +295,9 @@ async function worker(queue) {
         problems.push(`${trigger.id} : seulement ${r.ids.length} mot(s) retenus`);
       }
       done += 1;
+      const gain = topUp && !r.cached ? ` (+${r.added})` : r.cached ? " (cache)" : "";
       process.stdout.write(
-        `\r  ${done}/${targets.length} — ${trigger.id.padEnd(26)} ${String(r.ids.length).padStart(3)} mots${r.cached ? " (cache)" : "      "}`
+        `\r  ${done}/${targets.length} — ${trigger.id.padEnd(26)} ${String(r.ids.length).padStart(3)} mots${gain.padEnd(8)}`
       );
     } catch (err) {
       problems.push(`${trigger.id} : ${err.message}`);
