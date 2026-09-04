@@ -14,7 +14,7 @@
     "curate:adjectives": "node scripts/curate-adjectives.mjs",
     "curate:contexts": "node scripts/curate-contexts.mjs",
     "check:leveltest": "node scripts/check-leveltest.mjs",
-    "check": "npm run check:grammar && npm run check:leveltest && npm run check:progression && npm run check:motion && npm run check:aspect && npm run check:participles && npm run check:adjectives && npm run check:vocab && npm run check:courses && npm run check:guides && npm run check:seo && npm run check:exercises && npm run check:lexicon && npm run check:json",
+    "check": "npm run check:grammar && npm run check:leveltest && npm run check:progression && npm run check:motion && npm run check:aspect && npm run check:participles && npm run check:adjectives && npm run check:vocab && npm run check:courses && npm run check:guides && npm run check:seo && npm run check:exercises && npm run check:lexicon && npm run check:variety && npm run check:json",
     "check:progression": "node scripts/check-progression.mjs",
     "check:motion": "node scripts/check-motion.mjs",
     "check:aspect": "node scripts/check-aspect.mjs",
