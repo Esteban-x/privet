@@ -1,5 +1,6 @@
 import { CaseId } from "./types";
 import { CaseTrigger } from "./triggers";
+import type { ArticleMode } from "./french-article";
 
 /**
  * Garde-fou : une phrase à trou est-elle réellement une phrase de CE cas ?
@@ -474,6 +475,77 @@ export function expectedGovernors(trigger: CaseTrigger): string[] | undefined {
   return undefined;
 }
 
+/**
+ * Ce qu'un déclencheur SANS gouverneur laisse quand même dans la phrase.
+ *
+ * LE TROU QUE ÇA BOUCHE. `expectedGovernors` rend `undefined` pour 68 des
+ * 136 déclencheurs — tous les verbes à régime, qui n'imposent aucun mot
+ * DEVANT le trou (« Я занима́юсь ___ ») — et le contrôle d'identité ne
+ * s'appliquait donc pas à eux. Une phrase au bon cas mais bâtie sur un autre
+ * verbe passait : l'écran annonçait « заниматься » au-dessus d'une phrase
+ * qui ne le contient pas.
+ *
+ * COMPARER SUR UN RADICAL, PAS SUR L'INFINITIF. Le russe conjugue en
+ * modifiant le thème : тре́бовать → тре́бую, ви́деть → ви́жу, писа́ть → пишу́.
+ * Chercher l'infinitif ne trouve presque rien.
+ *
+ * ET CALIBRER SUR LE GABARIT DE RÉFÉRENCE, plutôt que sur un seuil unique.
+ * Un préfixe de six lettres attrape « занима́ется » depuis « занима́ться » ;
+ * le même seuil sur « есть » → « ем » refuserait un gabarit juste. On mesure
+ * donc ce que le gabarit d'origine — écrit à la main, relu — partage avec la
+ * racine, et on exige AUTANT d'une nouvelle phrase, jamais plus. Le contrôle
+ * est fort là où la langue le permet, muet là où elle ne le permet pas, et
+ * ne peut par construction refuser aucun gabarit existant.
+ */
+export interface LexicalMark {
+  /** Racine attendue quelque part dans la phrase. */
+  stem: string;
+  /** Longueur de préfixe commun exigée, mesurée sur le gabarit de référence. */
+  minPrefix: number;
+}
+
+/** Terminaisons de l'infinitif russe, à retirer pour obtenir la racine. */
+const INFINITIVE_ENDING = /(ться|тись|ся|ть|ти|чь)$/;
+
+/** En dessous, la racine attraperait n'importe quel mot : on se tait. */
+const MIN_MARK_PREFIX = 2;
+
+function cyrillicWords(text: string): string[] {
+  return normalize(text).match(/[а-я]+/g) ?? [];
+}
+
+function commonPrefix(a: string, b: string): number {
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
+  return i;
+}
+
+export function expectedLexicalMark(trigger: CaseTrigger): LexicalMark | undefined {
+  // Le libellé porte parfois un régime (« занима́ться (+ твор.) », « стать + »)
+  // ou une abréviation (« мн. число́ ») : on ne garde que les mots russes.
+  const label = normalize(trigger.ru).replace(/\(.*?\)/g, " ");
+  // Une abréviation (le point) ou plusieurs mots : ce n'est pas une entrée
+  // lexicale, il n'y a rien à retrouver dans la phrase.
+  if (label.includes(".")) return undefined;
+  const words = label.match(/[а-я]+/g) ?? [];
+  if (words.length !== 1) return undefined;
+
+  const word = words[0];
+  // Un gouverneur est déjà vérifié par le contrôle 2, avec sa table de
+  // variantes : le refaire ici, sans elles, ferait refuser « во » pour « в ».
+  if (GOVERNORS_N[word]) return undefined;
+
+  const stem = INFINITIVE_ENDING.test(word) ? word.replace(INFINITIVE_ENDING, "") : word;
+  if (stem.length < MIN_MARK_PREFIX) return undefined;
+
+  const reference = cyrillicWords(trigger.template.ru).reduce(
+    (best, w) => Math.max(best, commonPrefix(stem, w)),
+    0
+  );
+  if (reference < MIN_MARK_PREFIX) return undefined;
+  return { stem, minPrefix: reference };
+}
+
 export interface GuardInput {
   sentence: string;
   targetCase: CaseId;
@@ -548,6 +620,24 @@ export function validateSentence(input: GuardInput): GuardVerdict {
           ? `le trou est gouverné par « ${governor.word} », pas par « ${expected[0]} »`
           : `« ${expected[0]} » ne précède pas le trou`,
       };
+    }
+  }
+
+  // ── Contrôle 4 : le déclencheur est-il DANS la phrase ? ──
+  // Pour les 68 déclencheurs sans gouverneur — les verbes à régime — c'est
+  // le seul contrôle d'identité possible. Voir expectedLexicalMark.
+  if (trigger && !expectedGovernors(trigger)) {
+    const mark = expectedLexicalMark(trigger);
+    if (mark) {
+      const found = cyrillicWords(sentence).some(
+        (word) => commonPrefix(mark.stem, word) >= mark.minPrefix
+      );
+      if (!found) {
+        return {
+          ok: false,
+          reason: `la phrase ne contient aucune forme de « ${trigger.ru} »`,
+        };
+      }
     }
   }
 
@@ -638,6 +728,159 @@ export function validateFrenchSentence(input: FrenchGuardInput): GuardVerdict {
         reason: `la traduction française ne contient pas « ${translation} » (le mot du trou)`,
       };
     }
+  }
+  return { ok: true };
+}
+
+
+// ─── Côté français : le GABARIT, pas la phrase remplie ──────────────
+//
+// Quand la phrase française est un gabarit à trou, `validateFrenchSentence`
+// ne dit rien : elle rend `ok` dès qu'elle voit un « ___ », parce que le
+// trou est ensuite comblé par la banque et que l'accord est garanti. C'est
+// juste — et ça laissait le gabarit lui-même sans aucun contrôle.
+//
+// Ce que ça laissait passer, mesuré : « Travail travail travail. » Et, plus
+// insidieux, un gabarit sans verbe (« Un morceau de ___. ») ou dont le trou
+// tombe après « comme » alors que le déclencheur pose un démonstratif — ce
+// qui donne « Il travaille comme ce juge ».
+
+/** Le trou d'un gabarit français, et ce qui le précède. */
+function frenchFrame(templateFr: string): { before: string; after: string } | null {
+  const at = templateFr.indexOf(BLANK);
+  if (at < 0) return null;
+  return { before: templateFr.slice(0, at), after: templateFr.slice(at + BLANK.length) };
+}
+
+/**
+ * Constructions françaises qui SUPPRIMENT le déterminant devant le nom.
+ *
+ * C'est la liste qui doit précéder le trou quand le déclencheur porte
+ * `article: "none"` — « un verre de ___ », « il travaille comme ___ ». Elle
+ * dit aussi l'inverse : après « comme » ou « devenir », un déclencheur qui
+ * pose un démonstratif écrirait « devenir ce médecin ».
+ */
+const NO_DETERMINER_BEFORE = new Set([
+  "de", "d", "des", "plusieurs", "comme", "devenir", "appelle",
+]);
+/**
+ * Celles-ci refusent le DÉMONSTRATIF, et lui seul : « il travaille comme
+ * juge » et « il est considéré comme un héros » se disent tous les deux,
+ * « comme ce héros » non — le démonstratif désigne alors quelqu'un de précis
+ * au lieu d'attribuer une qualité.
+ */
+const REFUSES_DEMONSTRATIVE = new Set(["comme", "devenir"]);
+
+/** Mots qu'un doublement n'accuse pas : « nous nous sommes… ». */
+const DOUBLABLE = new Set(["nous", "vous"]);
+
+/**
+ * Formes verbales conjuguées attendues dans un gabarit.
+ *
+ * POURQUOI UNE LISTE, ET PAS UNE RÈGLE. Le français ne se laisse pas
+ * analyser sans dictionnaire : « sorte », « lampe », « idée » finissent
+ * comme des verbes du premier groupe. Une règle morphologique dirait donc
+ * qu'un groupe nominal est une phrase — exactement ce qu'on veut refuser.
+ *
+ * La liste est de la DONNÉE, et check:grammar vérifie qu'elle couvre les 136
+ * gabarits écrits à la main : elle ne peut donc pas pourrir en silence. Un
+ * gabarit qui emploie un verbe absent d'ici est refusé, et c'est le
+ * comportement voulu — soit le verbe entre dans la liste, décision prise et
+ * visible, soit le gabarit est réécrit.
+ */
+const FRENCH_FINITE_FORMS = new Set([
+  // auxiliaires
+  "est", "sont", "es", "suis", "sommes", "etes", "a", "as", "ai", "avons", "avez", "ont",
+  "sera", "serai", "etait", "etaient", "avait", "avaient", "aie", "soit",
+  // aller, vouloir, pouvoir, devoir, faire, savoir
+  "vais", "vas", "va", "allons", "allez", "vont", "irai",
+  "veux", "veut", "voulons", "peux", "peut", "pouvons", "dois", "doit",
+  "fais", "fait", "faisons", "sais", "sait",
+  // les verbes des gabarits, à la personne où ils y figurent
+  "achete", "admire", "aide", "aime", "appartient", "appelle", "applaudissent",
+  "assis", "atteint", "bois", "boit", "compatis", "comprends", "comprend",
+  "concerne", "connais", "connait", "conseille", "considere", "constitue",
+  "couraient", "crois", "croit", "derange", "deteste", "dirige", "discutons",
+  "donne", "dort", "ecoute", "ecris", "ecrit", "envie", "etudie", "evite",
+  "exige", "gagne", "habite", "informe", "inquiete", "interesse", "lis", "lit",
+  "maitrise", "mange", "menace", "mentionne", "obeissent", "obeissons",
+  "parle", "parlons", "passe", "passons", "pense", "perdu", "plait", "pratique",
+  "prends", "prend", "promene", "promenes", "raconte", "regarde", "regrette",
+  "rejouis", "rencontre", "reponds", "repond", "resiste", "retrouve", "reve",
+  "risque", "sens", "sent", "sers", "sert", "sorti", "sortis", "souhaite",
+  "souviens", "suspendue", "tiens", "tient", "travaille", "trouve", "utilise",
+  "viendrai", "vient", "vis", "vit", "vivre", "vois", "voit", "voici", "voila",
+  "venu", "dormi", "entendu", "arrive", "tu", "semble", "semblent", "etre",
+]);
+
+/**
+ * Tournures sans verbe qu'une phrase française admet quand même : « Voici
+ * ___ », « Merci pour ___ ». Elles sont peu nombreuses et fermées — les
+ * accepter au titre du verbe reviendrait à dire qu'un groupe nominal en est
+ * un.
+ */
+const FRENCH_PRESENTATIVES = new Set(["voici", "voila", "merci"]);
+
+export interface FrenchTemplateInput {
+  /** Le gabarit français, trou compris. */
+  templateFr: unknown;
+  /** L'article que le déclencheur posera dans le trou. */
+  article: ArticleMode;
+}
+
+/** Le gabarit français tient-il debout ? Voir le commentaire ci-dessus. */
+export function validateFrenchTemplate(input: FrenchTemplateInput): GuardVerdict {
+  const { templateFr, article } = input;
+  if (typeof templateFr !== "string" || !templateFr.trim()) {
+    return { ok: false, reason: "gabarit français vide" };
+  }
+  const holes = templateFr.split(BLANK).length - 1;
+  if (holes !== 1) return { ok: false, reason: `${holes} trou(s) au lieu d'un seul` };
+  if (/[а-яё]/i.test(templateFr)) return { ok: false, reason: "du cyrillique dans le français" };
+  if (!/[.!?]["»]?\s*$/.test(templateFr)) {
+    return { ok: false, reason: "le gabarit ne finit pas comme une phrase" };
+  }
+
+  const frame = frenchFrame(templateFr)!;
+  if (/[a-zà-ÿ]$/i.test(frame.before.trimEnd()) && !frame.before.endsWith(" ")) {
+    return { ok: false, reason: "le trou est collé au mot qui précède" };
+  }
+  if (/^[a-zà-ÿ]/i.test(frame.after)) {
+    return { ok: false, reason: "le trou est collé au mot qui suit" };
+  }
+
+  const words = normalizeFrench(templateFr.replace(BLANK, " ")).split(/[^a-z0-9]+/).filter(Boolean);
+  if (words.length === 0) {
+    return { ok: false, reason: "le gabarit n'est qu'un trou" };
+  }
+  // « Nous nous sommes promenés » : le pronom réfléchi double légitimement le
+  // sujet. Ailleurs, un mot plein répété colle à « Travail travail travail. »
+  for (let i = 1; i < words.length; i += 1) {
+    if (words[i] === words[i - 1] && words[i].length >= 4 && !DOUBLABLE.has(words[i])) {
+      return { ok: false, reason: `« ${words[i]} » répété deux fois de suite` };
+    }
+  }
+  if (!words.some((w) => FRENCH_FINITE_FORMS.has(w) || FRENCH_PRESENTATIVES.has(w))) {
+    return {
+      ok: false,
+      reason: "aucun verbe conjugué reconnu — groupe nominal, ou verbe à ajouter à la liste",
+    };
+  }
+
+  // ── Le déterminant devant le trou ──
+  const beforeWords = normalizeFrench(frame.before).split(/[^a-z0-9]+/).filter(Boolean);
+  const last = beforeWords[beforeWords.length - 1] ?? "";
+  if (REFUSES_DEMONSTRATIVE.has(last) && article === "demonstrative") {
+    return {
+      ok: false,
+      reason: `« ${last} ___ » attribue une qualité, le démonstratif y désignerait quelqu'un`,
+    };
+  }
+  if (article === "none" && beforeWords.length > 0 && !NO_DETERMINER_BEFORE.has(last)) {
+    return {
+      ok: false,
+      reason: `le déclencheur ne pose aucun déterminant, et « ${last} ___ » en demande un`,
+    };
   }
   return { ok: true };
 }

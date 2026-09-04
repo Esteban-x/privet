@@ -50,7 +50,7 @@ const adjectiveDictionary = await loadDictionary(["adjectives"]);
 const { TRIGGERS, PROPER_NOUN_TRIGGER_ID, triggerNumber } = await jiti.import(
   "../lib/grammar/triggers.ts"
 );
-const { validateSentence, validateFrenchSentence } = await jiti.import(
+const { validateSentence, validateFrenchSentence, validateFrenchTemplate } = await jiti.import(
   "../lib/grammar/sentence-guard.ts"
 );
 const { fillFrenchBlank, frenchNounPhrase } = await jiti.import(
@@ -761,6 +761,85 @@ const NARROW = {
         true
       );
     }
+
+    // Le versant français du gabarit. `validateFrenchSentence` se tait
+    // devant un « ___ » — à raison, le trou est comblé par la banque —, si
+    // bien que le gabarit lui-même n'était vérifié par personne.
+    const french = validateFrenchTemplate({
+      templateFr: trigger.template.fr,
+      article: trigger.article,
+    });
+    expect(
+      `gabarit français « ${trigger.id} » (${trigger.template.fr}) refusé` +
+        `${french.reason ? ` : ${french.reason}` : ""}`,
+      french.ok,
+      true
+    );
+  }
+
+  // Ce que le contrôle d'identité lexicale doit attraper, et ce qu'il ne
+  // doit pas. Les 68 déclencheurs sans gouverneur n'avaient AUCUN contrôle
+  // d'identité : une phrase au bon cas bâtie sur un autre verbe passait, et
+  // l'écran annonçait « заниматься » au-dessus d'une phrase qui ne le
+  // contient pas.
+  const MARK_WITNESSES = [
+    // [phrase, id du déclencheur, doit être acceptée]
+    ["Я занима́юсь ___ ка́ждый день.", "verb-instr-zanimatsya", true],
+    ["Он занима́ется ___ по вечера́м.", "verb-instr-zanimatsya", true],
+    ["Я чита́ю ___ ка́ждый день.", "verb-instr-zanimatsya", false],
+    ["Он рабо́тает ___ уже́ де́сять лет.", "expr-instr-rabotat", true],
+    ["Он стал ___ в про́шлом году́.", "expr-instr-rabotat", false],
+    ["Она́ хо́чет стать ___.", "expr-instr-stat", true],
+    ["Она́ мечта́ет о ___.", "expr-instr-stat", false],
+    // Alternance régulière du thème : требовать → требую.
+    ["Я тре́бую ___ неме́дленно.", "verb-gen-trebovat", true],
+    ["Я прошу́ ___ неме́дленно.", "verb-gen-trebovat", false],
+    // Racine trop courte pour trancher (есть → ем) : le contrôle se tait
+    // plutôt que de refuser une phrase juste.
+    ["Я ем ___ на за́втрак.", "verb-acc-est", true],
+  ];
+  for (const [sentence, triggerId, shouldPass] of MARK_WITNESSES) {
+    const trigger = TRIGGERS.find((t) => t.id === triggerId);
+    require_(trigger !== undefined, `témoin d'identité : déclencheur « ${triggerId} » inconnu`);
+    if (!trigger) continue;
+    const verdict = validateSentence({
+      sentence,
+      targetCase: trigger.caseId,
+      plural: false,
+      trigger,
+    });
+    expect(
+      `témoin d'identité « ${sentence} » (${triggerId})` +
+        `${verdict.reason ? ` — ${verdict.reason}` : ""}`,
+      verdict.ok,
+      shouldPass
+    );
+  }
+
+  // Et ce que le contrôle du gabarit français doit attraper. Les deux
+  // premiers sont ce que `validateFrenchSentence` laissait passer.
+  const FRENCH_TEMPLATE_WITNESSES = [
+    // [gabarit, article, doit être accepté]
+    ["Travail travail travail.", "demonstrative", false],
+    ["Un morceau de ___.", "none", false], // groupe nominal, pas une phrase
+    ["Je pratique ___.", "demonstrative", true],
+    ["Il travaille comme ___.", "none", true],
+    ["Il est considéré comme ___.", "indefinite", true],
+    ["Il travaille comme ___.", "demonstrative", false], // « comme ce juge »
+    ["Je veux un verre de ___.", "none", true],
+    ["Je vois ___.", "none", false], // « je vois livre »
+    ["Je vois ___ et ___.", "demonstrative", false], // deux trous
+    ["Je vois ___", "demonstrative", false], // pas de ponctuation finale
+    ["Я ви́жу ___.", "demonstrative", false], // du cyrillique
+  ];
+  for (const [templateFr, article, shouldPass] of FRENCH_TEMPLATE_WITNESSES) {
+    const verdict = validateFrenchTemplate({ templateFr, article });
+    expect(
+      `témoin de gabarit français « ${templateFr} » [${article}]` +
+        `${verdict.reason ? ` — ${verdict.reason}` : ""}`,
+      verdict.ok,
+      shouldPass
+    );
   }
 
   // Témoins. Les trois premiers sont les phrases réellement servies à
