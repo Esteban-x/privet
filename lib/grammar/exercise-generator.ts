@@ -57,12 +57,7 @@ const MIN_POOL = 12;
 /** Banque triée du plus courant au plus rare : l'ordre dans lequel on élargit. */
 const BY_FREQUENCY = [...NOUNS].sort((a, b) => a.rank - b.rank);
 
-export type ExerciseKind =
-  | "isolated"
-  | "sentence-fixed"
-  | "sentence-ai"
-  | "trigger-mcq"
-  | "numeral";
+export type ExerciseKind = "isolated" | "sentence-fixed" | "trigger-mcq" | "numeral";
 
 export interface CaseExercise {
   kind: ExerciseKind;
@@ -84,7 +79,7 @@ export interface CaseExercise {
   variantForm?: string;
   ruleApplied: string;
 
-  // sentence-fixed / sentence-ai / trigger-mcq
+  // sentence-fixed / trigger-mcq
   trigger?: CaseTrigger;
   sentenceTemplate?: string;
   sentenceFr?: string;

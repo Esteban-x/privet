@@ -14,12 +14,17 @@ export type PlanId = "free" | "premium";
 export type PlanSource = "stripe" | "grant" | "trial";
 
 /**
- * Les sept postes de dépense IA de l'app, un par appel Anthropic.
+ * Les postes de dépense IA de l'app, un par appel Anthropic.
  * Ces chaînes sont des CLÉS DE BASE (colonne `plan_limits.feature` et
  * `ai_usage.feature`) : les renommer demande une migration.
+ *
+ * `exercise_ai` n'y est plus : la phrase de mise en situation du module Cas
+ * était écrite à l'exécution, elle est maintenant écrite à la construction
+ * (voir scripts/curate-templates.mjs). La LIGNE de plan_limits reste en
+ * base — une migration pour retirer une ligne inerte coûte plus qu'elle ne
+ * rapporte, et l'historique d'ai_usage garde son sens.
  */
 export type AiFeature =
-  | "exercise_ai"      // app/api/ai/exercise    — phrase de mise en situation
   | "reading"          // app/api/ai/reading     — texte gradué (le plus cher)
   | "explain"          // app/api/vocab/explain  — fiche de mot
   | "explain_refresh"  // idem, mais en contournant le cache

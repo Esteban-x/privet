@@ -1,6 +1,5 @@
 import { CefrLevel } from "@/lib/supabase/types";
 import { CaseId } from "@/lib/grammar/types";
-import { CaseTrigger } from "@/lib/grammar/triggers";
 import { CASES } from "@/lib/grammar/cases";
 
 const LEVEL_GUIDANCE: Record<CefrLevel, string> = {
@@ -17,88 +16,6 @@ const LEVEL_GUIDANCE: Record<CefrLevel, string> = {
 //
 // L'IA ne choisit PAS le mot et ne calcule AUCUNE forme fléchie : elle
 // écrit seulement la phrase qui met en situation un mot imposé.
-// `candidatePool` est la banque curée (lib/grammar/nouns-data.ts), dont
-// chaque déclinaison est vérifiée par `npm run check:grammar` — un nom
-// russe pris au hasard hors de cette banque serait irrégulier d'une façon
-// que le moteur de règles ne peut pas connaître (стул -> стулья, отец ->
-// отца, человек -> люди), et l'exercice afficherait une forme fausse comme
-// bonne réponse. Le serveur (app/api/ai/exercise/route.ts) revérifie que le
-// lemme renvoyé appartient bien au pool, puis ne transmet au client que
-// l'ID de l'entrée : traduction, genre et animacité viennent de la banque,
-// jamais de ce que l'IA en dit.
-//
-// Le NOMBRE et le GOUVERNEUR du trou sont eux aussi imposés, et pour la même
-// raison : la forme attendue est calculée depuis `caseId` + `plural`, sans
-// jamais relire la phrase. Une phrase qui contredit cette hypothèse — un
-// « несколько » devant le trou d'un exercice au nominatif — transforme une
-// bonne réponse de l'apprenant en faute comptée. Ces consignes limitent le
-// problème ; c'est lib/grammar/sentence-guard.ts qui le ferme, en refusant
-// la phrase quand le modèle passe outre.
-export interface ExercisePromptOptions {
-  caseId: CaseId;
-  level: CefrLevel;
-  candidatePool: { ru: string; fr: string }[];
-  /** Le trou attend-il un pluriel ? Vient du déclencheur, pas du modèle. */
-  plural: boolean;
-  trigger?: CaseTrigger;
-  recentLemmas?: string[];
-  /** Motif du refus de la tentative précédente, pour la seconde demande. */
-  rejectedReason?: string;
-}
-
-export function exerciseSystemPrompt({
-  caseId,
-  level,
-  candidatePool,
-  plural,
-  trigger,
-  recentLemmas,
-  rejectedReason,
-}: ExercisePromptOptions) {
-  const triggerInstruction = trigger
-    ? `Le déclencheur à illustrer est précisément : "${trigger.ru}" (${trigger.meaningFr}). La phrase doit utiliser ce déclencheur exact (cette préposition, ce verbe ou cette expression), pas un autre.
-Phrase de référence de ce déclencheur : "${trigger.template.ru}". Garde EXACTEMENT les mots qui gouvernent le trou dans cette référence, et enrichis le reste (contexte, verbe, compléments) pour obtenir une phrase vivante.`
-    : `Choisis toi-même un déclencheur naturel du cas "${caseId}" (préposition, verbe à régime ou expression figée) — indique-le dans le champ "trigger_id" si tu peux l'identifier, sinon laisse-le vide.`;
-  const avoidRepeatInstruction =
-    recentLemmas && recentLemmas.length
-      ? `Parmi les mots autorisés, évite ceux déjà vus dans les exercices récents de l'apprenant si d'autres choix restent possibles : ${recentLemmas.join(", ")}.`
-      : "";
-  const numberInstruction = plural
-    ? `- Le trou attend un PLURIEL. Accorde le verbe et les épithètes au pluriel.`
-    : `- Le trou attend un SINGULIER. Accorde le verbe et les épithètes au singulier.`;
-  const retryInstruction = rejectedReason
-    ? `
-ATTENTION — ta proposition précédente a été REFUSÉE : ${rejectedReason}.
-Écris une phrase différente qui corrige exactement ce point.`
-    : "";
-
-  return `Tu es un concepteur d'exercices de russe langue étrangère, pour un apprenant francophone.
-Niveau CEFR de l'apprenant : ${level} (${LEVEL_GUIDANCE[level]}).
-
-Liste FERMÉE de mots autorisés (russe = français) : ${candidatePool
-    .map((w) => `${w.ru} = ${w.fr}`)
-    .join(", ")}.
-Le "lemma" DOIT être recopié EXACTEMENT (même orthographe, même casse) depuis cette liste — aucun autre mot n'est accepté, même s'il te semble plus adapté ou plus naturel.
-
-Tâche : produire UN exercice à trou testant le cas grammatical "${caseId}" (cas russe).
-${triggerInstruction}
-Contraintes STRICTES :
-- VARIÉTÉ LEXICALE : pioche largement dans la liste et ne choisis JAMAIS deux fois de suite un mot de la même famille de sens.
-${avoidRepeatInstruction}
-- La phrase russe contient exactement un trou noté "___" à l'emplacement du mot à décliner.
-${numberInstruction}
-- RIEN d'autre que le déclencheur demandé ne doit gouverner le trou. Le mot placé juste avant le trou (épithètes mises à part) ne peut être NI une préposition, NI un mot de quantité (много, мало, немного, несколько, сколько, столько, большинство, кусок, стакан…), NI un numéral (два, три, пять, 5, 21…) — sauf si c'est justement le déclencheur demandé. Ces mots imposent leur propre cas et rendraient la phrase fausse pour le cas testé : "Несколько ___" appelle le génitif, quel que soit le cas de l'exercice.
-- Le mot à décliner est donné à sa forme du dictionnaire (nominatif singulier) dans le champ "lemma", recopié depuis la liste fermée.
-- Tu ne fournis PAS la forme fléchie attendue : elle est calculée par un moteur de règles, pas par toi. N'essaie pas de la deviner ni de l'écrire dans la phrase.
-- La traduction française ("sentence_fr") est COMPLÈTE et naturelle, SANS trou ni "___" : le mot à deviner y apparaît normalement traduit. C'est ce qui permet à l'apprenant de savoir QUEL mot français il doit chercher en russe — un trou aussi côté français le laisserait deviner à l'aveugle (ex. pour "sans ___", impossible de savoir s'il faut dire "sucre" ou "lait").
-- Dans cette traduction, le mot du trou doit apparaître avec EXACTEMENT la traduction que la liste fermée lui donne (au pluriel si le trou est au pluriel) — jamais un synonyme, un terme plus général ou un autre sens. Écrire "l'homme" pour "герой = héros" rend l'exercice insoluble : l'apprenant répond мужчина, et c'est compté faux. Construis donc la phrase russe et sa traduction autour du sens que la liste donne au mot, pas d'un autre.
-- La phrase doit rendre le cas "${caseId}" naturel et non ambigu.
-${retryInstruction}
-
-Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de la forme :
-{"sentence_ru":"phrase avec ___","sentence_fr":"traduction française complète, sans trou","lemma":"nominatif singulier, recopié depuis la liste fermée","trigger_id":"identifiant du déclencheur si connu, sinon chaîne vide"}`;
-}
-
 // ─── Filet de sécurité : vérification IA d'une réponse jugée fausse ──
 // Le moteur de règles (lib/grammar/decline.ts) reste la référence rapide et
 // gratuite pour CHAQUE réponse (comparaison de chaînes) ; cet appel IA n'a
