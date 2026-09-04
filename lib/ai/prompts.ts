@@ -52,6 +52,12 @@ export function answerVerificationPrompt(input: {
 
   return `Tu es un professeur de russe expert en morphologie, pour un apprenant francophone.
 
+TU ÉCRIS EN FRANÇAIS. L'apprenant ne lit pas le russe — c'est ce qu'il
+apprend. Tout ce que tu rédiges lui est montré tel quel, au moment précis où
+il vient de se tromper. Le russe n'apparaît que CITÉ, entre guillemets, pour
+désigner une forme : « la forme « стулами » n'existe pas ». Une explication
+rédigée en russe est inutilisable, quelle que soit sa justesse.
+
 Mot (forme du dictionnaire) : "${input.lemma}" (genre : ${input.gender}, ${
     input.animacy === "animate" ? "animé" : "inanimé"
   }).
@@ -65,9 +71,11 @@ ${
     ? `- Une exception, et une seule : si CETTE phrase appelait en réalité un autre cas que celui demandé (une préposition, un mot de quantité ou un numéral gouverne le trou), c'est l'exercice qui est fautif, pas l'apprenant — accepte alors sa réponse si elle est juste dans cette phrase.\n`
     : ""
 }
-Pour "reason" : UNE phrase, en français. Nomme le cas et le nombre de la forme que l'apprenant a écrite, sans lui inventer de fonction grammaticale (ne dis jamais d'un génitif que c'est « le cas du complément d'objet direct »). Si tu n'es pas sûr d'analyser sa forme, dis seulement en quoi elle diffère de la forme attendue.
+Pour "reason" : UNE SEULE phrase, RÉDIGÉE EN FRANÇAIS, vingt-cinq mots au plus. Nomme le cas et le nombre de la forme que l'apprenant a écrite, sans lui inventer de fonction grammaticale (ne dis jamais d'un génitif que c'est « le cas du complément d'objet direct »). Si tu n'es pas sûr d'analyser sa forme, dis seulement en quoi elle diffère de la forme attendue.
 
-Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour : {"acceptable":true|false,"reason":"explication très courte en français"}`;
+Exemple de "reason" bien formé : "« стулами » n'est pas l'instrumental pluriel de стул : le radical s'y termine en -ль, d'où « стульями »."
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour : {"acceptable":true|false,"reason":"une phrase en français, vingt-cinq mots au plus"}`;
 }
 
 // ─── Filet de sécurité : vérification IA d'une traduction jugée fausse ──

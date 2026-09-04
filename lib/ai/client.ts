@@ -108,3 +108,35 @@ export function parseJsonResponse<T>(raw: string): T {
     return JSON.parse(extracted) as T;
   }
 }
+
+/**
+ * L'explication rendue à l'apprenant est-elle bien EN FRANÇAIS ?
+ *
+ * CE QUI EST ARRIVÉ. Sur « Туристы отдыхают под ___ », une réponse fausse
+ * s'est vu répondre : « Форма «Стулами» — это неправильная форма
+ * творительного падежа множественного числа… » — trois phrases de russe
+ * servies à un francophone, au moment précis où il ne comprend pas.
+ *
+ * Le prompt demandait pourtant « en français », deux fois. C'est le fond du
+ * problème : une consigne de prompt n'est pas une garantie, et le modèle
+ * dérive d'autant plus facilement que tout le reste de son contexte —
+ * lemme, formes, phrase — est en russe. Une instruction ne se vérifie pas
+ * elle-même ; ce contrôle-ci, si.
+ *
+ * COMPTER, ET NON INTERDIRE LE CYRILLIQUE. Une bonne explication en cite
+ * forcément : « la forme « стулами » n'est pas l'instrumental pluriel de
+ * стул ». Rejeter toute phrase contenant du cyrillique supprimerait les
+ * meilleures. On compare donc les deux alphabets : du français qui cite du
+ * russe reste majoritairement latin, du russe ne l'est pas du tout.
+ */
+export function isFrenchProse(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  const latin = (trimmed.match(/[a-zà-öø-ÿ]/giu) ?? []).length;
+  const cyrillic = (trimmed.match(/[а-яё]/giu) ?? []).length;
+  // Aucune lettre latine : c'est du russe, ou ce n'est pas une phrase.
+  if (latin === 0) return false;
+  // À égalité on refuse aussi : une explication utile a bien plus de mots
+  // que de citations.
+  return latin > cyrillic;
+}

@@ -30,6 +30,8 @@ const { NOUNS } = await jiti.import("../lib/grammar/nouns-data.ts");
 const { LEXICON } = await jiti.import("../lib/vocabulary/lexicon.generated.ts");
 const { wordKey, sameWord } = await jiti.import("../lib/vocabulary/duplicate.ts");
 const { nearMiss } = await jiti.import("../lib/vocabulary/autocomplete.ts");
+const { isFrenchProse } = await jiti.import("../lib/ai/client.ts");
+const P = await jiti.import("../lib/ai/prompts.ts");
 
 const failures = [];
 let checks = 0;
@@ -377,6 +379,62 @@ require_(
       `orthographe : « ${typed} » devrait proposer « ${expected} », a proposé « ${got ?? "rien"} »`
     );
   }
+}
+
+// ─── 6. Ce que le modèle rédige est-il lisible par l'apprenant ? ──
+//
+// CE QUI EST ARRIVÉ. Sur « Туристы отдыхают под ___ », une réponse fausse
+// s'est vu répondre trois phrases de russe : « Форма «Стулами» — это
+// неправильная форма творительного падежа множественного числа… ». Le
+// prompt demandait « en français », deux fois. Le modèle a dérivé — tout
+// son contexte est russe, et une consigne de prompt ne se vérifie pas
+// elle-même.
+//
+// Ce contrôle-ci, si. Il porte sur le GARDE-FOU, pas sur le modèle : on ne
+// peut pas tester ce que l'IA répondra, on peut tester ce qu'on accepte
+// d'elle.
+{
+  // Ce qui doit passer : du français, y compris quand il cite du russe —
+  // et une bonne explication en cite forcément.
+  for (const text of [
+    "Instrumental pluriel attendu, avec alternance л → ль.",
+    "La forme « стулами » n'est pas l'instrumental pluriel de стул : on attend « стульями ».",
+    "Ta réponse est au nominatif, pas au génitif.",
+  ]) {
+    require_(isFrenchProse(text), `explication : « ${text.slice(0, 40)}… » est du français et devrait passer`);
+  }
+
+  // Ce qui doit être jeté : la prose russe, exactement celle qui s'est
+  // affichée.
+  for (const text of [
+    "Форма «Стулами» — это неправильная форма творительного падежа множественного числа. Правильная форма — «стульями».",
+    "Это неправильно.",
+    "",
+    "   ",
+  ]) {
+    require_(
+      !isFrenchProse(text),
+      `explication : « ${text.slice(0, 40)}… » n'est pas du français et ne doit pas être affichée`
+    );
+  }
+
+  // Le prompt doit continuer de le demander. Le garde-fou rattrape la
+  // dérive, il ne la remplace pas : sans la consigne, on jetterait
+  // simplement une explication sur deux.
+  const prompt = P.answerVerificationPrompt({
+    lemma: "стул",
+    gender: "masculin",
+    animacy: "inanimate",
+    targetCase: "instrumental",
+    plural: true,
+    computedForm: "сту́льями",
+    userAnswer: "Стулами",
+    sentence: "Тури́сты отдыха́ют под ___.",
+  });
+  require_(
+    /EN FRANÇAIS/.test(prompt),
+    "le prompt de vérification ne dit plus explicitement d'écrire en français"
+  );
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────

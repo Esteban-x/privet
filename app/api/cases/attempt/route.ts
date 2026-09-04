@@ -10,7 +10,13 @@ import {
   resolveExerciseNoun,
 } from "@/lib/grammar/exercise-generator";
 import { getTrigger } from "@/lib/grammar/triggers";
-import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
+import {
+  getAnthropic,
+  isFrenchProse,
+  MODEL_FAST,
+  parseJsonResponse,
+  textFromMessage,
+} from "@/lib/ai/client";
 import { consumeQuota, recordTokens } from "@/lib/ai/quota";
 import { allowPractice } from "@/lib/practice/quota";
 import { answerVerificationPrompt } from "@/lib/ai/prompts";
@@ -69,7 +75,21 @@ async function aiSecondOpinion(
     });
     await recordTokens(supabase, "verify", msg.usage);
     const result = parseJsonResponse<VerificationResult>(textFromMessage(msg));
-    return { acceptable: result.acceptable === true, reason: result.reason };
+    // L'EXPLICATION EST JETÉE SI ELLE N'EST PAS EN FRANÇAIS. Le prompt le
+    // demande deux fois, et le modèle a tout de même rendu trois phrases de
+    // russe à un francophone — voir isFrenchProse. Le verdict, lui, est
+    // conservé : c'est la LANGUE de l'explication qui est en cause, pas le
+    // jugement, et refuser du même coup un « acceptable » juste pénaliserait
+    // l'apprenant pour une dérive de rédaction.
+    //
+    // La carte reste complète sans elle : la forme attendue et son
+    // explication déterministe (« pluriel : instrumental -ями ») viennent du
+    // moteur de règles et s'affichent au-dessus.
+    const reason =
+      typeof result.reason === "string" && isFrenchProse(result.reason)
+        ? result.reason
+        : undefined;
+    return { acceptable: result.acceptable === true, reason };
   } catch (err) {
     // Échec réseau/parsing : on ne marque JAMAIS "correct" par défaut — le
     // verdict déterministe (incorrect) reste la réponse la plus sûre plutôt
