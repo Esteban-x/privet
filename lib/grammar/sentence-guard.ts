@@ -761,7 +761,9 @@ function frenchFrame(templateFr: string): { before: string; after: string } | nu
  * pose un démonstratif écrirait « devenir ce médecin ».
  */
 const NO_DETERMINER_BEFORE = new Set([
-  "de", "d", "des", "plusieurs", "comme", "devenir", "appelle",
+  "de", "d", "des", "plusieurs", "comme", "devenir",
+  // « Je m'appelle ___ » : le trou est un prénom, qui ne prend pas d'article.
+  "appelle", "appelles", "appelons", "appelez", "appellent", "nomme", "nomment",
 ]);
 /**
  * Celles-ci refusent le DÉMONSTRATIF, et lui seul : « il travaille comme
@@ -775,42 +777,121 @@ const REFUSES_DEMONSTRATIVE = new Set(["comme", "devenir"]);
 const DOUBLABLE = new Set(["nous", "vous"]);
 
 /**
- * Formes verbales conjuguées attendues dans un gabarit.
+ * Déterminants qui ne peuvent pas précéder le trou quand le déclencheur en
+ * pose un lui-même.
  *
- * POURQUOI UNE LISTE, ET PAS UNE RÈGLE. Le français ne se laisse pas
- * analyser sans dictionnaire : « sorte », « lampe », « idée » finissent
- * comme des verbes du premier groupe. Une règle morphologique dirait donc
- * qu'un groupe nominal est une phrase — exactement ce qu'on veut refuser.
+ * Le gabarit n'écrit JAMAIS l'article du trou : c'est frenchNounPhrase qui
+ * le pose, en accord avec le mode déclaré. Un gabarit qui l'écrit quand même
+ * — « C'est un ___ » sur un déclencheur en `indefinite` — donne « C'est un
+ * un livre ». Écrit par un modèle à la première tentative, invisible tant
+ * qu'on ne remplit pas le trou.
  *
- * La liste est de la DONNÉE, et check:grammar vérifie qu'elle couvre les 136
- * gabarits écrits à la main : elle ne peut donc pas pourrir en silence. Un
- * gabarit qui emploie un verbe absent d'ici est refusé, et c'est le
- * comportement voulu — soit le verbe entre dans la liste, décision prise et
- * visible, soit le gabarit est réécrit.
+ * « de » et « d' » n'y sont pas : ce sont des prépositions, et « la voiture
+ * de ce directeur » est exactement ce qu'on veut.
  */
+const DETERMINERS_BEFORE_HOLE = new Set([
+  "un", "une", "des", "du", "au", "aux", "le", "la", "les", "l",
+  "ce", "cet", "cette", "ces", "mon", "ma", "mes", "ton", "ta", "tes",
+  "son", "sa", "ses", "notre", "nos", "votre", "vos", "leur", "leurs",
+  "quelques", "plusieurs", "chaque", "tout", "toute", "tous", "toutes",
+]);
+
+/**
+ * Le verbe conjugué d'un gabarit français, cherché en deux temps.
+ *
+ * POURQUOI PAS UNE RÈGLE SEULE. Le français ne s'analyse pas sans
+ * dictionnaire : « sorte », « lampe », « idée » finissent comme des verbes
+ * du premier groupe. Une règle purement morphologique dirait donc qu'un
+ * groupe nominal est une phrase — exactement ce qu'on veut refuser.
+ *
+ * POURQUOI PAS UNE LISTE SEULE. Elle devrait porter chaque personne de
+ * chaque verbe : « pratique » y était, « pratiquons » non, et un gabarit
+ * juste était rejeté.
+ *
+ * Donc : une liste de RADICAUX du premier groupe, conjugués par la règle
+ * (elle, au moins, est vraie), et une liste de FORMES pour les auxiliaires
+ * et les irréguliers, que rien ne régularise. Les deux sont de la donnée, et
+ * check:grammar vérifie qu'elles couvrent les 136 gabarits écrits à la
+ * main : elles ne peuvent pas pourrir en silence. Un gabarit qui emploie un
+ * verbe absent d'ici est refusé, et c'est le comportement voulu — soit le
+ * verbe entre dans la liste, décision prise et visible, soit le gabarit est
+ * réécrit.
+ */
+const FRENCH_VERB_STEMS = [
+  "achet", "admir", "aid", "aim", "ajout", "allum", "amen", "appell", "apport", "approch",
+  "arrang", "arret", "arriv", "assist", "attend", "attrap", "avanc", "bais",
+  "bavard", "brill", "brul", "cass", "caus", "cherch", "chang", "chant", "charg",
+  "cherch", "class", "commenc", "compt", "concern", "conseill", "consider",
+  "constitu", "continu", "coup", "cout", "cri", "cuisin", "danc", "demand",
+  "demenag", "depens", "derang", "dessin", "detest", "devin", "dirig", "discut",
+  "donn", "dur", "echang", "ecout", "emprunt", "emmen", "employ", "envi",
+  "envoi", "epous", "essai", "etudi", "evit", "exig", "expliqu", "ferm", "gagn",
+  "gard", "gout", "guid", "habit", "hesit", "ignor", "imagin", "import", "inform",
+  "inquiet", "install", "interess", "invit", "jou", "juge", "laiss", "lav",
+  "lev", "livr", "lou", "maitris", "manqu", "mang", "march", "menac", "mentionn",
+  "mont", "montr", "nag", "nettoi", "not", "occup", "organis", "oubli", "parl",
+  "partag", "pass", "pay", "pens", "photographi", "plaisant", "port", "poss",
+  "pous", "pratiqu", "prefer", "prepar", "present", "prom", "promen", "propos",
+  "prot", "quitt", "racont", "ramass", "rappell", "regard", "regrett", "remerci",
+  "rencontr", "rentr", "renvoi", "repar", "repet", "repos", "resist", "rest",
+  "retourn", "retrouv", "rev", "risqu", "sembl", "sign", "soign", "souhait",
+  "surveill", "telephon", "termin", "tir", "tomb", "touch", "tourn", "travaill",
+  "travers", "trouv", "utilis", "vend", "verifi", "vis", "visit", "vol", "voyag",
+];
+
+/** Terminaisons du premier groupe, aux temps qu'un gabarit emploie. */
+const GROUP_ONE = new RegExp(
+  `^(${FRENCH_VERB_STEMS.join("|")})` +
+    "(e|es|ent|ons|ez|eons|eais|eait|eaient|ais|ait|aient|ai|as|a|" +
+    "erai|eras|era|erons|erez|eront|erais|erait|eraient|ee|ees|e)$"
+);
+
+/** Ce que la règle ne régularise pas : auxiliaires, deuxième et troisième groupes. */
 const FRENCH_FINITE_FORMS = new Set([
-  // auxiliaires
+  // auxiliaires et modaux
   "est", "sont", "es", "suis", "sommes", "etes", "a", "as", "ai", "avons", "avez", "ont",
-  "sera", "serai", "etait", "etaient", "avait", "avaient", "aie", "soit",
-  // aller, vouloir, pouvoir, devoir, faire, savoir
-  "vais", "vas", "va", "allons", "allez", "vont", "irai",
-  "veux", "veut", "voulons", "peux", "peut", "pouvons", "dois", "doit",
-  "fais", "fait", "faisons", "sais", "sait",
-  // les verbes des gabarits, à la personne où ils y figurent
-  "achete", "admire", "aide", "aime", "appartient", "appelle", "applaudissent",
-  "assis", "atteint", "bois", "boit", "compatis", "comprends", "comprend",
-  "concerne", "connais", "connait", "conseille", "considere", "constitue",
-  "couraient", "crois", "croit", "derange", "deteste", "dirige", "discutons",
-  "donne", "dort", "ecoute", "ecris", "ecrit", "envie", "etudie", "evite",
-  "exige", "gagne", "habite", "informe", "inquiete", "interesse", "lis", "lit",
-  "maitrise", "mange", "menace", "mentionne", "obeissent", "obeissons",
-  "parle", "parlons", "passe", "passons", "pense", "perdu", "plait", "pratique",
-  "prends", "prend", "promene", "promenes", "raconte", "regarde", "regrette",
-  "rejouis", "rencontre", "reponds", "repond", "resiste", "retrouve", "reve",
-  "risque", "sens", "sent", "sers", "sert", "sorti", "sortis", "souhaite",
-  "souviens", "suspendue", "tiens", "tient", "travaille", "trouve", "utilise",
-  "viendrai", "vient", "vis", "vit", "vivre", "vois", "voit", "voici", "voila",
-  "venu", "dormi", "entendu", "arrive", "tu", "semble", "semblent", "etre",
+  "sera", "serai", "etait", "etaient", "avait", "avaient", "aie", "soit", "ete", "eu",
+  "vais", "vas", "va", "allons", "allez", "vont", "irai", "iras", "ira", "irons",
+  "veux", "veut", "voulons", "voulez", "veulent", "voudrais",
+  "peux", "peut", "pouvons", "pouvez", "peuvent", "dois", "doit", "devons", "doivent",
+  "fais", "fait", "faisons", "faites", "font", "sais", "sait", "savons", "savent",
+  "faut", "y",
+  // troisième groupe, aux personnes qu'un gabarit emploie
+  "bois", "boit", "buvons", "buvez", "boivent", "bu",
+  "connais", "connait", "connaissons", "connaissent", "connu",
+  "comprends", "comprend", "comprenons", "comprennent", "compris",
+  "crois", "croit", "croyons", "croient", "cru",
+  "dis", "dit", "disons", "disent", "dors", "dort", "dormons", "dorment", "dormi",
+  "ecris", "ecrit", "ecrivons", "ecrivent", "ecrit",
+  "lis", "lit", "lisons", "lisent", "lu",
+  "mets", "met", "mettons", "mettent", "mis",
+  "ouvre", "ouvrons", "ouvrent", "ouvert", "offre", "offrons", "offert",
+  "prends", "prend", "prenons", "prenez", "prennent", "pris",
+  "recois", "recoit", "recevons", "recoivent", "recu",
+  "reponds", "repond", "repondons", "repondent", "repondu",
+  "sens", "sent", "sentons", "sentent", "senti",
+  "sers", "sert", "servons", "servent", "servi",
+  "sors", "sort", "sortons", "sortent", "sorti", "sortis", "sortie",
+  "suit", "suis", "suivons", "suivent", "suivi",
+  "tiens", "tient", "tenons", "tiennent", "tenu",
+  "viens", "vient", "venons", "viennent", "venu", "venue", "venus", "viendrai",
+  "vis", "vit", "vivons", "vivent", "vecu", "vivre",
+  "vois", "voit", "voyons", "voyez", "voient", "vu",
+  "attends", "attend", "attendons", "attendent", "attendu",
+  "entends", "entend", "entendons", "entendent", "entendu",
+  "perds", "perd", "perdons", "perdent", "perdu",
+  "plait", "plaisent", "plu", "appartient", "appartiennent",
+  "cours", "court", "courons", "courent", "couru", "couraient",
+  "obeis", "obeit", "obeissons", "obeissez", "obeissent", "obei",
+  "applaudis", "applaudit", "applaudissons", "applaudissent",
+  "finis", "finit", "finissons", "finissent", "fini",
+  "choisis", "choisit", "choisissons", "choisissent",
+  "reussis", "reussit", "reussissons", "reussissent",
+  "rejouis", "rejouit", "rejouissons", "rejouissent",
+  "compatis", "compatit", "compatissons", "compatissent",
+  "souviens", "souvient", "souvenons", "souviennent",
+  "assis", "atteint", "atteignons", "atteignent", "suspendu", "suspendue",
+  "arrive", "arrives", "arrivee", "tu", "etre", "aller",
 ]);
 
 /**
@@ -820,6 +901,10 @@ const FRENCH_FINITE_FORMS = new Set([
  * un.
  */
 const FRENCH_PRESENTATIVES = new Set(["voici", "voila", "merci"]);
+
+function isFinite_(word: string): boolean {
+  return FRENCH_FINITE_FORMS.has(word) || GROUP_ONE.test(word);
+}
 
 export interface FrenchTemplateInput {
   /** Le gabarit français, trou compris. */
@@ -860,7 +945,7 @@ export function validateFrenchTemplate(input: FrenchTemplateInput): GuardVerdict
       return { ok: false, reason: `« ${words[i]} » répété deux fois de suite` };
     }
   }
-  if (!words.some((w) => FRENCH_FINITE_FORMS.has(w) || FRENCH_PRESENTATIVES.has(w))) {
+  if (!words.some((w) => isFinite_(w) || FRENCH_PRESENTATIVES.has(w))) {
     return {
       ok: false,
       reason: "aucun verbe conjugué reconnu — groupe nominal, ou verbe à ajouter à la liste",
@@ -876,10 +961,17 @@ export function validateFrenchTemplate(input: FrenchTemplateInput): GuardVerdict
       reason: `« ${last} ___ » attribue une qualité, le démonstratif y désignerait quelqu'un`,
     };
   }
-  if (article === "none" && beforeWords.length > 0 && !NO_DETERMINER_BEFORE.has(last)) {
+  if (article === "none") {
+    if (beforeWords.length > 0 && !NO_DETERMINER_BEFORE.has(last)) {
+      return {
+        ok: false,
+        reason: `le déclencheur ne pose aucun déterminant, et « ${last} ___ » en demande un`,
+      };
+    }
+  } else if (DETERMINERS_BEFORE_HOLE.has(last)) {
     return {
       ok: false,
-      reason: `le déclencheur ne pose aucun déterminant, et « ${last} ___ » en demande un`,
+      reason: `« ${last} » est déjà un déterminant, le déclencheur en poserait un second`,
     };
   }
   return { ok: true };

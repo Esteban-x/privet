@@ -2,6 +2,7 @@ import { CaseId } from "./types";
 import { ArticleMode } from "./french-article";
 // Type seul : évite un cycle de modules avec noun-categories, qui lit la banque.
 import type { NounCategory } from "./noun-categories";
+import { TRIGGER_TEMPLATES } from "./trigger-templates.generated";
 
 // Banque des "déclencheurs" de chaque cas : prépositions, verbes à régime
 // et expressions figées qui imposent le cas. Objectif pédagogique : ne pas
@@ -63,7 +64,15 @@ export interface CaseTrigger {
   tier: TriggerTier;
   ru: string; // ex. "у", "помога́ть (+ дат.)"
   meaningFr: string;
-  template: { ru: string; fr: string }; // "___" = trou
+  /**
+   * La phrase de RÉFÉRENCE, écrite à la main. « ___ » marque le trou.
+   *
+   * Ce n'est plus la seule : `templatesFor` y ajoute celles de la banque
+   * générée. Celle-ci garde trois rôles qu'aucune autre ne peut tenir —
+   * montrer au modèle ce qu'on attend, calibrer le contrôle d'identité du
+   * garde-fou, et rester là si la banque est vide.
+   */
+  template: { ru: string; fr: string };
   /**
    * Nombre(s) que le gabarit accepte. Absent = "both" — voir TriggerNumber
    * pour ce que l'absence signifiait avant, et pourquoi elle ne le signifie
@@ -1623,6 +1632,26 @@ export const TRIGGERS: CaseTrigger[] = [
     template: { ru: "Я жале́ю о ___.", fr: "Je regrette ___." },
   },
 ];
+
+/**
+ * Toutes les phrases d'un déclencheur : la référence écrite à la main,
+ * puis celles de la banque générée.
+ *
+ * POURQUOI DEUX SOURCES. Il n'y avait qu'UNE phrase par déclencheur, et le
+ * mode « Phrase » servait `template.ru` tel quel : le nombre de phrases
+ * qu'un apprenant pouvait voir sur une page valait donc le nombre de
+ * déclencheurs du cas — cinq au nominatif. Sur cinquante exercices, une
+ * phrase revenait seize fois.
+ *
+ * La référence reste dans triggers.ts, écrite et relue à la main : c'est
+ * elle qu'on montre au modèle pour dire ce qu'on attend, c'est sur elle que
+ * le garde-fou calibre son contrôle d'identité (voir expectedLexicalMark),
+ * et c'est elle qui reste si la banque générée est vide. Les autres vivent
+ * dans un fichier généré, comme la curation des noms.
+ */
+export function templatesFor(trigger: CaseTrigger): { ru: string; fr: string }[] {
+  return [trigger.template, ...(TRIGGER_TEMPLATES[trigger.id] ?? [])];
+}
 
 export function triggersForCase(caseId: CaseId): CaseTrigger[] {
   return TRIGGERS.filter((t) => t.caseId === caseId);

@@ -76,6 +76,7 @@ export function inspect(text, where, { requireStress = true, sentence = false } 
 
   const words = sentence ? text.match(CYRILLIC_WORD) ?? [] : [text];
   for (const word of words) {
+    if (UNSTRESSED_FUNCTION_WORDS.has(word.toLowerCase())) continue;
     if (vowelCount(word) >= 2 && !carriesStress(word)) {
       problems.push(`${where} : « ${word} » est polysyllabique et non accentué`);
     }
@@ -92,4 +93,7 @@ export const UNSTRESSED_FUNCTION_WORDS = new Set([
   "или", "если", "чтобы", "когда", "потому", "также", "тоже", "уже", "ещё",
   "меня", "тебя", "себя", "него", "неё", "него", "нему", "ними", "него",
   "его", "ему", "она", "оно", "они", "мои", "твои", "свои", "наши", "ваши",
+  // Prépositions composées : clitiques, jamais accentuées, et écrites
+  // ainsi dans les gabarits — « Кот вы́лез из-под ___. »
+  "из-под", "из-за", "по-над",
 ]);

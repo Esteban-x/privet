@@ -30,20 +30,26 @@ export function caseRecentKey(caseId: CaseId, tab: CaseTab): string {
 }
 
 /**
- * Ce qui identifie un exercice pour la mémoire courte, du plus précis au
- * plus grossier (voir lib/practice/recent.ts).
+ * Ce qui identifie un exercice pour la mémoire courte (voir
+ * lib/practice/recent.ts) : l'exercice exact, puis la phrase, puis le mot.
  *
- * Le mot et le déclencheur comptent séparément, et pas seulement le couple :
- * reprendre le déclencheur de l'exercice précédent avec un autre mot, c'est
- * déjà remontrer la même phrase — il n'y en a qu'une par déclencheur.
+ * LE DÉCLENCHEUR N'EN FAIT PAS PARTIE, et c'est une décision. Il en faisait
+ * partie tant qu'il n'avait qu'une phrase : la reprendre, c'était forcément
+ * remontrer la même page. Maintenant qu'il en a six, le compter revenait à
+ * choisir l'exercice sur le déclencheur — un candidat dont le déclencheur
+ * était plus ancien gagnait même si sa PHRASE venait de passer, et le
+ * doublon arrivait au quinzième exercice au lieu du vingtième. Deux phrases
+ * différentes du même déclencheur ne sont pas une répétition : « Я живу́ у
+ * ___ » puis « Она́ рабо́тает у ___ », c'est le déclencheur travaillé deux
+ * fois, pas la même page servie deux fois.
  */
 export function caseExerciseIds(exercise: CaseExercise): string[] {
-  const context = exercise.trigger?.id ?? exercise.countForm ?? "seul";
+  const context = exercise.sentenceTemplate ?? exercise.countForm ?? "seul";
   const ids = [
     `${context}:${exercise.noun.id}:${exercise.plural ? "pl" : "sg"}`,
     `noun:${exercise.noun.id}`,
   ];
-  if (exercise.trigger) ids.push(`trigger:${exercise.trigger.id}`);
+  if (exercise.sentenceTemplate) ids.push(`phrase:${exercise.sentenceTemplate}`);
   return ids;
 }
 

@@ -6,6 +6,7 @@ import {
   CaseTrigger,
   PROPER_NOUN_TRIGGER_ID,
   resolveNumber,
+  templatesFor,
   triggersForCase,
 } from "./triggers";
 import { CASES } from "./cases";
@@ -218,6 +219,11 @@ export function generateSentenceExercise(
   const candidates = poolFor(chosenTrigger, pool);
   const noun = pickRandom(plural ? pluralisableNouns(candidates) : candidates);
   const result = declineNoun(noun, targetCase, plural);
+  // Un déclencheur porte plusieurs phrases depuis qu'elles sont écrites à la
+  // construction (voir templatesFor). Sans ce tirage, le nombre de phrases
+  // qu'un apprenant peut voir sur une page vaudrait le nombre de
+  // déclencheurs du cas — cinq au nominatif.
+  const template = pickRandom(templatesFor(chosenTrigger));
 
   return {
     kind: "sentence-fixed",
@@ -229,9 +235,9 @@ export function generateSentenceExercise(
     variantForm: result.variant,
     ruleApplied: result.ruleApplied,
     trigger: chosenTrigger,
-    sentenceTemplate: chosenTrigger.template.ru,
+    sentenceTemplate: template.ru,
     sentenceFr: fillFrenchBlank(
-      chosenTrigger.template.fr,
+      template.fr,
       frenchNounPhrase(noun.translation, noun.frenchGender, chosenTrigger.article, plural)
     ),
   };

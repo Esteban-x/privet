@@ -41,7 +41,7 @@ const RING_SIZE = 40;
 const MAX_KEYS = 24;
 
 /** Candidats comparés avant de trancher. */
-const DEFAULT_TRIES = 8;
+const DEFAULT_TRIES = 24;
 
 // Le stockage est lu une fois puis tenu en mémoire : `drawFresh` est appelé
 // à chaque exercice, relire et reparser le JSON à chaque tirage serait payer
@@ -68,21 +68,39 @@ function freshness(ring: string[][], id: string): number {
 }
 
 /**
- * Ce que vaut un candidat : la fraîcheur de son identifiant le PLUS récent.
+ * Ce que vaut un candidat : d'abord la fraîcheur de son identifiant le PLUS
+ * récent, puis celle de tous les autres.
  *
- * Un exercice porte plusieurs identifiants — voir `drawFresh` — et il suffit
- * qu'un seul soit frais du jour pour qu'on ait l'impression de le revoir. Un
- * exercice qui reprend le déclencheur d'il y a deux tirages avec un mot
- * inédit reste « la même phrase » : c'est donc le déclencheur qui doit
- * commander, et le minimum le dit.
+ * POURQUOI DEUX NOMBRES. Un exercice porte plusieurs identifiants — voir
+ * `drawFresh` — et il suffit qu'un seul soit frais du jour pour qu'on ait
+ * l'impression de le revoir : le minimum commande donc. Mais le minimum
+ * seul aveugle le reste. Sur la page du nominatif, qui n'a que cinq
+ * déclencheurs, TOUS les candidats en ont un vu récemment : leur minimum est
+ * bas et identique, et la phrase — dont il existe pourtant six par
+ * déclencheur — n'était plus départagée du tout. Une même phrase sortait
+ * onze fois sur cinquante.
+ *
+ * Le total tranche donc les ex æquo. L'infini y compte pour la taille de
+ * l'anneau : « jamais vu » ne doit pas écraser la comparaison à lui seul.
  */
-function scoreOf(ring: string[][], ids: string[]): number {
+interface Score {
+  worst: number;
+  total: number;
+}
+
+function scoreOf(ring: string[][], ids: string[]): Score {
   let worst = Infinity;
+  let total = 0;
   for (const id of ids) {
     const value = freshness(ring, id);
     if (value < worst) worst = value;
+    total += Math.min(value, ring.length);
   }
-  return worst;
+  return { worst, total };
+}
+
+function isBetter(a: Score, b: Score): boolean {
+  return a.worst !== b.worst ? a.worst > b.worst : a.total > b.total;
 }
 
 /** Enregistre un tirage. À appeler une fois l'exercice réellement retenu. */
@@ -118,14 +136,14 @@ export function pickFresh<T>(
 ): T {
   const ring = store()[key] ?? [];
   let best: T | null = null;
-  let bestScore = -1;
+  let bestScore: Score | null = null;
 
   for (let i = 0; i < tries; i += 1) {
     const candidate = draw();
     const score = scoreOf(ring, idsOf(candidate));
-    // Jamais vu : inutile de chercher mieux, il n'y a pas mieux.
-    if (score === Infinity) return candidate;
-    if (score > bestScore) {
+    // Rien de connu là-dedans : inutile de chercher mieux, il n'y a pas mieux.
+    if (score.worst === Infinity) return candidate;
+    if (bestScore === null || isBetter(score, bestScore)) {
       best = candidate;
       bestScore = score;
     }

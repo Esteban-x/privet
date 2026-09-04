@@ -47,7 +47,7 @@ import { accentuate, canonicalForms, loadDictionary } from "./lib/dictionary.mjs
 
 const adjectiveDictionary = await loadDictionary(["adjectives"]);
 
-const { TRIGGERS, PROPER_NOUN_TRIGGER_ID, triggerNumber } = await jiti.import(
+const { TRIGGERS, PROPER_NOUN_TRIGGER_ID, triggerNumber, templatesFor } = await jiti.import(
   "../lib/grammar/triggers.ts"
 );
 const { validateSentence, validateFrenchSentence, validateFrenchTemplate } = await jiti.import(
@@ -743,38 +743,68 @@ const NARROW = {
   // C'est l'invariant qui manquait : l'ancien booléen ne pouvait dire que
   // « ce gabarit sert le pluriel », jamais « ce gabarit le supporte », et
   // rien ne vérifiait le nombre qu'on ne servait pas.
+  //
+  // TOUTES les phrases du déclencheur, pas seulement la référence : la
+  // banque générée en ajoute cinq ou six par déclencheur, et elles sont
+  // servies à l'apprenant exactement comme la référence.
+  const seenTemplates = new Map();
+  // Le plancher de phrases par déclencheur. Trois n'est pas un idéal, c'est
+  // le seuil sous lequel la répétition redevient visible : le contrôle de
+  // variété (check:variety) rejoue des sessions de cinquante exercices et
+  // échoue en dessous. Le tenir ICI le dit à la construction, sur la donnée,
+  // plutôt qu'au terme d'une simulation.
+  const MIN_TEMPLATES = 4;
   for (const trigger of TRIGGERS) {
-    const declared = triggerNumber(trigger);
-    const numbers = declared === "both" ? [false, true] : [declared === "plural"];
-    for (const plural of numbers) {
-      const verdict = validateSentence({
-        sentence: trigger.template.ru,
-        targetCase: trigger.caseId,
-        plural,
-        trigger,
-      });
-      expect(
-        `gabarit « ${trigger.id} » (${trigger.template.ru}) au ` +
-          `${plural ? "pluriel" : "singulier"} refusé par le garde-fou` +
-          `${verdict.reason ? ` : ${verdict.reason}` : ""}`,
-        verdict.ok,
-        true
-      );
-    }
-
-    // Le versant français du gabarit. `validateFrenchSentence` se tait
-    // devant un « ___ » — à raison, le trou est comblé par la banque —, si
-    // bien que le gabarit lui-même n'était vérifié par personne.
-    const french = validateFrenchTemplate({
-      templateFr: trigger.template.fr,
-      article: trigger.article,
-    });
+    const all = templatesFor(trigger);
     expect(
-      `gabarit français « ${trigger.id} » (${trigger.template.fr}) refusé` +
-        `${french.reason ? ` : ${french.reason}` : ""}`,
-      french.ok,
+      `déclencheur « ${trigger.id} » : ${all.length} phrase(s), minimum ${MIN_TEMPLATES} ` +
+        `— relancer npm run curate:templates --only=${trigger.id}`,
+      all.length >= MIN_TEMPLATES,
       true
     );
+    const declared = triggerNumber(trigger);
+    const numbers = declared === "both" ? [false, true] : [declared === "plural"];
+    for (const template of templatesFor(trigger)) {
+      for (const plural of numbers) {
+        const verdict = validateSentence({
+          sentence: template.ru,
+          targetCase: trigger.caseId,
+          plural,
+          trigger,
+        });
+        expect(
+          `gabarit « ${trigger.id} » (${template.ru}) au ` +
+            `${plural ? "pluriel" : "singulier"} refusé par le garde-fou` +
+            `${verdict.reason ? ` : ${verdict.reason}` : ""}`,
+          verdict.ok,
+          true
+        );
+      }
+
+      // Le versant français du gabarit. `validateFrenchSentence` se tait
+      // devant un « ___ » — à raison, le trou est comblé par la banque —, si
+      // bien que le gabarit lui-même n'était vérifié par personne.
+      const french = validateFrenchTemplate({
+        templateFr: template.fr,
+        article: trigger.article,
+      });
+      expect(
+        `gabarit français « ${trigger.id} » (${template.fr}) refusé` +
+          `${french.reason ? ` : ${french.reason}` : ""}`,
+        french.ok,
+        true
+      );
+
+      // Deux fois la même phrase, c'est un gabarit de moins : l'apprenant
+      // la reverrait deux fois plus souvent, et le tirage croirait varier.
+      const key = template.ru.replace(/\u0301/g, "").toLowerCase();
+      expect(
+        `phrase en double : « ${template.ru} » (${trigger.id} et ${seenTemplates.get(key)})`,
+        seenTemplates.has(key),
+        false
+      );
+      seenTemplates.set(key, trigger.id);
+    }
   }
 
   // Ce que le contrôle d'identité lexicale doit attraper, et ce qu'il ne
@@ -831,6 +861,9 @@ const NARROW = {
     ["Je vois ___ et ___.", "demonstrative", false], // deux trous
     ["Je vois ___", "demonstrative", false], // pas de ponctuation finale
     ["Я ви́жу ___.", "demonstrative", false], // du cyrillique
+    ["Regarde, c'est un ___ !", "indefinite", false], // deux articles au remplissage
+    ["Regarde, c'est ___ !", "indefinite", true],
+    ["C'est la voiture de ___.", "demonstrative", true], // « de » est une préposition
   ];
   for (const [templateFr, article, shouldPass] of FRENCH_TEMPLATE_WITNESSES) {
     const verdict = validateFrenchTemplate({ templateFr, article });
@@ -885,18 +918,20 @@ const NARROW = {
   //    ici ferait retomber le mode IA sur le gabarit fixe en boucle.
   for (const trigger of TRIGGERS) {
     if (trigger.id === PROPER_NOUN_TRIGGER_ID) continue;
-    for (const noun of poolFor(trigger, NOUNS)) {
-      for (const plural of [false, true]) {
-        const sentenceFr = fillFrenchBlank(
-          trigger.template.fr,
-          frenchNounPhrase(noun.translation, noun.frenchGender, trigger.article, plural)
-        );
-        const verdict = validateFrenchSentence({ sentenceFr, translation: noun.translation });
-        expect(
-          `garde-fou français : « ${sentenceFr} » ne reconnaît pas « ${noun.translation} »`,
-          verdict.ok,
-          true
-        );
+    for (const template of templatesFor(trigger)) {
+      for (const noun of poolFor(trigger, NOUNS)) {
+        for (const plural of [false, true]) {
+          const sentenceFr = fillFrenchBlank(
+            template.fr,
+            frenchNounPhrase(noun.translation, noun.frenchGender, trigger.article, plural)
+          );
+          const verdict = validateFrenchSentence({ sentenceFr, translation: noun.translation });
+          expect(
+            `garde-fou français : « ${sentenceFr} » ne reconnaît pas « ${noun.translation} »`,
+            verdict.ok,
+            true
+          );
+        }
       }
     }
   }
@@ -924,9 +959,10 @@ const NARROW = {
     // comme des personnes » n'a pas à être jugé sur un déclencheur qui a
     // dit ne servir que le singulier.
     const declared = triggerNumber(trigger);
+    for (const template of templatesFor(trigger))
     for (const plural of declared === "both" ? [false, true] : [declared === "plural"]) {
       const sentenceFr = fillFrenchBlank(
-        trigger.template.fr,
+        template.fr,
         frenchNounPhrase(sample.translation, sample.frenchGender, trigger.article, plural)
       );
       const offense = NO_DETERMINER_AFTER.exec(sentenceFr);
