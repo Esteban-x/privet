@@ -53,7 +53,14 @@ function VoiceInner() {
     currentFocus,
     setFocus,
   } = useReviewQueue(listId);
-  const { supported: micSupported, listening, transcript, start, stop } = useSpeechRecognition(RU_LANG);
+  const {
+    supported: micSupported,
+    listening,
+    transcript,
+    error: micError,
+    start,
+    stop,
+  } = useSpeechRecognition(RU_LANG);
 
   // La synthèse d'un mot INÉDIT demande une seconde et demie. Sur cette
   // page l'attente est la plus pénible de l'app : en mode écoute, le mot
@@ -185,72 +192,75 @@ function VoiceInner() {
       </div>
 
       <div className="rounded-[20px] surface p-8 text-center shadow-float">
+        <p className="font-display text-sm text-muted">
+          {listenAndRecall ? "Écoute et devine le sens :" : "Dis ce mot en russe :"}
+        </p>
+
+        {/* LA SEULE DIFFÉRENCE ENTRE LES DEUX SENS. En « dis ce mot », le
+            français est la consigne ; en « écoute et devine », le mot EST la
+            réponse et ne peut pas s'afficher. La ligne reste occupée par un
+            point d'interrogation de même taille pour que les commandes, en
+            dessous, tombent exactement au même endroit dans les deux cartes —
+            on ne cherche pas le bouton après avoir changé de sens. */}
         {listenAndRecall ? (
-          <>
-            <p className="font-display text-sm text-muted">Écoute et devine le sens :</p>
-            {/* L'anneau qui pulse pendant l'attente est POSÉ SUR le bouton
-                (inset-0, pointer-events-none) et ne le remplace pas : la
-                cible de clic garde sa taille et sa place, on ne perd pas le
-                bouton sous le curseur au moment où il s'anime. */}
-            <div className="relative mx-auto mt-5 h-20 w-20">
-              {loadingAudio && (
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-accent/40"
-                />
-              )}
-              <button
-                onClick={() => void speakRu(current.ru)}
-                aria-busy={loadingAudio}
-                className="relative flex h-20 w-20 items-center justify-center rounded-full bg-accent text-3xl text-white transition-[filter] hover:brightness-110"
-                aria-label="Écouter le mot russe"
-              >
-                <SpeakerIcon className="h-7 w-7" />
-              </button>
-            </div>
-          </>
+          <p className="mt-2 font-display text-3xl font-bold text-muted/40" aria-hidden>
+            ?
+          </p>
         ) : (
-          <>
-            <p className="font-display text-sm text-muted">Dis ce mot en russe :</p>
-            <p className="mt-2 font-display text-3xl font-bold text-accent2">{current.fr}</p>
-            <button
-              onClick={() => void speakRu(current.ru)}
-              aria-busy={loadingAudio}
-              className="mx-auto mt-4 inline-flex items-center gap-1.5 font-display text-xs font-semibold text-accent-ink underline-offset-4 hover:underline"
-            >
-              <SpeakerIcon className="h-3.5 w-3.5 shrink-0" />
-              {loadingAudio ? "Préparation…" : "Entendre la prononciation"}
-            </button>
-          </>
+          <p className="mt-2 font-display text-3xl font-bold text-accent2">{current.fr}</p>
         )}
 
-        {micSupported && (
-          <div className="mt-6">
+        {/* Deux pastilles de même forme, même largeur, même rangée : écouter
+            et parler sont deux gestes de même rang. L'ancienne carte opposait
+            un disque de 80 px d'un côté à un lien souligné de l'autre, et le
+            bouton d'enregistrement n'avait pas de `flex` — son pictogramme et
+            son libellé ne s'alignaient pas. */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+          <button
+            onClick={() => void speakRu(current.ru)}
+            aria-busy={loadingAudio}
+            aria-label="Écouter le mot russe"
+            className="relative inline-flex min-w-[9.5rem] items-center justify-center gap-2 rounded-full border border-border px-5 py-2.5 font-display text-sm font-semibold text-text transition-colors hover:border-accent/35 hover:bg-accent/10"
+          >
+            {/* L'anneau est POSÉ SUR le bouton et ne le remplace pas : la
+                cible de clic garde sa taille pendant l'attente. */}
+            {loadingAudio && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-accent/25"
+              />
+            )}
+            <SpeakerIcon className="h-4 w-4 shrink-0" />
+            {loadingAudio ? "Préparation…" : "Écouter"}
+          </button>
+
+          {micSupported && (
             <button
               onClick={listening ? stop : start}
-              className={`rounded-[10px] border px-5 py-2.5 font-display text-sm font-semibold transition-colors ${
+              aria-pressed={listening}
+              className={`inline-flex min-w-[9.5rem] items-center justify-center gap-2 rounded-full border px-5 py-2.5 font-display text-sm font-semibold transition-colors ${
                 listening
                   ? "border-accent2 bg-accent2/10 text-accent2"
-                  : "border-border text-text hover:bg-accent/10 hover:border-accent/35"
+                  : "border-border text-text hover:border-accent/35 hover:bg-accent/10"
               }`}
             >
-              {listening ? (
-                "Enregistrement… (clique pour arrêter)"
-              ) : (
-                <>
-                  <MicIcon className="h-4 w-4" />
-                  S&apos;enregistrer
-                </>
-              )}
+              <MicIcon className={`h-4 w-4 shrink-0 ${listening ? "wave-pulse" : ""}`} />
+              {listening ? "J’écoute…" : "Parler"}
             </button>
-            {transcript && (
-              <p className="mt-3 font-display text-sm text-muted">
-                J&apos;ai entendu : <span className="text-text">« {transcript} »</span> — à toi de
-                juger si c&apos;est ce que tu visais.
-              </p>
-            )}
-          </div>
+          )}
+        </div>
+
+        {transcript && (
+          <p className="mt-3 font-display text-sm text-muted">
+            J&apos;ai entendu : <span className="text-text">« {transcript} »</span> — à toi de
+            juger si c&apos;est ce que tu visais.
+          </p>
         )}
+
+        {/* CE QUI A EMPÊCHÉ L'ÉCOUTE, ÉCRIT. Le micro qui refuse de démarrer
+            ne disait rien : le bouton s'allumait et restait allumé. */}
+        {micError && <p className="mt-3 font-display text-sm text-danger">{micError}</p>}
+
         {!micSupported && (
           <p className="mt-4 font-display text-xs text-muted">
             L&apos;enregistrement vocal n&apos;est pas disponible sur ce navigateur (essaie Chrome

@@ -4,6 +4,7 @@ import { heuristicClassify } from "@/lib/vocabulary/grammar-classify";
 import { getAnthropic, MODEL_FAST, textFromMessage, parseJsonResponse } from "@/lib/ai/client";
 import { consumeQuota, recordTokens } from "@/lib/ai/quota";
 import { vocabGrammarSystemPrompt } from "@/lib/ai/prompts";
+import { wordKey } from "@/lib/vocabulary/duplicate";
 
 interface AiGrammar {
   gender: "masculine" | "feminine" | "neuter";
@@ -102,6 +103,55 @@ export async function POST(req: Request) {
     .single();
   if (!list) return NextResponse.json({ error: "Liste introuvable" }, { status: 404 });
 
+  // ─── LE MÊME MOT DEUX FOIS ─────────────────────────────────────
+  //
+  // Rien ne l'empêchait : la liste acceptait « книга » autant de fois qu'on
+  // l'ajoutait, et les doublons ressortaient ensuite un par un en révision,
+  // chacun avec sa propre carte SRS. L'apprenant révisait le même mot trois
+  // fois en croyant avancer.
+  //
+  // LA COMPARAISON SE FAIT EN JS, PAS EN SQL. La clé replie l'accent
+  // tonique — la banque écrit « кни́га », l'apprenant tape « книга » — et
+  // aucune collation Postgres ne connaît cette équivalence-là. La liste
+  // d'un apprenant tient de toute façon dans une requête.
+  const key = wordKey(ru);
+  const { data: siblings } = await supabase
+    .from("vocab_words")
+    .select("id, ru, fr")
+    .eq("list_id", listId)
+    .eq("user_id", user.id);
+
+  const twin = (siblings ?? []).find((w) => wordKey(w.ru) === key);
+  if (twin) {
+    // 409, et non 400 : la requête est bien formée, c'est l'état qui s'y
+    // oppose. Le client distingue les deux (voir DuplicateWordError).
+    return NextResponse.json(
+      {
+        error: `« ${twin.ru} » est déjà dans cette liste.`,
+        duplicate: { id: twin.id, ru: twin.ru, fr: twin.fr },
+      },
+      { status: 409 }
+    );
+  }
+
+  // AILLEURS DANS LES AUTRES LISTES : on n'interdit pas. Ranger « вода »
+  // dans « Cuisine » ET dans « Voyage » est un choix légitime, et le
+  // refuser obligerait à se souvenir de tout ce qu'on a déjà noté. On le
+  // SIGNALE, c'est tout — l'apprenant décide.
+  const { data: elsewhere } = await supabase
+    .from("vocab_words")
+    .select("ru, vocab_lists(name)")
+    .eq("user_id", user.id)
+    .neq("list_id", listId);
+
+  const alsoIn = (elsewhere ?? [])
+    .filter((w) => wordKey(w.ru) === key)
+    .map((w) => {
+      const list = w.vocab_lists as { name?: string } | { name?: string }[] | null;
+      return (Array.isArray(list) ? list[0]?.name : list?.name) ?? null;
+    })
+    .filter((name): name is string => Boolean(name));
+
   const grammar = await classifyWord(supabase, ru, fr);
 
   const { data, error } = await supabase
@@ -128,6 +178,9 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({
+    // Les autres listes où ce mot figure déjà, s'il y en a : le formulaire
+    // le dit après l'ajout, sans rien bloquer.
+    alsoIn: alsoIn.length ? [...new Set(alsoIn)] : undefined,
     word: {
       id: data.id,
       ru: data.ru,

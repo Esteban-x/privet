@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   addWord,
+  isDuplicateWordError,
+  type AddOutcome,
   createList,
   deleteList,
   deleteWord,
@@ -57,6 +59,8 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
   const [activeId, setActiveId] = useState<string | null>(initialListId ?? null);
   const [words, setWords] = useState<CustomVocabWord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Remarque neutre — ce n'est pas une panne, juste quelque chose à savoir. */
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -289,11 +293,16 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
     }
   }
 
-  async function handleAdd(input: { ru: string; fr: string; transliteration?: string }) {
-    if (!activeId) return null;
+  async function handleAdd(input: {
+    ru: string;
+    fr: string;
+    transliteration?: string;
+  }): Promise<AddOutcome> {
+    if (!activeId) return { status: "failed", message: "Choisis d'abord une liste." };
     setError(null);
+    setNotice(null);
     try {
-      const { word } = await addWord(activeId, input);
+      const { word, alsoIn } = await addWord(activeId, input);
       // En tête de liste : le mot qu'on vient d'ajouter est celui qu'on veut
       // relire, et en bas de cinquante autres il fallait le chercher.
       const next = [word, ...(words ?? [])];
@@ -301,10 +310,24 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
       syncCounts(activeId, next);
       setFilter("all");
       setQuery("");
-      return word;
-    } catch {
-      setError("L'ajout a échoué. Réessaie.");
-      return null;
+      // Le mot existe dans d'AUTRES listes : ce n'est pas un refus, juste
+      // quelque chose qu'on préfère savoir. Le formulaire, lui, s'est déjà
+      // refermé — la remarque s'affiche donc ici.
+      if (alsoIn?.length) {
+        setNotice(
+          `« ${word.ru} » est aussi dans ${alsoIn.length === 1 ? "la liste" : "les listes"} ` +
+            alsoIn.map((n) => `« ${n} »`).join(", ") +
+            "."
+        );
+      }
+      return { status: "added", word, alsoIn };
+    } catch (err) {
+      // Le doublon N'EST PAS une panne : il a son message, et le formulaire
+      // reste rempli pour qu'on puisse corriger le mot plutôt que le retaper.
+      if (isDuplicateWordError(err)) {
+        return { status: "duplicate", message: err.message };
+      }
+      return { status: "failed", message: "L'ajout a échoué. Réessaie." };
     }
   }
 
@@ -389,6 +412,15 @@ export default function VocabularyWorkspace({ initialListId }: { initialListId?:
       {error && (
         <p className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2.5 font-display text-sm text-danger">
           {error}
+        </p>
+      )}
+
+      {notice && (
+        <p
+          role="status"
+          className="animate-fade-in mb-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-2.5 font-display text-sm text-accent-ink"
+        >
+          {notice}
         </p>
       )}
 

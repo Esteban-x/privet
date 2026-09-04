@@ -3,9 +3,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   suggestTranslation,
-  type CustomVocabWord,
+  type AddOutcome,
   type TranslationSuggestion,
 } from "@/lib/vocabulary/custom";
+import { nearMiss, type NearMiss } from "@/lib/vocabulary/autocomplete";
 import { loadAddWordFirstSide, saveAddWordFirstSide } from "@/lib/storage";
 import { LoadingDots } from "@/components/ui/Skeleton";
 import AiSpark from "@/components/ui/AiSpark";
@@ -74,7 +75,7 @@ export default function AddWordForm({
     ru: string;
     fr: string;
     transliteration?: string;
-  }) => Promise<CustomVocabWord | null>;
+  }) => Promise<AddOutcome>;
   bare?: boolean;
   onDone?: () => void;
 }) {
@@ -199,7 +200,15 @@ export default function AddWordForm({
   const [driver, setDriver] = useState<"ru" | "fr" | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
-  const [justAdded, setJustAdded] = useState<string | null>(null);
+  /**
+   * LE RÉSULTAT DU DERNIER ENVOI, refus compris.
+   *
+   * C'était `justAdded`, qui ne savait dire que « ✓ ajouté » : un ajout
+   * refusé ne disait donc rien du tout, et le formulaire se contentait de
+   * ne pas se fermer. On ajoutait deux fois le même mot sans jamais
+   * l'apprendre.
+   */
+  const [notice, setNotice] = useState<{ kind: "added" | "refused"; text: string } | null>(null);
   /**
    * LA DÉTECTION S'ARRÊTE DÈS QUE L'APPRENANT A TRANCHÉ LUI-MÊME.
    *
@@ -450,21 +459,31 @@ export default function AddWordForm({
     e.preventDefault();
     if (!ru.trim() || !fr.trim() || submitting) return;
     setSubmitting(true);
-    const added = await onAdd({
+    setNotice(null);
+    const outcome = await onAdd({
       ru: ru.trim(),
       fr: fr.trim(),
       transliteration: transliteration.trim() || undefined,
     });
     setSubmitting(false);
-    if (added) {
-      setJustAdded(added.ru);
-      reset();
-      // APRÈS `reset()`, pas avant : le formulaire doit repartir vide s'il
-      // est rouvert. `reset()` redonne le focus au premier champ ; la modale
-      // le reprendra en se démontant pour le rendre au bouton qui l'a
-      // ouverte, ce qui referme aussi le clavier.
-      onDone?.();
+
+    if (outcome.status !== "added") {
+      // LES CHAMPS RESTENT REMPLIS, et le formulaire ouvert. Un doublon
+      // n'est pas une faute de frappe : on veut relire ce qu'on allait
+      // ajouter, changer une lettre, ou renoncer. Les vider obligerait à
+      // tout retaper pour corriger un caractère.
+      setNotice({ kind: "refused", text: outcome.message });
+      requestAnimationFrame(() => firstInput.current?.focus());
+      return;
     }
+
+    setNotice({ kind: "added", text: `« ${outcome.word.ru} » ajouté` });
+    reset();
+    // APRÈS `reset()`, pas avant : le formulaire doit repartir vide s'il
+    // est rouvert. `reset()` redonne le focus au premier champ ; la modale
+    // le reprendra en se démontant pour le rendre au bouton qui l'a
+    // ouverte, ce qui referme aussi le clavier.
+    onDone?.();
   }
 
   // Une seule marque, sur le champ concerné : d'où vient ce qui s'y trouve,
@@ -501,6 +520,45 @@ export default function AddWordForm({
   // Définis ici pour pouvoir être ORDONNÉS dans la grille. `firstInput`
   // suit l'ordre d'affichage : après un ajout, le curseur doit revenir dans
   // le champ par lequel l'apprenant commence, pas systématiquement le russe.
+  /**
+   * L'ORTHOGRAPHE APPROCHANTE, calculée pendant la frappe.
+   *
+   * Elle se tait pendant qu'on écrit (voir `nearMiss`) et ne parle que
+   * lorsque le mot tapé ne commence aucun mot connu tout en ressemblant
+   * beaucoup à l'un d'eux. Ce n'est jamais un verdict : l'index ne contient
+   * qu'une fraction du russe, et « ce mot n'existe pas » serait faux le
+   * plus souvent. C'est une question, à laquelle l'apprenant répond en
+   * cliquant ou en ignorant.
+   *
+   * Elle se tait aussi quand le mot vient d'être CHOISI dans le menu ou
+   * proposé par le modèle : dans ces deux cas, l'orthographe n'est pas de
+   * l'apprenant et la mettre en doute n'aurait aucun sens.
+   */
+  const misspelling: NearMiss | null = useMemo(
+    () => (filled === "ru" || pickedPair !== null ? null : nearMiss(ru)),
+    [ru, filled, pickedPair]
+  );
+
+  /** Remplace la saisie par la correction proposée, et referme la question. */
+  function acceptCorrection(fix: NearMiss) {
+    setRu(fix.ru);
+    ruTouched.current = true;
+    if (!translitOwned) setTransliteration(transliterate(fix.ru));
+    // La traduction n'est écrasée que si l'apprenant n'a rien écrit lui-même :
+    // il peut viser un autre sens du mot que celui de l'index.
+    if (!frTouched.current) {
+      setFr(fix.fr);
+      setFilled("fr");
+    }
+    setOpenList(null);
+    requestAnimationFrame(() => {
+      const el = firstInput.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  }
+
   const ruField = (
     <Field
       key="ru"
@@ -509,6 +567,7 @@ export default function AddWordForm({
       value={ru}
       placeholder="спасибо"
       suggested={filled === "ru"}
+      flagged={misspelling !== null}
       badge={filled === "ru" ? badge : null}
       loading={suggesting && driver === "fr"}
       onChange={(v) => edit("ru", v)}
@@ -619,9 +678,14 @@ export default function AddWordForm({
             </span>
             <h2 className="font-display text-base font-bold">Ajouter un mot</h2>
           </div>
-          {justAdded && (
-            <p className="animate-fade-in font-display text-xs text-success">
-              ✓ « {justAdded} » ajouté
+          {notice && (
+            <p
+              role="status"
+              className={`animate-fade-in font-display text-xs ${
+                notice.kind === "added" ? "text-success" : "text-danger"
+              }`}
+            >
+              {notice.kind === "added" ? `✓ ${notice.text}` : notice.text}
             </p>
           )}
         </div>
@@ -660,6 +724,30 @@ export default function AddWordForm({
         <div className="h-px bg-border" />
         {frFirst ? ruField : frField}
       </div>
+
+      {/* « Vouliez-vous dire… ? », SOUS LE CADRE ET NON DANS LE MENU.
+          Le menu de complétion propose des mots à choisir ; celui-ci met en
+          doute ce qui est déjà écrit. Les confondre ferait passer la
+          correction pour une suggestion de plus, au milieu de cinq autres.
+
+          FORMULÉ EN QUESTION, jamais en verdict : l'index ne connaît qu'une
+          fraction du russe, et un mot absent n'est pas un mot faux. On
+          propose, l'apprenant tranche — ou ignore et ajoute son mot tel
+          quel, ce que rien n'empêche. */}
+      {misspelling && (
+        <p className="mt-3 flex flex-wrap items-center gap-1.5 font-display text-xs text-muted">
+          <span className="text-danger">Orthographe à vérifier —</span>
+          voulais-tu écrire
+          <button
+            type="button"
+            onClick={() => acceptCorrection(misspelling)}
+            className="rounded-md bg-accent/10 px-1.5 py-0.5 font-semibold text-accent-ink underline-offset-2 hover:underline"
+          >
+            {misspelling.ru}
+          </button>
+          <span className="text-muted/80">({misspelling.fr}) ?</span>
+        </p>
+      )}
 
       {/* Une ligne, pas un bloc : c'est une information de contexte pendant
           la saisie, pas un mur. Le formulaire reste entièrement utilisable —
@@ -758,12 +846,14 @@ export default function AddWordForm({
             vient de servir — c'est là que le regard est. En tête de
             formulaire, il se retrouvait hors champ au moment précis où il
             avait quelque chose à dire. */}
-        {bare && justAdded && (
+        {bare && notice && (
           <p
             role="status"
-            className="animate-fade-in mb-2 text-center font-display text-sm text-success"
+            className={`animate-fade-in mb-2 text-center font-display text-sm ${
+              notice.kind === "added" ? "text-success" : "text-danger"
+            }`}
           >
-            ✓ « {justAdded} » ajouté
+            {notice.kind === "added" ? `✓ ${notice.text}` : notice.text}
           </p>
         )}
         <button
@@ -910,6 +1000,7 @@ function Field({
   activeId,
   listId,
   spellCheck = true,
+  flagged = false,
 }: {
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;
   label: string;
@@ -929,6 +1020,8 @@ function Field({
   activeId?: string;
   listId?: string;
   spellCheck?: boolean;
+  /** Une correction est proposée : le champ le montre au lieu de le taire. */
+  flagged?: boolean;
 }) {
   const box = useAutoSize(value);
 
@@ -999,7 +1092,13 @@ function Field({
            dessous. */
         className={`block max-h-64 min-h-[80px] w-full resize-none overflow-hidden px-4 pt-3.5 font-display leading-snug sm:min-h-[112px] text-text placeholder:text-muted/50 focus:bg-accent/[0.045] focus:outline-none ${
           actions ? "pb-11" : "pb-3.5"
-        } ${sizeFor(value)} ${suggested ? "bg-accent2/[0.06]" : "bg-transparent"}`}
+        } ${sizeFor(value)} ${
+          flagged
+            ? "bg-danger/[0.06] decoration-danger decoration-wavy underline decoration-2 underline-offset-4"
+            : suggested
+              ? "bg-accent2/[0.06]"
+              : "bg-transparent"
+        }`}
       />
       {/* Le badge — « proposé », ou les points d'attente — flotte en haut à
           droite du champ. Dans le flux, il aurait poussé le texte ou réservé

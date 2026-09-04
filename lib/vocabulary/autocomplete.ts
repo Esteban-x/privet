@@ -193,6 +193,57 @@ export function completeFr(typed: string, limit = 6): Completion[] {
 }
 
 /**
+ * « Ce n'est pas un mot que je connais, et celui-ci lui ressemble beaucoup. »
+ *
+ * CE QUE CETTE FONCTION NE DIT PAS, ET NE PEUT PAS DIRE. L'index compte
+ * 1655 entrées ; le russe en a des dizaines de milliers. « Ce mot n'existe
+ * pas » serait donc faux la plupart du temps, et un formulaire qui accuse
+ * l'apprenant d'une faute qu'il n'a pas faite est pire que muet — on
+ * apprend à ignorer ses avertissements, y compris les justes. Elle ne
+ * signale donc jamais une absence : seulement une RESSEMBLANCE, et
+ * seulement quand elle est frappante.
+ *
+ * TROIS VERROUS CONTRE LA FAUSSE ALERTE :
+ *
+ *   1. Le mot tapé n'est le DÉBUT d'aucun mot connu. « кни » ne se signale
+ *      pas : c'est une frappe en cours, pas une faute. C'est ce verrou qui
+ *      fait tout le travail — sans lui, la moitié des saisies clignoterait
+ *      en rouge avant d'être finies.
+ *   2. Trois lettres au moins, et un seul mot : sur « я не знаю », une
+ *      distance d'édition ne veut plus rien dire.
+ *   3. Une correction pour les mots courts, deux au-delà — les mêmes
+ *      paliers que la complétion, pour que les deux ne se contredisent pas.
+ */
+export interface NearMiss {
+  /** Le mot correct, accentué, prêt à remplacer ce qui est tapé. */
+  ru: string;
+  fr: string;
+  /** Nombre de corrections qui séparent les deux graphies. */
+  distance: number;
+}
+
+export function nearMiss(typed: string): NearMiss | null {
+  const typedBare = bare(typed);
+  if (typedBare.length < 3 || typedBare.includes(" ")) return null;
+  const typedLoose = loose(typed);
+  const max = typedBare.length <= 4 ? 1 : 2;
+
+  let best: { entry: LexEntry; d: number } | null = null;
+  for (const entry of LEXICON) {
+    const wordBare = bare(entry[0]);
+    // Écrit exactement : il n'y a rien à corriger.
+    if (wordBare === typedBare) return null;
+    // Début d'un mot connu : la frappe est en cours, on se tait.
+    if (wordBare.startsWith(typedBare) || loose(entry[0]).startsWith(typedLoose)) return null;
+
+    const d = editDistance(loose(entry[0]), typedLoose, max);
+    if (d <= max && (best === null || d < best.d)) best = { entry, d };
+  }
+
+  return best ? { ru: best.entry[0], fr: best.entry[1], distance: best.d } : null;
+}
+
+/**
  * La réponse EXACTE de l'index, s'il en a une.
  *
  * POURQUOI CE N'EST PAS `completeRu(...)[0]`. La complétion propose des

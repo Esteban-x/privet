@@ -57,6 +57,29 @@ export function fetchDailyProgress(): Promise<{ reviewedToday: number; goal: num
   return fetch("/api/vocab/daily-progress").then((r) => json(r));
 }
 
+/**
+ * Le mot est déjà dans la liste.
+ *
+ * Un type dédié, pour la raison qui a valu le sien à `QuotaError` : sans
+ * lui, le `catch` ne peut que comparer des chaînes pour distinguer un
+ * doublon d'une panne, et les deux appellent des écrans opposés — l'un
+ * montre le mot déjà présent, l'autre propose de réessayer. Le pendant
+ * serveur est le 409 de app/api/vocab/words.
+ */
+export class DuplicateWordError extends Error {
+  readonly existing: { id: string; ru: string; fr: string };
+
+  constructor(message: string, existing: { id: string; ru: string; fr: string }) {
+    super(message);
+    this.name = "DuplicateWordError";
+    this.existing = existing;
+  }
+}
+
+export function isDuplicateWordError(err: unknown): err is DuplicateWordError {
+  return err instanceof DuplicateWordError;
+}
+
 async function json<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   // Le refus de quota AVANT l'erreur générique : un 429 est une réponse
@@ -64,6 +87,10 @@ async function json<T>(res: Response): Promise<T> {
   // appelle un écran d'abonnement plutôt qu'un message rouge « réessayer ».
   const quota = quotaErrorFrom(res, data);
   if (quota) throw quota;
+  // Même raisonnement pour le 409 : c'est une réponse, pas une panne.
+  if (res.status === 409 && data.duplicate) {
+    throw new DuplicateWordError(data.error || "Ce mot est déjà dans la liste.", data.duplicate);
+  }
   if (!res.ok) throw new Error(data.error || "Erreur réseau");
   return data as T;
 }
@@ -106,7 +133,24 @@ export interface WordInput {
   exampleFr?: string;
 }
 
-export function addWord(listId: string, word: WordInput): Promise<{ word: CustomVocabWord }> {
+/**
+ * Ce que devient une tentative d'ajout, vu du formulaire.
+ *
+ * TROIS ISSUES ET NON DEUX. « null ou pas null » confondait le doublon et
+ * la panne, alors que l'un demande de corriger le mot et l'autre de
+ * réessayer le même. Le formulaire a besoin de savoir lequel des deux pour
+ * choisir ce qu'il dit — et pour garder les champs remplis dans les deux
+ * cas, ce qu'il ne faisait pas.
+ */
+export type AddOutcome =
+  | { status: "added"; word: CustomVocabWord; alsoIn?: string[] }
+  | { status: "duplicate"; message: string }
+  | { status: "failed"; message: string };
+
+export function addWord(
+  listId: string,
+  word: WordInput
+): Promise<{ word: CustomVocabWord; alsoIn?: string[] }> {
   return fetch("/api/vocab/words", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

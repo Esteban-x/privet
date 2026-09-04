@@ -28,6 +28,8 @@ const E = await jiti.import("../lib/vocabulary/explanation.ts");
 const { transliterate } = await jiti.import("../lib/vocabulary/transliterate.ts");
 const { NOUNS } = await jiti.import("../lib/grammar/nouns-data.ts");
 const { LEXICON } = await jiti.import("../lib/vocabulary/lexicon.generated.ts");
+const { wordKey, sameWord } = await jiti.import("../lib/vocabulary/duplicate.ts");
+const { nearMiss } = await jiti.import("../lib/vocabulary/autocomplete.ts");
 
 const failures = [];
 let checks = 0;
@@ -289,6 +291,93 @@ require_(
   silent === 0,
   `${silent} mot(s) des banques sans translittération complète — ex. « ${firstSilent} »`
 );
+
+// ─── 4. La clé de doublon ──────────────────────────────────────────
+//
+// Elle décide si un mot est REFUSÉ à l'ajout. Trop large, elle interdit une
+// entrée légitime et l'apprenant ne peut pas noter son mot ; trop étroite,
+// elle laisse revenir le doublon qu'on vient de bannir. Les deux dérives
+// sont ici.
+{
+  // Ce qui DOIT se replier : l'accent tonique n'est qu'une aide de lecture,
+  // et la banque écrit « кни́га » là où l'apprenant tape « книга ».
+  for (const [a, b, why] of [
+    ["кни́га", "книга", "accent tonique"],
+    ["Книга", "книга", "casse"],
+    ["  книга  ", "книга", "espaces autour"],
+    ["спаси́бо", "спасибо", "accent tonique"],
+  ]) {
+    require_(sameWord(a, b), `doublon : « ${a} » et « ${b} » devraient être le même mot (${why})`);
+  }
+
+  // Ce qui NE DOIT PAS se replier : ё et й portent du sens. Les confondre
+  // interdirait d'avoir « всё » (tout) ET « все » (tous) dans une liste —
+  // deux mots que le russe distingue et qu'un apprenant doit apprendre à
+  // distinguer. C'est précisément ce que fait `normalizeAnswer`, et c'est
+  // pour ça que la clé de doublon ne s'appuie pas dessus.
+  for (const [a, b, why] of [
+    ["всё", "все", "ё distingue deux mots"],
+    ["мой", "мои", "й n'est pas и"],
+    ["книга", "стол", "mots sans rapport"],
+  ]) {
+    require_(!sameWord(a, b), `doublon : « ${a} » et « ${b} » ne sont pas le même mot (${why})`);
+  }
+
+  require_(wordKey("   ") === "", "doublon : une saisie vide ne doit produire aucune clé");
+  require_(!sameWord("", ""), "doublon : deux vides ne sont pas « le même mot »");
+}
+
+// ─── 5. L'orthographe approchante ──────────────────────────────────
+//
+// LE RISQUE EST LA FAUSSE ALERTE, pas l'oubli. Un formulaire qui souligne
+// en rouge un mot correct apprend à ignorer ses avertissements — y compris
+// les justes —, et l'index ne connaît qu'une fraction du russe : « absent
+// de l'index » ne veut PAS dire « faux ». Ce bloc vérifie donc surtout les
+// silences.
+{
+  // Silence obligatoire : une frappe en cours n'est pas une faute.
+  for (const typed of ["кни", "книг", "словар", "мат", "спас", "здра"]) {
+    const miss = nearMiss(typed);
+    require_(
+      miss === null,
+      `orthographe : « ${typed} » est le début d'un mot connu, rien ne doit être signalé ` +
+        `(proposé : « ${miss?.ru} »)`
+    );
+  }
+
+  // Silence obligatoire : un mot de l'index, écrit juste, avec ou sans son
+  // accent tonique.
+  let flaggedCorrect = 0;
+  let firstFlagged = null;
+  for (const entry of LEXICON) {
+    for (const form of [entry[0], entry[0].normalize("NFC").split(String.fromCharCode(0x0301)).join("")]) {
+      if (form.includes(" ")) continue;
+      if (nearMiss(form) !== null) {
+        flaggedCorrect += 1;
+        if (!firstFlagged) firstFlagged = form;
+      }
+    }
+  }
+  require_(
+    flaggedCorrect === 0,
+    `orthographe : ${flaggedCorrect} mot(s) JUSTES de l'index sont signalés comme douteux ` +
+      `— ex. « ${firstFlagged} ». Un seul suffit à discréditer l'avertissement.`
+  );
+
+  // Et ce qu'il doit tout de même attraper : les fautes qu'un francophone
+  // fait vraiment, en écrivant ce qu'il entend.
+  for (const [typed, expected] of [
+    ["спосибо", "спасибо"],
+    ["здраствуйте", "здравствуйте"],
+  ]) {
+    const miss = nearMiss(typed);
+    const got = miss ? wordKey(miss.ru) : null;
+    require_(
+      got === expected,
+      `orthographe : « ${typed} » devrait proposer « ${expected} », a proposé « ${got ?? "rien"} »`
+    );
+  }
+}
 
 // ─── Rapport ───────────────────────────────────────────────────────
 if (failures.length) {

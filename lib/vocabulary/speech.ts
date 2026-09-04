@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 // Web Speech API : pas de types officiels dans lib.dom (encore expérimental
 // hors Chromium). Déclarations minimales pour ce qu'on utilise réellement.
@@ -10,14 +10,23 @@ interface SpeechRecognitionResultLike {
 interface SpeechRecognitionEventLike {
   results: { [index: number]: SpeechRecognitionResultLike };
 }
+/** `error` porte le code du standard : "not-allowed", "no-speech", "network"… */
+interface SpeechRecognitionErrorLike {
+  error?: string;
+}
 interface SpeechRecognitionLike {
   lang: string;
+  /** Faux : le moteur rend la main dès que la phrase est finie. */
+  continuous: boolean;
   interimResults: boolean;
   maxAlternatives: number;
   start(): void;
   stop(): void;
+  /** Coupe sans attendre de résultat — sert au démontage. */
+  abort(): void;
+  onstart: (() => void) | null;
   onresult: ((e: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e: SpeechRecognitionErrorLike) => void) | null;
   onend: (() => void) | null;
 }
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
@@ -202,6 +211,24 @@ function subscribeNever(): () => void {
   return () => {};
 }
 
+/**
+ * Pourquoi l'écoute peut ne rien donner, dit en français.
+ *
+ * Les codes du standard sont opaques et le navigateur ne les affiche nulle
+ * part : sans cette table, un micro qui échoue est un bouton qui ne fait
+ * rien. C'est exactement le défaut qu'on corrige ici.
+ */
+const RECOGNITION_ERRORS: Record<string, string> = {
+  "not-allowed":
+    "Le micro est bloqué pour ce site. Autorise-le dans les réglages du navigateur, puis réessaie.",
+  "service-not-allowed":
+    "Le navigateur refuse la reconnaissance vocale ici. Elle exige une connexion sécurisée (https) ou localhost.",
+  "no-speech": "Je n'ai rien entendu. Rapproche-toi du micro et réessaie.",
+  "audio-capture": "Aucun micro trouvé sur cet appareil.",
+  network: "La reconnaissance vocale n'a pas pu joindre son service (connexion ?).",
+  aborted: "",
+};
+
 export function useSpeechRecognition(lang: string) {
   // La présence de l'API est un état EXTERNE, pas un état React : elle
   // dépend du navigateur et ne change jamais. Un `useState(false)` corrigé
@@ -213,28 +240,105 @@ export function useSpeechRecognition(lang: string) {
 
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
+  /** Ce qui a empêché l'écoute d'aboutir, prêt à afficher. "" = rien à dire. */
+  const [error, setError] = useState("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  /**
+   * L'INSTANCE COURANTE, ET ELLE SEULE, A LE DROIT DE TOUCHER À L'ÉTAT.
+   *
+   * Une reconnaissance arrêtée continue d'émettre `onend` — parfois APRÈS
+   * que la suivante a démarré. Sans ce jeton, ce `onend` tardif éteignait
+   * l'indicateur d'une écoute qui, elle, venait de commencer : le bouton
+   * repassait au repos pendant que le micro tournait encore.
+   */
+  const token = useRef(0);
 
   function start() {
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Ctor) return;
-    setTranscript("");
+
+    // Chrome expose l'objet même sur une origine non sécurisée, puis refuse
+    // de démarrer. Le dire AVANT de tenter évite le bouton qui s'allume et
+    // ne redescend pas — le cas typique de l'app ouverte sur le téléphone
+    // via l'adresse réseau du poste (http://192.168.x.x:3000).
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      setError(RECOGNITION_ERRORS["service-not-allowed"]);
+      return;
+    }
+
+    // Une écoute déjà en cours : `start()` lèverait InvalidStateError.
+    recognitionRef.current?.abort();
+
+    const mine = (token.current += 1);
+    const isStale = () => token.current !== mine;
+
     const recognition = new Ctor();
     recognition.lang = lang;
+    // Explicite plutôt que par défaut : c'est CE réglage qui fait que le
+    // moteur rend la main tout seul quand la phrase est finie, au lieu
+    // d'écouter jusqu'à ce qu'on reclique.
+    recognition.continuous = false;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-    recognition.onresult = (e) => setTranscript(e.results[0]?.[0]?.transcript ?? "");
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+
+    recognition.onstart = () => {
+      if (isStale()) return;
+      setListening(true);
+    };
+    recognition.onresult = (e) => {
+      if (isStale()) return;
+      setTranscript(e.results[0]?.[0]?.transcript ?? "");
+      // Ceinture et bretelles avec `continuous = false` : certains moteurs
+      // gardent le micro ouvert quelques secondes de plus après le résultat.
+      // L'apprenant, lui, a fini de parler.
+      recognition.stop();
+    };
+    recognition.onerror = (e) => {
+      if (isStale()) return;
+      const code = e?.error ?? "";
+      // Un code inconnu vaut mieux qu'un silence : on le montre tel quel.
+      setError(RECOGNITION_ERRORS[code] ?? `La reconnaissance vocale a échoué (${code || "raison inconnue"}).`);
+      setListening(false);
+    };
+    recognition.onend = () => {
+      if (isStale()) return;
+      setListening(false);
+    };
+
     recognitionRef.current = recognition;
-    setListening(true);
-    recognition.start();
+    setTranscript("");
+    setError("");
+
+    // `start()` PEUT LEVER, et c'est tout le bug d'origine : l'indicateur
+    // était allumé juste avant l'appel, si bien qu'une exception laissait le
+    // bouton sur « Enregistrement… » définitivement, sans micro derrière.
+    // C'est `onstart` qui l'allume maintenant — il ne se déclenche que si le
+    // moteur a réellement pris la main.
+    try {
+      recognition.start();
+    } catch {
+      recognitionRef.current = null;
+      setListening(false);
+      setError("La reconnaissance vocale n'a pas pu démarrer. Réessaie dans un instant.");
+    }
   }
 
   function stop() {
     recognitionRef.current?.stop();
-    setListening(false);
+    // On n'éteint PAS l'indicateur ici : `onend` s'en charge, et lui seul
+    // sait quand le moteur a vraiment rendu la main. L'éteindre d'avance
+    // rendait le bouton disponible alors que le micro tournait encore.
   }
 
-  return { supported, listening, transcript, start, stop };
+  // Quitter la page pendant une écoute laissait le micro ouvert : l'onglet
+  // gardait son pastillage d'enregistrement jusqu'à la fermeture.
+  useEffect(() => {
+    return () => {
+      token.current += 1;
+      recognitionRef.current?.abort();
+    };
+  }, []);
+
+  return { supported, listening, transcript, error, start, stop };
 }
