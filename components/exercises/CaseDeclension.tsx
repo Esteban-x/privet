@@ -10,25 +10,22 @@ import {
   CaseExercise,
   answeredWithVariant,
   checkAnswer,
-  generateIsolatedExercise,
-  generateMcqExercise,
-  generateNumeralExercise,
-  generateSentenceExercise,
 } from "@/lib/grammar/exercise-generator";
-import {
-  PROPER_NOUN_TRIGGER_ID,
-  resolveNumber,
-  triggerAllows,
-  triggersForCase,
-} from "@/lib/grammar/triggers";
+import { PROPER_NOUN_TRIGGER_ID } from "@/lib/grammar/triggers";
 import { validateFrenchSentence, validateSentence } from "@/lib/grammar/sentence-guard";
 import { getNoun, nounsForLevel } from "@/lib/grammar/nouns-data";
 import type { Noun } from "@/lib/grammar/types";
-import { pickWeightedTrigger } from "@/lib/grammar/exercise-selector";
+import {
+  caseExerciseIds,
+  caseRecentKey,
+  pickCaseExercise,
+  type CaseTab,
+} from "@/lib/grammar/case-draw";
 import { BulbIcon } from "@/components/ui/icons";
 import AiSpark from "@/components/ui/AiSpark";
 import PaywallNotice from "@/components/ui/PaywallNotice";
 import { usePracticeAttempt } from "@/lib/practice/attempt-client";
+import { rememberDraw } from "@/lib/practice/recent";
 import {
   CaseNumberMode,
   getCaseNumber,
@@ -37,7 +34,9 @@ import {
   subscribeCaseNumber,
 } from "@/lib/storage";
 
-type Tab = "isolated" | "sentence" | "mcq" | "numeral";
+// Les onglets du module. Le type vient de lib/grammar/case-draw : c'est
+// lui qui sait ce que chacun tire.
+type Tab = CaseTab;
 type Feedback = {
   status: "correct" | "incorrect" | "revealed";
   exercise: CaseExercise;
@@ -111,27 +110,20 @@ async function buildExercise(
   pool: Noun[],
   numberMode: CaseNumberMode,
 ): Promise<CaseExercise> {
-  // « Mélange » tire à chaque exercice, pas une fois pour la session : le
-  // contraste ne s'apprend qu'en alternant.
-  const wantPlural = numberMode === "plural" || (numberMode === "mixed" && Math.random() < 0.5);
-
-  if (tab === "isolated") return generateIsolatedExercise(caseInfo.id, wantPlural, pool);
-  if (tab === "numeral") return generateNumeralExercise(pool);
-
-  // Le nombre demandé restreint le tirage aux gabarits qui l'acceptent. En
-  // « Mélange » on ne restreint rien : chaque gabarit servira le nombre
-  // qu'il supporte, ce qui vaut mieux que d'écarter la moitié de la banque.
-  const eligible = triggersForCase(caseInfo.id).filter(
-    (t) => numberMode === "mixed" || triggerAllows(t, wantPlural),
-  );
-  const trigger = pickWeightedTrigger(
-    eligible.length > 0 ? eligible : triggersForCase(caseInfo.id),
+  // Plusieurs candidats, et le moins récemment vu l'emporte. Le tirage
+  // lui-même n'est pas touché : `drawCaseCandidate` en reste seul maître.
+  // Une clé par onglet, parce qu'un mot vu en « Isolée » n'est pas la
+  // même chose qu'une phrase vue en « Phrase ».
+  const key = caseRecentKey(caseInfo.id, tab);
+  const candidate = pickCaseExercise({
+    tab,
+    caseId: caseInfo.id,
     triggerStats,
-    userLevel,
-  );
-  const plural = resolveNumber(trigger, wantPlural);
-
-  if (tab === "mcq") return generateMcqExercise(caseInfo.id, trigger, pool, plural);
+    level: userLevel,
+    pool,
+    numberMode,
+  });
+  const trigger = candidate.trigger;
 
   // "Phrase": IA en premier (phrase personnalisée, ciblée sur le
   // déclencheur choisi), repli SILENCIEUX sur le gabarit fixe si
@@ -141,9 +133,11 @@ async function buildExercise(
   // toujours au nominatif (aucune vraie déclinaison à tester) — le gabarit
   // fixe + la banque de prénoms couvrent déjà l'exercice parfaitement,
   // aucune valeur à risquer une phrase IA imprévisible ici.
-  if (trigger.id === PROPER_NOUN_TRIGGER_ID) {
-    return generateSentenceExercise(caseInfo.id, trigger, pool, plural);
+  if (tab !== "sentence" || !trigger || trigger.id === PROPER_NOUN_TRIGGER_ID) {
+    rememberDraw(key, caseExerciseIds(candidate));
+    return candidate;
   }
+  const plural = candidate.plural;
 
   try {
     const res = await fetch("/api/ai/exercise", {
@@ -206,7 +200,10 @@ async function buildExercise(
             frenchNounPhrase(noun.translation, noun.frenchGender, trigger.article, plural),
           )
         : ai.sentence_fr;
-    return {
+    // Le mot mémorisé est celui que l'IA a retenu, pas celui du candidat :
+    // c'est elle qui le choisit, cette route ne prend aucun mot en entrée.
+    // Sur ce chemin, la mémoire courte ne pilote donc que le déclencheur.
+    const generated: CaseExercise = {
       kind: "sentence-ai",
       noun,
       targetCase: caseInfo.id,
@@ -220,8 +217,11 @@ async function buildExercise(
       sentenceFr,
       hint: noun.translation,
     };
+    rememberDraw(key, caseExerciseIds(generated));
+    return generated;
   } catch {
-    return generateSentenceExercise(caseInfo.id, trigger, pool, plural);
+    rememberDraw(key, caseExerciseIds(candidate));
+    return candidate;
   }
 }
 

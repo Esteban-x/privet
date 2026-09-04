@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { PracticeExercise } from "@/lib/exercises/types";
 import PaywallNotice from "@/components/ui/PaywallNotice";
 import { usePracticeAttempt } from "@/lib/practice/attempt-client";
+import { drawFresh } from "@/lib/practice/recent";
 
 /**
  * Le moteur d'entraînement partagé par les modules récents.
@@ -50,7 +51,18 @@ export default function PracticeRunner({
 
   useEffect(() => {
     let cancelled = false;
-    Promise.resolve(generate(skill)).then((next) => {
+    // Le tirage passe par la mémoire courte : le générateur du module reste
+    // seul maître de ce qu'il produit, on lui demande simplement plusieurs
+    // candidats et on garde celui vu le moins récemment. Voir
+    // lib/practice/recent.ts — sans quoi une compétence de douze items en
+    // remontre un tous les trois exercices.
+    Promise.resolve(
+      drawFresh(
+        `${moduleId}:${skill}`,
+        () => generate(skill),
+        (ex) => [ex.itemId]
+      ),
+    ).then((next) => {
       if (!cancelled) setExercise(next);
     });
     return () => {

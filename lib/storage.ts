@@ -13,6 +13,7 @@ const KEYS = {
   coursesRead: "ru-app:courses-read",
   lastVocabList: "ru-app:vocab-last-list",
   caseNumber: "ru-app:case-number",
+  recentDraws: "ru-app:practice-recent",
 };
 
 /** Exposée pour lib/courses/use-read-lessons.ts, qui lit le brut sans le parser. */
@@ -210,4 +211,51 @@ export function setCaseNumber(mode: CaseNumberMode) {
   caseNumberCache = mode;
   saveCaseNumber(mode);
   for (const listener of caseNumberListeners) listener();
+}
+
+// --- Entraînement : ce qui vient d'être montré ---
+//
+// Un anneau d'identifiants par compétence, écrit à chaque tirage. Ce n'est
+// ni une progression ni une préférence : c'est la mémoire courte du tirage,
+// celle qui manquait pour que « Я рабо́таю на компью́тере » ne revienne pas
+// trois fois de suite. Voir lib/practice/recent.ts pour la mécanique.
+//
+// Local et par appareil, comme le reste de ce fichier : rien ne dépend de
+// cette donnée côté serveur, et deux appareils qui ne montrent pas les mêmes
+// exercices au même moment, c'est sans conséquence.
+
+/** Un tirage = les identifiants de l'exercice sorti. Le plus récent en fin de liste. */
+export type RecentDraws = Record<string, string[][]>;
+
+export function loadRecentDraws(): RecentDraws {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(KEYS.recentDraws);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    // Le contenu vient du disque : il peut avoir été écrit par une version
+    // antérieure, ou trituré à la main. On garde ce qui a la bonne forme et
+    // on jette le reste — un anneau vide ne coûte qu'une répétition.
+    const clean: RecentDraws = {};
+    for (const [key, ring] of Object.entries(parsed as Record<string, unknown>)) {
+      if (!Array.isArray(ring)) continue;
+      clean[key] = ring.filter(
+        (draw): draw is string[] =>
+          Array.isArray(draw) && draw.every((id) => typeof id === "string")
+      );
+    }
+    return clean;
+  } catch {
+    return {};
+  }
+}
+
+export function saveRecentDraws(store: RecentDraws) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(KEYS.recentDraws, JSON.stringify(store));
+  } catch {
+    // Quota plein ou stockage refusé : le tirage redevient sans mémoire,
+    // ce qui était l'état d'avant. Rien à signaler à l'apprenant.
+  }
 }

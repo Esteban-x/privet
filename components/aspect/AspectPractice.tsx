@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import PaywallNotice from "@/components/ui/PaywallNotice";
 import { usePracticeAttempt } from "@/lib/practice/attempt-client";
+import { drawFresh } from "@/lib/practice/recent";
 import TimelineDiagram from "./TimelineDiagram";
 import { TIMELINE_LABEL } from "@/lib/aspect/verbs";
 import {
@@ -37,7 +38,17 @@ export default function AspectPractice({
 
   useEffect(() => {
     let cancelled = false;
-    Promise.resolve(generateAspectExercise(skill)).then((next) => {
+    // Le tirage passe par la mémoire courte, qui écarte ce qui vient de
+    // sortir : le générateur reste seul maître de ce qu'il produit, on lui
+    // demande plusieurs candidats et on garde le moins récent. Voir
+    // lib/practice/recent.ts.
+    Promise.resolve(
+      drawFresh(
+        `aspect:${skill}`,
+        () => generateAspectExercise(skill),
+        (ex) => [ex.itemId]
+      ),
+    ).then((next) => {
       if (!cancelled) setExercise(next);
     });
     return () => {
