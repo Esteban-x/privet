@@ -27,28 +27,6 @@ async function getViewer(): Promise<{ signedIn: boolean; level?: CefrLevel }> {
 }
 
 /** Les six pages sont connues à la compilation. */
-/**
- * UN IDENTIFIANT HORS LISTE EST UN 404, DÉCIDÉ AVANT LE RENDU.
- *
- * `notFound()` était bien appelé, et il ne suffisait pas : la coquille de
- * mise en page commence à être envoyée avant que le corps de la page ne
- * s'exécute, si bien que les en-têtes — dont le statut — sont déjà partis
- * quand l'appel a lieu. Le visiteur recevait donc « 200 OK » avec une page
- * VIDE : ni le contenu, ni la belle 404 qui enseigne le génitif de la
- * négation. Un robot d'indexation, lui, y voyait une page valide de plus.
- *
- * Vérifié en production : /cases/nexistepas, /cours/nexistepas et
- * /guides/nexistepas répondaient 200 ; seule une route qu'aucun fichier ne
- * couvre répondait 404, parce que Next tranche alors AVANT de rendre.
- *
- * `dynamicParams = false` déplace la décision au même endroit : hors de la
- * liste que `generateStaticParams` déclare, le routeur répond 404 sans rien
- * rendre. Les trois listes sont closes et connues à la construction — six
- * cas, les leçons du catalogue, les guides — donc rien de légitime n'est
- * refusé. Contrôlé par check:seo.
- */
-export const dynamicParams = false;
-
 export function generateStaticParams() {
   return CASES.map((c) => ({ caseSlug: c.id }));
 }

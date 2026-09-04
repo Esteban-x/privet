@@ -150,7 +150,10 @@ export default async function PremiumPage() {
       answer:
         "Rien de la matière : les leçons, les tableaux, le test de niveau et tes listes de " +
         `vocabulaire restent entiers. La formule découverte s'arrête à ${FREE_PRACTICE_CAP} ` +
-        `exercices et ${FREE_REVIEW_CAP} révisions par jour, et le compteur repart chaque nuit.`,
+        "exercices et " +
+        `${FREE_REVIEW_CAP} révisions par jour, et le compteur repart chaque nuit. Une ` +
+        "réponse jugée fausse n'est pas relue par le modèle : la correction reste celle du " +
+        "moteur de règles, sans la phrase qui explique l'erreur.",
     },
     {
       question: "L'IA peut-elle m'enseigner une forme fausse ?",
@@ -680,14 +683,28 @@ export default async function PremiumPage() {
               besoin de matière neuve : lire autre chose que les textes de la
               bibliothèque, travailler le déclencheur précis qui te résiste.
             </Faq>
+            {/* LA RELECTURE EST NOMMÉE, parce qu'elle ne relève pas du
+                rythme. Cette réponse disait « rien de la matière… ce qui
+                change, c'est le rythme » — exact pour les plafonds, et
+                incomplet : la formule découverte n'a pas le second avis du
+                modèle sur une réponse jugée fausse (verify = 0 en base).
+                L'apprenant y perd la phrase qui explique l'erreur, et le
+                rattrapage d'une variante correcte que le moteur ne connaît
+                pas. Le taire faisait de la page de prix une promesse un peu
+                trop large ; le dire en fait un argument de plus. */}
             <Faq q="Que perd-on exactement en restant gratuit ?">
               Rien de la matière : les leçons, les tableaux, le test de niveau
               et tes listes de vocabulaire restent entiers, et la suggestion de
-              traduction fonctionne aussi. Ce qui change, c&apos;est le rythme :
-              la formule découverte s&apos;arrête à {FREE_PRACTICE_CAP}{" "}
-              exercices et {FREE_REVIEW_CAP} révisions par jour — le compteur
-              repart chaque nuit. L&apos;abonnement le lève, et ajoute ce qui
-              est rédigé pour toi : textes de lecture, fiches de mots, phrases
+              traduction fonctionne aussi. Deux choses changent. Le rythme
+              d&apos;abord : la formule découverte s&apos;arrête à{" "}
+              {FREE_PRACTICE_CAP} exercices et {FREE_REVIEW_CAP} révisions par
+              jour — le compteur repart chaque nuit. La correction ensuite :
+              quand ta réponse est jugée fausse, elle n&apos;est pas relue par
+              le modèle. Tu gardes la bonne forme et la règle qui la produit,
+              tu perds la phrase qui explique ton erreur — et le rattrapage
+              d&apos;une variante correcte que le moteur de règles ne connaît
+              pas encore. L&apos;abonnement lève les deux, et ajoute ce qui est
+              rédigé pour toi : textes de lecture, fiches de mots, phrases
               d&apos;exercice sur mesure.
             </Faq>
             <Faq q="L'IA peut-elle m'enseigner une forme fausse ?">
