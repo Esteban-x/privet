@@ -238,7 +238,7 @@ export const ANSWER_LANG: Record<"ru-first" | "fr-first", string> = {
  * part : sans cette table, un micro qui échoue est un bouton qui ne fait
  * rien. C'est exactement le défaut qu'on corrige ici.
  */
-const RECOGNITION_ERRORS: Record<string, string> = {
+export const RECOGNITION_ERRORS: Record<string, string> = {
   "not-allowed":
     "Le micro est bloqué pour ce site. Autorise-le dans les réglages du navigateur, puis réessaie.",
   "service-not-allowed":
@@ -248,6 +248,27 @@ const RECOGNITION_ERRORS: Record<string, string> = {
   network: "La reconnaissance vocale n'a pas pu joindre son service (connexion ?).",
   aborted: "",
 };
+
+/**
+ * Au-delà, le moteur n'a manifestement pas l'intention de conclure.
+ *
+ * Il n'existe aucun événement « je n'y arrive pas » : une reconnaissance qui
+ * patine se contente de garder le micro. Sans cette borne, le bouton restait
+ * sur « J'écoute… » et la voix continuait d'être captée — sans rien afficher,
+ * puisqu'aucun résultat n'arrivait.
+ */
+export const MAX_LISTEN_MS = 12000;
+
+/**
+ * Délai laissé à `onend` après une demande d'arrêt, avant de forcer l'état.
+ *
+ * `stop()` s'en remettait entièrement à `onend`, au motif que lui seul sait
+ * quand le micro a rendu la main. C'est vrai, et insuffisant : quand il ne
+ * vient pas — iOS le fait —, l'apprenant appuyait sur un bouton d'arrêt qui
+ * n'arrêtait rien de visible. On laisse au moteur le temps de conclure, puis
+ * on tranche sans lui.
+ */
+export const END_GRACE_MS = 1500;
 
 export function useSpeechRecognition(lang: string) {
   // La présence de l'API est un état EXTERNE, pas un état React : elle
@@ -273,6 +294,17 @@ export function useSpeechRecognition(lang: string) {
    * repassait au repos pendant que le micro tournait encore.
    */
   const token = useRef(0);
+  /** Minuterie de secours : bornes MAX_LISTEN_MS et END_GRACE_MS. */
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Arme le délai de grâce de l'instance courante, posé par `start`. */
+  const graceRef = useRef<(() => void) | null>(null);
+
+  function clearTimer() {
+    if (timer.current !== null) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  }
 
   function start() {
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -288,10 +320,16 @@ export function useSpeechRecognition(lang: string) {
     }
 
     // Une écoute déjà en cours : `start()` lèverait InvalidStateError.
+    clearTimer();
     recognitionRef.current?.abort();
 
     const mine = (token.current += 1);
     const isStale = () => token.current !== mine;
+
+    // Bilan de CETTE tentative, gardé dans la fermeture : deux instances
+    // peuvent se chevaucher le temps que la première s'éteigne.
+    let heardSomething = false;
+    let reportedError = false;
 
     const recognition = new Ctor();
     recognition.lang = lang;
@@ -302,39 +340,95 @@ export function useSpeechRecognition(lang: string) {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
+    /**
+     * LA FIN, D'OÙ QU'ELLE VIENNE, ET ELLE DIT TOUJOURS QUELQUE CHOSE.
+     *
+     * C'est le trou que l'apprenant a trouvé. Une tentative peut se terminer
+     * sans résultat ET sans erreur — le moteur a entendu quelque chose qu'il
+     * n'a pas su transcrire, ce qui arrive constamment sur une réponse
+     * hésitante ou mal articulée. Elle ne produisait alors rien du tout :
+     * l'indicateur s'éteignait, la carte restait vide, et on avait parlé pour
+     * rien sans savoir si le micro, l'app ou soi-même était en cause.
+     */
+    function finish() {
+      if (isStale()) return;
+      clearTimer();
+      setListening(false);
+      if (!heardSomething && !reportedError) {
+        setError(
+          "Je n'ai pas réussi à transcrire ce que tu as dit. Réessaie en articulant, " +
+            "ou révèle la réponse et juge par toi-même."
+        );
+      }
+    }
+
+    /** Force l'état si `onend` se fait attendre après un arrêt demandé. */
+    function armEndGrace() {
+      clearTimer();
+      timer.current = setTimeout(finish, END_GRACE_MS);
+    }
+
     recognition.onstart = () => {
       if (isStale()) return;
       setListening(true);
+      // Le moteur a la main : on lui laisse MAX_LISTEN_MS pour conclure, pas
+      // davantage. C'est cette borne qui empêche le micro de rester ouvert.
+      clearTimer();
+      timer.current = setTimeout(() => {
+        recognitionRef.current?.abort();
+        finish();
+      }, MAX_LISTEN_MS);
     };
+
     recognition.onresult = (e) => {
       if (isStale()) return;
-      setTranscript(e.results[0]?.[0]?.transcript ?? "");
+      const heard = (e.results[0]?.[0]?.transcript ?? "").trim();
+      // UN TRANSCRIPT VIDE N'EST PAS UN RÉSULTAT. Il ne s'affiche pas —
+      // `{transcript && …}` est faux — donc l'écran ne bougeait pas, et
+      // `finish` doit le traiter comme une tentative restée sans réponse.
+      if (heard) {
+        heardSomething = true;
+        setTranscript(heard);
+      }
       // Ceinture et bretelles avec `continuous = false` : certains moteurs
       // gardent le micro ouvert quelques secondes de plus après le résultat.
       // L'apprenant, lui, a fini de parler.
       recognition.stop();
+      armEndGrace();
     };
+
     recognition.onerror = (e) => {
       if (isStale()) return;
       const code = e?.error ?? "";
-      // Un code inconnu vaut mieux qu'un silence : on le montre tel quel.
-      setError(RECOGNITION_ERRORS[code] ?? `La reconnaissance vocale a échoué (${code || "raison inconnue"}).`);
-      setListening(false);
-    };
-    recognition.onend = () => {
-      if (isStale()) return;
+      const message =
+        RECOGNITION_ERRORS[code] ??
+        `La reconnaissance vocale a échoué (${code || "raison inconnue"}).`;
+      if (message) {
+        reportedError = true;
+        setError(message);
+      } else {
+        // « aborted » : c'est NOTRE fait — un nouvel essai, un changement de
+        // mot. Pas de message, et pas non plus de « je n'ai pas compris » :
+        // on n'a rien demandé au moteur.
+        heardSomething = true;
+      }
+      clearTimer();
       setListening(false);
     };
 
+    recognition.onend = () => finish();
+
     recognitionRef.current = recognition;
+    graceRef.current = armEndGrace;
+
     setTranscript("");
     setError("");
 
-    // `start()` PEUT LEVER, et c'est tout le bug d'origine : l'indicateur
-    // était allumé juste avant l'appel, si bien qu'une exception laissait le
-    // bouton sur « Enregistrement… » définitivement, sans micro derrière.
-    // C'est `onstart` qui l'allume maintenant — il ne se déclenche que si le
-    // moteur a réellement pris la main.
+    // `start()` PEUT LEVER, et c'était le premier bug : l'indicateur était
+    // allumé juste avant l'appel, si bien qu'une exception laissait le bouton
+    // sur « Enregistrement… » définitivement, sans micro derrière. C'est
+    // `onstart` qui l'allume maintenant — il ne se déclenche que si le moteur
+    // a réellement pris la main.
     try {
       recognition.start();
     } catch {
@@ -358,9 +452,11 @@ export function useSpeechRecognition(lang: string) {
 
   function stop() {
     recognitionRef.current?.stop();
-    // On n'éteint PAS l'indicateur ici : `onend` s'en charge, et lui seul
-    // sait quand le moteur a vraiment rendu la main. L'éteindre d'avance
-    // rendait le bouton disponible alors que le micro tournait encore.
+    // L'indicateur redescend par `onend`, qui seul sait quand le micro a
+    // vraiment rendu la main — MAIS on ne l'attend plus indéfiniment. Sans
+    // cette borne, un `onend` qui ne vient jamais laissait le bouton d'arrêt
+    // sans effet visible, et la voix captée.
+    graceRef.current?.();
   }
 
   // Quitter la page pendant une écoute laissait le micro ouvert : l'onglet
@@ -368,6 +464,7 @@ export function useSpeechRecognition(lang: string) {
   useEffect(() => {
     return () => {
       token.current += 1;
+      if (timer.current !== null) clearTimeout(timer.current);
       recognitionRef.current?.abort();
     };
   }, []);

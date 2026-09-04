@@ -32,7 +32,7 @@ const { wordKey, sameWord } = await jiti.import("../lib/vocabulary/duplicate.ts"
 const { nearMiss } = await jiti.import("../lib/vocabulary/autocomplete.ts");
 const { isFrenchProse } = await jiti.import("../lib/ai/client.ts");
 const P = await jiti.import("../lib/ai/prompts.ts");
-const { ANSWER_LANG } = await jiti.import("../lib/vocabulary/speech.ts");
+const { ANSWER_LANG, RECOGNITION_ERRORS, MAX_LISTEN_MS, END_GRACE_MS } = await jiti.import("../lib/vocabulary/speech.ts");
 
 const failures = [];
 let checks = 0;
@@ -465,7 +465,62 @@ require_(
   );
 }
 
+// ─── 8. Les messages du micro ─────────────────────────────────────
+//
+// UNE ÉCOUTE QUI ÉCHOUE DOIT LE DIRE. Le défaut trouvé à l'usage : « si je
+// donne une mauvaise réponse à l'oral, rien ne se produit et ça continue de
+// capter ma voix ». Le moteur qui n'a rien su transcrire terminait sans
+// résultat NI erreur, et cette fin-là était silencieuse — on avait parlé
+// pour rien, sans savoir si le micro, l'app ou soi-même était en cause.
+//
+// La correction tient à deux choses : une fin qui parle toujours, et des
+// bornes de temps. La première ne se teste qu'au navigateur ; la seconde,
+// et la table de messages qui l'accompagne, se vérifient ici.
+{
+  // « aborted » est le SEUL code muet, et il doit le rester : c'est notre
+  // propre fait — un nouvel essai, un changement de mot. Lui donner un
+  // message ferait clignoter une erreur rouge à chaque « Redire ».
+  require_(
+    RECOGNITION_ERRORS.aborted === "",
+    "micro : « aborted » est provoqué par l'app elle-même, il ne doit rien annoncer"
+  );
+
+  // Tous les autres doivent parler, et parler français : ce sont eux qui
+  // remplacent le silence dont l'apprenant s'est plaint.
+  for (const [code, message] of Object.entries(RECOGNITION_ERRORS)) {
+    if (code === "aborted") continue;
+    require_(
+      message.trim().length > 0,
+      `micro : le code « ${code} » n'a pas de message — cette panne serait muette`
+    );
+    require_(
+      isFrenchProse(message),
+      `micro : le message de « ${code} » n'est pas du français lisible`
+    );
+  }
+
+  // Les quatre pannes qu'on sait nommer. Les perdre rendrait leur cas muet.
+  for (const code of ["not-allowed", "service-not-allowed", "no-speech", "audio-capture"]) {
+    require_(
+      typeof RECOGNITION_ERRORS[code] === "string",
+      `micro : le code « ${code} » a disparu de la table des messages`
+    );
+  }
+
+  // Les bornes. Sans elles, un moteur qui ne rend jamais la main laisse le
+  // bouton sur « J'écoute… » et le micro ouvert — l'autre moitié du défaut.
+  require_(
+    MAX_LISTEN_MS > 0 && MAX_LISTEN_MS <= 30000,
+    `micro : la borne d'écoute (${MAX_LISTEN_MS} ms) doit exister et rester supportable`
+  );
+  require_(
+    END_GRACE_MS > 0 && END_GRACE_MS < MAX_LISTEN_MS,
+    `micro : le délai de grâce (${END_GRACE_MS} ms) doit être court devant la borne d'écoute`
+  );
+}
+
 // ─── Rapport ───────────────────────────────────────────────────────
+
 if (failures.length) {
   console.error(`\n✗ ${failures.length} problème(s) sur ${checks} contrôles :\n`);
   for (const f of failures) console.error(`  ${f}`);
