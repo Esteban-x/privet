@@ -6,16 +6,21 @@ import { Suspense, useEffect, useState } from "react";
 import DirectionToggle from "@/components/exercises/DirectionToggle";
 import SessionSummary from "@/components/exercises/SessionSummary";
 import { loadDirection, saveDirection, type VocabDirection } from "@/lib/storage";
-import { onSpeechBusy, prefetchRu, speakRu, useSpeechRecognition } from "@/lib/vocabulary/speech";
+import {
+  ANSWER_LANG,
+  onSpeechBusy,
+  prefetchRu,
+  speakRu,
+  useSpeechRecognition,
+} from "@/lib/vocabulary/speech";
 import { fetchDailyProgress } from "@/lib/vocabulary/custom";
+import { matchesAnswer } from "@/lib/vocabulary/answer-check";
 import { useReviewQueue } from "@/lib/vocabulary/useReviewQueue";
 import PaywallNotice from "@/components/ui/PaywallNotice";
 import AllKnownState from "@/components/vocabulary/AllKnownState";
 import FocusControl from "@/components/vocabulary/FocusControl";
 import { ReviewCardSkeleton } from "@/components/ui/Skeleton";
 import { MicIcon, SpeakerIcon } from "@/components/ui/icons";
-
-const RU_LANG = "ru-RU";
 
 export default function VoicePage() {
   return (
@@ -60,7 +65,8 @@ function VoiceInner() {
     error: micError,
     start,
     stop,
-  } = useSpeechRecognition(RU_LANG);
+    reset: resetSpeech,
+  } = useSpeechRecognition(ANSWER_LANG[direction]);
 
   // La synthèse d'un mot INÉDIT demande une seconde et demie. Sur cette
   // page l'attente est la plus pénible de l'app : en mode écoute, le mot
@@ -89,6 +95,9 @@ function VoiceInner() {
   if (current?.id !== seenQuestionId) {
     setSeenQuestionId(current?.id);
     setRevealed(false);
+    // Le transcript du mot PRÉCÉDENT restait sous le nouveau : on validait
+    // une réponse qu'on n'avait pas donnée.
+    resetSpeech();
   }
 
   // Lecture automatique de la prononciation en mode écoute (ru-first) : reste
@@ -168,6 +177,20 @@ function VoiceInner() {
 
   const listenAndRecall = direction === "ru-first";
 
+  /**
+   * Le transcript ressemble-t-il à la réponse attendue ?
+   *
+   * `matchesAnswer` est la même comparaison que le mode Frappe — elle
+   * tolère les variantes (« voiture, auto »), les articles et les accents
+   * français. Ici elle n'ALIMENTE RIEN : ni SRS, ni série, ni précision.
+   * C'est un indice affiché à côté de ce qui a été entendu, et l'apprenant
+   * garde le dernier mot, parce qu'une reconnaissance vocale se trompe
+   * assez souvent pour qu'on ne lui confie pas une note.
+   */
+  const heardMatches =
+    transcript.trim().length > 0 &&
+    matchesAnswer(transcript, listenAndRecall ? current.fr : current.ru);
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-8 sm:py-16">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
@@ -193,7 +216,7 @@ function VoiceInner() {
 
       <div className="rounded-[20px] surface p-8 text-center shadow-float">
         <p className="font-display text-sm text-muted">
-          {listenAndRecall ? "Écoute et devine le sens :" : "Dis ce mot en russe :"}
+          {listenAndRecall ? "Écoute, et dis le sens en français :" : "Dis ce mot en russe :"}
         </p>
 
         {/* LA SEULE DIFFÉRENCE ENTRE LES DEUX SENS. En « dis ce mot », le
@@ -245,16 +268,51 @@ function VoiceInner() {
               }`}
             >
               <MicIcon className={`h-4 w-4 shrink-0 ${listening ? "wave-pulse" : ""}`} />
-              {listening ? "J’écoute…" : "Parler"}
+              {listening ? "J’écoute…" : listenAndRecall ? "Dire en français" : "Dire en russe"}
             </button>
           )}
         </div>
 
-        {transcript && (
-          <p className="mt-3 font-display text-sm text-muted">
-            J&apos;ai entendu : <span className="text-text">« {transcript} »</span> — à toi de
-            juger si c&apos;est ce que tu visais.
-          </p>
+        {/* CE QUI A ÉTÉ ENTENDU, ET LA MAIN RENDUE À L'APPRENANT.
+            Le transcript s'affichait comme une remarque en passant, sans
+            suite : il fallait ensuite aller chercher « Révéler la réponse »
+            plus bas, comme si on n'avait rien dit. Il devient une étape —
+            on valide, ou on recommence.
+
+            LE RAPPROCHEMENT EST UN INDICE, PAS UNE NOTE. La reconnaissance
+            se trompe sur un accent, une syllabe avalée, un homophone ; lui
+            laisser le dernier mot noterait le micro et non l'apprenant.
+            C'est pour ça que « Valider » ne fait que RÉVÉLER : les quatre
+            boutons de qualité restent le seul jugement enregistré. */}
+        {transcript && !revealed && (
+          <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+            <p className="font-display text-sm text-muted">
+              J&apos;ai entendu : <span className="font-semibold text-text">« {transcript} »</span>
+            </p>
+            <p
+              className={`mt-1 font-display text-xs font-semibold ${
+                heardMatches ? "text-success" : "text-muted"
+              }`}
+            >
+              {heardMatches
+                ? "✓ Ça correspond à la réponse attendue."
+                : "Je ne retrouve pas la réponse attendue — mais je peux avoir mal entendu."}
+            </p>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <button
+                onClick={() => setRevealed(true)}
+                className="btn btn-primary rounded-full px-5 py-2 font-display text-sm font-semibold"
+              >
+                Valider
+              </button>
+              <button
+                onClick={start}
+                className="rounded-full border border-border px-5 py-2 font-display text-sm font-semibold text-text transition-colors hover:border-accent/35 hover:bg-accent/10"
+              >
+                Redire
+              </button>
+            </div>
+          </div>
         )}
 
         {/* CE QUI A EMPÊCHÉ L'ÉCOUTE, ÉCRIT. Le micro qui refuse de démarrer
@@ -268,13 +326,19 @@ function VoiceInner() {
           </p>
         )}
 
+        {/* « Révéler la réponse » S'EFFACE DÈS QU'ON A PARLÉ : le « Valider »
+            de l'encadré ci-dessus fait exactement la même chose, et deux
+            boutons pour un seul geste font hésiter sur ce qui les distingue.
+            Il reste pour qui n'utilise pas le micro — ou n'en a pas. */}
         {!revealed ? (
-          <button
-            onClick={() => setRevealed(true)}
-            className="btn btn-primary btn-sheen mt-8 w-full rounded-[10px] py-3 font-display text-sm"
-          >
-            Révéler la réponse
-          </button>
+          !transcript && (
+            <button
+              onClick={() => setRevealed(true)}
+              className="btn btn-primary btn-sheen mt-8 w-full rounded-[10px] py-3 font-display text-sm"
+            >
+              Révéler la réponse
+            </button>
+          )
         ) : (
           <div className="mt-6 rounded-xl border border-accent/40 bg-accent/10 p-4 text-left">
             <p className="font-display text-2xl font-bold text-accent-ink">{current.ru}</p>

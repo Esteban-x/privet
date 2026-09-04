@@ -212,6 +212,26 @@ function subscribeNever(): () => void {
 }
 
 /**
+ * LA LANGUE QUE L'APPRENANT VA PARLER, et non celle du mot étudié.
+ *
+ * C'était « ru-RU » dans les deux sens du mode Voix. Or en « écoute et
+ * devine », le mot est ÉNONCÉ en russe et la réponse attendue est sa
+ * traduction FRANÇAISE : le moteur écoutait donc du russe pendant qu'on lui
+ * parlait français. Il ne rendait rien d'exploitable, et le mode paraissait
+ * simplement cassé.
+ *
+ * La règle vit ici, et non dans la page, pour qu'un contrôle puisse la
+ * lire : c'est une règle d'exercice, pas de la mise en page, et elle tient
+ * dans une ligne qu'on renverse sans s'en apercevoir.
+ */
+export const ANSWER_LANG: Record<"ru-first" | "fr-first", string> = {
+  // Le mot est dit en russe : on répond en français.
+  "ru-first": "fr-FR",
+  // Le sens est donné en français : on répond en russe.
+  "fr-first": "ru-RU",
+};
+
+/**
  * Pourquoi l'écoute peut ne rien donner, dit en français.
  *
  * Les codes du standard sont opaques et le navigateur ne les affiche nulle
@@ -324,6 +344,18 @@ export function useSpeechRecognition(lang: string) {
     }
   }
 
+  /**
+   * Efface la dernière tentative sans toucher au micro.
+   *
+   * Sert au passage au mot suivant : sans elle, le transcript du mot
+   * précédent restait affiché sous le nouveau, et on validait une réponse
+   * qu'on n'avait pas donnée.
+   */
+  function reset() {
+    setTranscript("");
+    setError("");
+  }
+
   function stop() {
     recognitionRef.current?.stop();
     // On n'éteint PAS l'indicateur ici : `onend` s'en charge, et lui seul
@@ -340,5 +372,5 @@ export function useSpeechRecognition(lang: string) {
     };
   }, []);
 
-  return { supported, listening, transcript, error, start, stop };
+  return { supported, listening, transcript, error, start, stop, reset };
 }

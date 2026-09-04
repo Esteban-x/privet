@@ -32,6 +32,7 @@ const { wordKey, sameWord } = await jiti.import("../lib/vocabulary/duplicate.ts"
 const { nearMiss } = await jiti.import("../lib/vocabulary/autocomplete.ts");
 const { isFrenchProse } = await jiti.import("../lib/ai/client.ts");
 const P = await jiti.import("../lib/ai/prompts.ts");
+const { ANSWER_LANG } = await jiti.import("../lib/vocabulary/speech.ts");
 
 const failures = [];
 let checks = 0;
@@ -434,6 +435,33 @@ require_(
   require_(
     /EN FRANÇAIS/.test(prompt),
     "le prompt de vérification ne dit plus explicitement d'écrire en français"
+  );
+}
+
+// ─── 7. La langue que le micro écoute ─────────────────────────────
+//
+// Elle avait été fixée à « ru-RU » dans les deux sens. En « écoute et
+// devine », le mot est ÉNONCÉ en russe et la réponse attendue est sa
+// traduction française : le moteur écoutait donc du russe pendant qu'on lui
+// parlait français, et le mode paraissait cassé.
+//
+// Deux lignes, qu'on renverse sans s'en apercevoir, et rien à l'écran ne
+// dirait laquelle est fausse — une reconnaissance vocale qui se trompe de
+// langue rend du texte, pas une erreur.
+{
+  require_(
+    ANSWER_LANG["ru-first"].startsWith("fr"),
+    `voix : en « écoute et devine », le mot est dit en russe et la réponse est FRANÇAISE — ` +
+      `le micro écoute « ${ANSWER_LANG["ru-first"]} »`
+  );
+  require_(
+    ANSWER_LANG["fr-first"].startsWith("ru"),
+    `voix : en « dis ce mot en russe », la réponse est RUSSE — ` +
+      `le micro écoute « ${ANSWER_LANG["fr-first"]} »`
+  );
+  require_(
+    ANSWER_LANG["ru-first"] !== ANSWER_LANG["fr-first"],
+    "voix : les deux sens écoutent la même langue, l'un des deux est donc faux"
   );
 }
 
