@@ -53,6 +53,7 @@ const { TRIGGERS, PROPER_NOUN_TRIGGER_ID, triggerNumber, templatesFor } = await 
 const { validateSentence, validateFrenchSentence, validateFrenchTemplate } = await jiti.import(
   "../lib/grammar/sentence-guard.ts"
 );
+const { H_REVIEWED } = await jiti.import("../lib/grammar/french-article.ts");
 const { fillFrenchBlank, frenchNounPhrase } = await jiti.import(
   "../lib/grammar/french-article.ts"
 );
@@ -689,6 +690,28 @@ const NARROW = {
       true
     );
   }
+}
+
+// ─── 7 bis. Le h français, aspiré ou muet ──────────────────────────
+// L'élision devant h n'est pas dérivable de l'orthographe : « cet homme »
+// mais « ce héros ». Un commentaire affirmait qu'aucun h aspiré n'était dans
+// la banque ; il y en avait un, et « J'admire cet héros » s'affichait. La
+// liste doit donc rester complète : tout mot en h qui entre dans la banque
+// est signalé ici tant que quelqu'un n'a pas tranché.
+{
+  for (const noun of [...NOUNS, ...RUSSIAN_NAMES]) {
+    const first = noun.translation.toLowerCase().split(/[\s(]/)[0];
+    if (!first.startsWith("h")) continue;
+    require_(
+      H_REVIEWED.has(first),
+      `« ${first} » commence par h : décider s'il s'élide (« cet ») ou non ` +
+        `(« ce »), et l'inscrire dans H_REVIEWED — et dans ASPIRATED_H s'il ` +
+        `refuse l'élision (lib/grammar/french-article.ts)`
+    );
+  }
+  expect("« héros » refuse l'élision", frenchNounPhrase("héros", "m", "demonstrative", false), "ce héros");
+  expect("« homme » l'accepte", frenchNounPhrase("homme", "m", "demonstrative", false), "cet homme");
+  expect("« hôtel » l'accepte", frenchNounPhrase("hôtel", "m", "demonstrative", false), "cet hôtel");
 }
 
 // ─── 8. Animacité des personnes ────────────────────────────────────

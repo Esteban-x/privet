@@ -15,8 +15,36 @@ import { FrenchGender } from "./types";
 export type ArticleMode = "none" | "indefinite" | "demonstrative";
 
 // Le h muet compte comme une voyelle pour l'élision ("cet homme", "cet
-// hôtel"). Aucun h aspiré dans les traductions de la banque curée.
+// hôtel", "cette heure").
 const VOWEL_SOUND = /^[aeiouyàâäéèêëîïôöùûüh]/i;
+
+/**
+ * Les h ASPIRÉS de la banque, qui refusent l'élision : « ce héros », jamais
+ * « cet héros ».
+ *
+ * Un commentaire affirmait ici qu'il n'y en avait aucun. C'était faux, et
+ * ça se lisait à l'écran — « J'admire cet héros ». L'aspiration n'est pas
+ * dérivable de l'orthographe : elle s'écrit, mot par mot, comme le schéma
+ * accentuel des noms russes.
+ *
+ * Exportée avec H_REVIEWED : check:grammar vérifie que tout mot de la banque
+ * commençant par h figure dans l'une des deux listes, pour qu'un « hasard »
+ * ou une « hache » ajoutés plus tard forcent la décision au lieu de prendre
+ * l'élision par défaut.
+ */
+export const ASPIRATED_H = new Set(["héros"]);
+
+/** Les h de la banque déjà tranchés — aspirés ou muets. */
+export const H_REVIEWED = new Set([
+  "héros",
+  "homme",
+  "heure",
+  "hiver",
+  "hôpital",
+  "hôtel",
+  "histoire",
+  "humeur",
+]);
 
 // Pluriels français irréguliers présents dans la banque (le -eau -> -eaux
 // est traité par la règle ci-dessous ; "travail" ne suit aucune des deux).
@@ -60,8 +88,10 @@ export function frenchNounPhrase(
   if (plural) return `${article === "indefinite" ? "des" : "ces"} ${core}`;
   if (article === "indefinite") return `${gender === "f" ? "une" : "un"} ${core}`;
 
-  // demonstrative — élision devant voyelle ou h muet.
-  if (gender === "m" && VOWEL_SOUND.test(core)) return `cet ${core}`;
+  // demonstrative — élision devant voyelle ou h MUET, jamais devant un h
+  // aspiré : « ce héros ».
+  const aspirated = ASPIRATED_H.has(core.toLowerCase().split(/[\s(]/)[0]);
+  if (gender === "m" && !aspirated && VOWEL_SOUND.test(core)) return `cet ${core}`;
   return `${gender === "f" ? "cette" : "ce"} ${core}`;
 }
 

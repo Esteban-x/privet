@@ -5,9 +5,17 @@ vocabulaire (SRS + frappe), lecture graduée, **inscription email/mot de passe
 (confirmation par email + captcha)**, **auth Google via Supabase**,
 **test de niveau** et **dashboard**.
 
-L'IA (Anthropic) sert à générer exercices contextuels et textes de lecture
-originaux. Elle ne calcule **jamais** une déclinaison : ça reste
-le rôle du moteur de règles déterministe (`lib/grammar/`).
+L'IA (Anthropic) sert à générer des textes de lecture originaux, à expliquer
+un mot et à relire une réponse jugée fausse. Elle ne calcule **jamais** une
+déclinaison : ça reste le rôle du moteur de règles déterministe
+(`lib/grammar/`).
+
+Elle écrit aussi la MATIÈRE des exercices — les phrases des déclencheurs, les
+contextes d'accord —, mais **à la construction, pas à l'exécution** : ce
+qu'elle propose est validé par les garde-fous, relu, puis figé dans un fichier
+généré. Un exercice servi à quelqu'un ne dépend donc d'aucun appel réseau, ne
+consomme aucun quota, et a été lu par un humain. Voir « Écrire la matière »
+plus bas.
 
 ---
 
@@ -114,7 +122,18 @@ npm run check:motion      # verbes de mouvement : formes et cohérence des exerc
 npm run check:aspect      # aspect verbal : paires et cohérence des exercices
 npm run check:participles # participes : formes, trous réels et accords
 npm run check:adjectives  # accord de l'adjectif : contextes écrits et témoins
+npm run check:variety     # aucune compétence ne tourne en rond (voir plus bas)
 npm run build:nouns     # régénère la banque depuis le dictionnaire (rare)
+```
+
+Et les quatre scripts qui ÉCRIVENT de la matière (ils appellent l'API
+Anthropic, coûtent quelques dollars, et ne servent qu'à la construction) :
+
+```bash
+npm run curate:triggers    # les noms que chaque déclencheur admet
+npm run curate:templates   # les phrases de chaque déclencheur
+npm run curate:adjectives  # les contextes d'accord de l'adjectif
+npm run curate:contexts    # aspect, mouvement, participes
 ```
 
 Voir « Le module Cas » et « Le test de placement » plus bas.
@@ -146,7 +165,6 @@ Sans clés configurées, l'app se lance quand même : les pages publiques
 ```
 app/
   api/
-    ai/exercise      génère un exercice contextuel pour un cas (Haiku)
     ai/reading       génère un texte de lecture original gradué (Haiku)
     level-test/evaluate  rejoue le calcul du niveau côté serveur
     profile          met à jour le profil (nom affiché, onboarded, objectif
@@ -177,6 +195,60 @@ scripts/
   check-declensions.mjs contrôles de la banque et du moteur
   data/nouns-fr.tsv     sélection + traductions françaises (écrit à la main)
 ```
+
+## Écrire la matière
+
+Un exercice a besoin de deux choses : une RÈGLE, que le moteur calcule, et une
+MISE EN SITUATION, qu'il faut écrire. La première est déterministe et
+vérifiable ; la seconde ne l'est pas, et c'est là que l'IA sert.
+
+Elle a d'abord servi à l'exécution : le mode « Phrase » du module Cas appelait
+une route à chaque exercice. C'était le seul endroit où du français que
+personne n'avait relu atteignait l'apprenant — « Je m'occupe de travail » — et
+le plan gratuit, dont le quota valait zéro, n'y avait droit à rien : quatre
+phrases figées par cas, en regardant clignoter « Génération d'une phrase… ».
+
+Tout est maintenant écrit à la construction, par les quatre scripts
+`curate:*`, et la discipline est la même à chaque fois :
+
+1. **le modèle propose** — une phrase, un contexte, une liste de mots ;
+2. **les garde-fous trient** — `lib/grammar/sentence-guard.ts` refuse une
+   phrase que le cas demandé ne gouverne pas, le dictionnaire refuse un mot
+   dont il ne sait pas placer l'accent, et chaque script ajoute ses propres
+   contrôles (le trou n'est pas collé à une désinence, la phrase ne contient
+   pas sa propre réponse, la traduction nomme bien le mot cherché) ;
+3. **un humain relit** ce qui reste, et coupe. Sur les 654 phrases retenues,
+   la relecture en a écarté neuf que rien de mécanique ne pouvait voir : celles
+   dont un mot s'accorde avec le trou (« Вот ___, о кото́ром я говори́л » est
+   faux dès que le nom est féminin), et « вроде » sans tête nominale ;
+4. **le résultat est figé** dans un `*.generated.ts` versionné, et les
+   contrôles le rejouent à chaque `npm run check`.
+
+Ce qui ne peut pas être vérifié n'est pas demandé. L'explication d'un accord
+n'est plus rédigée mais CALCULÉE depuis le moteur de règles — demandée au
+modèle, elle était fausse une fois sur trois (« radical mixte en х » pour
+хоро́ший, dont le radical finit par ш). Et une banque entière a été écartée
+pour la même raison : la « forme courte » des participes porte un accord dont
+le nom support n'est pas repérable dans la phrase.
+
+## La variété
+
+`npm run check:variety` rejoue des sessions : cinquante exercices d'affilée
+sur une compétence, cinq fois, sur soixante-cinq axes. Il exige de voir 70 %
+de ce que la compétence peut montrer, qu'aucun item ne dépasse son tour de
+rôle, et que le premier doublon n'arrive pas trop tôt.
+
+Le plancher n'est pas déclaré : il est MESURÉ, par un long tirage sans
+mémoire. Un module qui s'appauvrit fait donc baisser la barre en même temps
+que la note — c'est pourquoi le nombre d'items disponibles est affiché
+(`--report`) en plus d'être vérifié : les seuils attrapent une régression du
+tirage, l'œil attrape une régression de la banque.
+
+Côté exécution, `lib/practice/recent.ts` tient sur l'appareil un anneau des
+derniers tirages par compétence. Le tirage n'est pas remplacé : on lui demande
+vingt-quatre candidats au lieu d'un, et on garde celui vu le moins récemment.
+Un exercice porte plusieurs identifiants — la phrase, le mot — et le plus
+récent commande.
 
 ## Le module Cas
 
@@ -531,20 +603,27 @@ de réussite reste estimée A0.
   ne manque que la traduction française.
 - Corpus de classiques du domaine public (Pouchkine, Tchekhov…) pour compléter
   la lecture générée.
-- Continuer d'élargir les banques des cinq modules de grammaire : chaque
-  compétence tient entre 7 et 31 contextes distincts. C'est du travail de
-  contenu, et les suites de contrôle valident chaque ajout.
+- Continuer d'élargir les banques des cinq modules de grammaire. Une passe
+  vient de les tripler (voir « Écrire la matière ») et `check:variety` tient
+  désormais le plancher ; les compétences les plus minces restent celles qui
+  ne tirent pas dans une banque de contextes.
 - L'erreur de lint pré-existante hors modules (`speech.ts`, setState dans un
   effet).
+- La « forme courte » des participes reste aux onze contextes écrits à la
+  main : son champ d'accord dépend d'un nom support que rien ne permet de
+  repérer dans la phrase, donc aucune variante ne peut en hériter sans
+  risquer d'enseigner un accord faux. L'élargir demande de l'écrire.
 - Les items à DEUX options : aspect (passé, marqueurs, futur, impératif),
   mouvement (direction) et participes (forme courte) opposent deux formes,
   ce qui est la nature de la question — mais 50 % de réussite au hasard
   entrent dans la même statistique de précision que les items à quatre
   options. Soit on les compte à part, soit on accepte de sous-estimer la
   difficulté des autres.
-- Les banques les plus minces : `numbers/duration` (8 items),
-  `alphabet/spelling` (8), `alphabet/sounds` (10), `participles/subject` (8),
-  `motion/prefix` (11). Un apprenant les épuise en une séance.
+- Les banques les plus minces, celles qui ne tirent pas dans une banque de
+  contextes et qu'aucun script ne peut donc élargir : `numbers/duration`
+  (8 items), `participles/subject` (8), `motion/prefix` (11). Un apprenant les
+  épuise en une séance. `alphabet/spelling` (20) et `alphabet/sounds` (22) en
+  sont sorties, écrites à la main.
 - Faire entrer `motion_progress` dans l'estimation continue du niveau : les
   seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
   demande de les recalibrer.
