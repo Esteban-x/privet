@@ -5,6 +5,7 @@ import {
   type AspectPair,
   type TimelineSchema,
 } from "./verbs";
+import { EXTRA_CONTEXTS } from "./contexts.generated";
 
 /**
  * Exercices d'aspect.
@@ -633,6 +634,17 @@ const IMPERATIVE_CONTEXTS: ImperativeContext[] = [
     pair: "chitat",
   },
 ];
+
+// Les VARIANTES écrites à la construction s'ajoutent aux contextes écrits à
+// la main, qui restent en tête. Elles gardent le marqueur, la règle et
+// l'explication de leur contexte d'origine — voir scripts/curate-contexts.mjs
+// pour ce qui est hérité, ce qui est déclaré, et pourquoi.
+PAST_CONTEXTS.push(...((EXTRA_CONTEXTS.PAST_CONTEXTS ?? []) as unknown as AspectContext[]));
+FUTURE_CONTEXTS.push(...((EXTRA_CONTEXTS.FUTURE_CONTEXTS ?? []) as unknown as FutureContext[]));
+IMPERATIVE_CONTEXTS.push(
+  ...((EXTRA_CONTEXTS.IMPERATIVE_CONTEXTS ?? []) as unknown as ImperativeContext[]),
+);
+
 
 /**
  * Les deux impératifs d'une paire, dans la personne que la phrase adresse.

@@ -8,6 +8,7 @@ import {
   type MotionPrefix,
   type TrajectorySchema,
 } from "./verbs";
+import { EXTRA_CONTEXTS } from "./contexts.generated";
 import { getCase } from "@/lib/grammar/cases";
 
 /**
@@ -391,6 +392,15 @@ interface GovernmentTarget {
   sentence: string;
   sentenceFr: string;
 }
+
+// Les VARIANTES écrites à la construction s'ajoutent aux contextes écrits à
+// la main, qui restent en tête. Elles gardent le marqueur, la règle et
+// l'explication de leur contexte d'origine — voir scripts/curate-contexts.mjs
+// pour ce qui est hérité, ce qui est déclaré, et pourquoi.
+DIRECTION_CONTEXTS.push(
+  ...((EXTRA_CONTEXTS.DIRECTION_CONTEXTS ?? []) as unknown as DirectionContext[]),
+);
+
 
 const GOVERNMENT_ITEMS: GovernmentTarget[] = [
   {

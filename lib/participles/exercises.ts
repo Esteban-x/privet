@@ -1,4 +1,5 @@
 import { getVerb, PARTICIPLE_VERBS, type ParticipleVerb } from "./verbs";
+import { EXTRA_CONTEXTS } from "./contexts.generated";
 
 /**
  * Exercices sur les participes et gérondifs.
@@ -698,6 +699,16 @@ interface SubjectItem {
   fr: string;
   why: string;
 }
+
+// Les VARIANTES écrites à la construction s'ajoutent aux contextes écrits à
+// la main, qui restent en tête. Elles gardent le marqueur, la règle et
+// l'explication de leur contexte d'origine — voir scripts/curate-contexts.mjs
+// pour ce qui est hérité, ce qui est déclaré, et pourquoi.
+ACTIVE_CONTEXTS.push(...((EXTRA_CONTEXTS.ACTIVE_CONTEXTS ?? []) as unknown as ActiveContext[]));
+PASSIVE_CONTEXTS.push(...((EXTRA_CONTEXTS.PASSIVE_CONTEXTS ?? []) as unknown as PassiveContext[]));
+SHORT_CONTEXTS.push(...((EXTRA_CONTEXTS.SHORT_CONTEXTS ?? []) as unknown as ShortContext[]));
+GERUND_CONTEXTS.push(...((EXTRA_CONTEXTS.GERUND_CONTEXTS ?? []) as unknown as GerundContext[]));
+
 
 const SUBJECT_ITEMS: SubjectItem[] = [
   {
