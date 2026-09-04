@@ -221,7 +221,7 @@ function VoiceInner() {
         <FocusControl value={currentFocus} word={current.ru} onChange={setFocus} />
       </div>
 
-      <div className="rounded-[20px] surface p-8 text-center shadow-float">
+      <div className="rounded-[20px] surface p-6 text-center shadow-float sm:p-8">
         <p className="font-display text-sm text-muted">
           {listenAndRecall
             ? "Écoute le mot russe, et dis son sens en français :"
@@ -261,12 +261,12 @@ function VoiceInner() {
             on doit deviner le sens, le français quand on doit dire le mot
             russe. La prononciation russe reste à un clic, mais APRÈS la
             révélation, là où l'entendre s'appelle apprendre et non tricher. */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+        <div className={`mt-6 grid gap-2 sm:gap-2.5 ${micSupported ? "grid-cols-2" : "grid-cols-1"}`}>
           <button
             onClick={() => void speakIn(PROMPT_LANG[direction], promptText)}
             aria-busy={loadingAudio}
             aria-label={listenAndRecall ? "Écouter le mot russe" : "Écouter le mot français"}
-            className="relative inline-flex min-w-[9.5rem] items-center justify-center gap-2 rounded-full border border-border px-5 py-2.5 font-display text-sm font-semibold text-text transition-colors hover:border-accent/35 hover:bg-accent/10"
+            className="relative inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 py-2.5 font-display text-[13px] font-semibold text-text transition-colors hover:border-accent/35 hover:bg-accent/10 sm:gap-2 sm:px-5 sm:text-sm"
           >
             {/* L'anneau est POSÉ SUR le bouton et ne le remplace pas : la
                 cible de clic garde sa taille pendant l'attente. */}
@@ -277,21 +277,40 @@ function VoiceInner() {
               />
             )}
             <SpeakerIcon className="h-4 w-4 shrink-0" />
-            {loadingAudio ? "Préparation…" : "Écouter"}
+            {/* En dessous de 640 px, « Préparation… » ne tient pas : l'anneau
+                qui pulse dit déjà l'attente, le mot est donc superflu là. */}
+            <span className="min-[360px]:hidden">Écouter</span>
+            <span className="hidden min-[360px]:inline">
+              {loadingAudio ? "Préparation…" : "Écouter"}
+            </span>
           </button>
 
+          {/* Sans micro, « Écouter » prend toute la largeur plutôt que de
+              laisser une demi-carte vide à côté de lui. */}
           {micSupported && (
             <button
               onClick={listening ? stop : start}
               aria-pressed={listening}
-              className={`inline-flex min-w-[9.5rem] items-center justify-center gap-2 rounded-full border px-5 py-2.5 font-display text-sm font-semibold transition-colors ${
+              className={`inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2.5 font-display text-[13px] font-semibold transition-colors sm:gap-2 sm:px-5 sm:text-sm ${
                 listening
                   ? "border-accent2 bg-accent2/10 text-accent2"
                   : "border-border text-text hover:border-accent/35 hover:bg-accent/10"
               }`}
             >
               <MicIcon className={`h-4 w-4 shrink-0 ${listening ? "wave-pulse" : ""}`} />
-              {listening ? "J’écoute…" : listenAndRecall ? "Dire en français" : "Dire en russe"}
+              {listening ? (
+                "J’écoute…"
+              ) : (
+                <>
+                  {/* La LANGUE reste dite dans les deux cas — c'est elle qui
+                      manquait à l'origine. Seul le verbe disparaît quand la
+                      place manque : la consigne au-dessus le porte déjà. */}
+                  <span className="min-[360px]:hidden">{listenAndRecall ? "Français" : "Russe"}</span>
+                  <span className="hidden min-[360px]:inline">
+                    {listenAndRecall ? "Dire en français" : "Dire en russe"}
+                  </span>
+                </>
+              )}
             </button>
           )}
         </div>
