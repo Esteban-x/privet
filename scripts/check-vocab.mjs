@@ -32,7 +32,7 @@ const { wordKey, sameWord } = await jiti.import("../lib/vocabulary/duplicate.ts"
 const { nearMiss } = await jiti.import("../lib/vocabulary/autocomplete.ts");
 const { isFrenchProse } = await jiti.import("../lib/ai/client.ts");
 const P = await jiti.import("../lib/ai/prompts.ts");
-const { ANSWER_LANG, RECOGNITION_ERRORS, MAX_LISTEN_MS, END_GRACE_MS } = await jiti.import("../lib/vocabulary/speech.ts");
+const { ANSWER_LANG, PROMPT_LANG, RECOGNITION_ERRORS, MAX_LISTEN_MS, END_GRACE_MS } = await jiti.import("../lib/vocabulary/speech.ts");
 
 const failures = [];
 let checks = 0;
@@ -463,6 +463,30 @@ require_(
     ANSWER_LANG["ru-first"] !== ANSWER_LANG["fr-first"],
     "voix : les deux sens écoutent la même langue, l'un des deux est donc faux"
   );
+
+  // ON NE PRONONCE JAMAIS LA LANGUE DANS LAQUELLE ON ATTEND LA RÉPONSE.
+  //
+  // Le bouton « Écouter » jouait le mot russe dans les DEUX sens. En « dis ce
+  // mot en russe », le russe est exactement ce qu'on demande de produire : le
+  // bouton soufflait donc la réponse, et à hauteur de première étape — une
+  // pastille de même poids que « Dire en russe », qu'on presse naturellement
+  // en premier. La prononciation russe n'est plus proposée qu'APRÈS la
+  // révélation, là où l'entendre s'appelle apprendre.
+  //
+  // Deux tables, une règle : ce qu'on fait entendre et ce qu'on attend ne
+  // peuvent pas être la même langue.
+  for (const dir of ["ru-first", "fr-first"]) {
+    require_(
+      ANSWER_LANG[dir].slice(0, 2) !== PROMPT_LANG[dir],
+      `voix : en « ${dir} », on prononce du ${PROMPT_LANG[dir]} et on attend du ` +
+        `${ANSWER_LANG[dir].slice(0, 2)} — le bouton « Écouter » donnerait la réponse`
+    );
+  }
+  require_(
+    PROMPT_LANG["ru-first"] !== PROMPT_LANG["fr-first"],
+    "voix : les deux sens prononcent la même langue, l'un des deux est donc faux"
+  );
+
 }
 
 // ─── 8. Les messages du micro ─────────────────────────────────────

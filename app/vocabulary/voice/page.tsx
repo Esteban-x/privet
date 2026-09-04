@@ -9,7 +9,10 @@ import { loadDirection, saveDirection, type VocabDirection } from "@/lib/storage
 import {
   ANSWER_LANG,
   onSpeechBusy,
+  prefetch,
   prefetchRu,
+  PROMPT_LANG,
+  speakIn,
   speakRu,
   useSpeechRecognition,
 } from "@/lib/vocabulary/speech";
@@ -105,11 +108,15 @@ function VoiceInner() {
   // changement de mot, pas un simple ajustement d'état React.
   useEffect(() => {
     if (!current) return;
-    if (direction === "ru-first") void speakRu(current.ru);
-    // En mode « dis ce mot », l'audio n'est pas joué mais le bouton
-    // « entendre la prononciation » est à un clic : on le prépare pendant
-    // que l'apprenant réfléchit, sinon le son arrive après coup.
-    else prefetchRu(current.ru);
+    if (direction === "ru-first") {
+      void speakRu(current.ru);
+    } else {
+      // On prépare ce que le bouton JOUERA — le français, la consigne — et
+      // aussi le russe, qui sera proposé une fois la réponse révélée. Sans
+      // ça le son arrive après que l'apprenant a fini de lire.
+      prefetch("fr", current.fr);
+      prefetchRu(current.ru);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id]);
 
@@ -187,6 +194,9 @@ function VoiceInner() {
    * garde le dernier mot, parce qu'une reconnaissance vocale se trompe
    * assez souvent pour qu'on ne lui confie pas une note.
    */
+  /** Ce que « Écouter » prononce : la consigne, jamais la réponse. */
+  const promptText = listenAndRecall ? current.ru : current.fr;
+
   const heardMatches =
     transcript.trim().length > 0 &&
     matchesAnswer(transcript, listenAndRecall ? current.fr : current.ru);
@@ -237,12 +247,22 @@ function VoiceInner() {
             et parler sont deux gestes de même rang. L'ancienne carte opposait
             un disque de 80 px d'un côté à un lien souligné de l'autre, et le
             bouton d'enregistrement n'avait pas de `flex` — son pictogramme et
-            son libellé ne s'alignaient pas. */}
+            son libellé ne s'alignaient pas.
+
+            « ÉCOUTER » DIT LA CONSIGNE, JAMAIS LA RÉPONSE. Il jouait le mot
+            russe dans les deux sens. En « dis ce mot en russe », le russe est
+            précisément ce qu'on demande de produire : le bouton soufflait
+            donc la réponse, et à hauteur de première étape — une pastille de
+            même poids que « Dire en russe », qu'on presse naturellement en
+            premier. Il joue maintenant ce qui est demandé : le russe quand
+            on doit deviner le sens, le français quand on doit dire le mot
+            russe. La prononciation russe reste à un clic, mais APRÈS la
+            révélation, là où l'entendre s'appelle apprendre et non tricher. */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
           <button
-            onClick={() => void speakRu(current.ru)}
+            onClick={() => void speakIn(PROMPT_LANG[direction], promptText)}
             aria-busy={loadingAudio}
-            aria-label="Écouter le mot russe"
+            aria-label={listenAndRecall ? "Écouter le mot russe" : "Écouter le mot français"}
             className="relative inline-flex min-w-[9.5rem] items-center justify-center gap-2 rounded-full border border-border px-5 py-2.5 font-display text-sm font-semibold text-text transition-colors hover:border-accent/35 hover:bg-accent/10"
           >
             {/* L'anneau est POSÉ SUR le bouton et ne le remplace pas : la
@@ -341,7 +361,21 @@ function VoiceInner() {
           )
         ) : (
           <div className="mt-6 rounded-xl border border-accent/40 bg-accent/10 p-4 text-left">
-            <p className="font-display text-2xl font-bold text-accent-ink">{current.ru}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-display text-2xl font-bold text-accent-ink">{current.ru}</p>
+              {/* La prononciation russe vit ICI depuis qu'elle a quitté la
+                  rangée du haut : à côté de la réponse, une fois qu'elle est
+                  connue. C'est le moment où l'entendre sert à quelque chose. */}
+              <button
+                onClick={() => void speakRu(current.ru)}
+                aria-busy={loadingAudio}
+                aria-label="Écouter la prononciation russe"
+                title="Écouter la prononciation"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-accent-ink transition-colors hover:bg-accent/15"
+              >
+                <SpeakerIcon className="h-4 w-4" />
+              </button>
+            </div>
             <p className="font-display text-sm text-muted">{current.transliteration}</p>
             <p className="mt-2 font-display text-base">{current.fr}</p>
             {current.example && (

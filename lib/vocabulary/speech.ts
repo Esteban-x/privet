@@ -224,6 +224,23 @@ function subscribeNever(): () => void {
  * lire : c'est une règle d'exercice, pas de la mise en page, et elle tient
  * dans une ligne qu'on renverse sans s'en apercevoir.
  */
+/**
+ * LA LANGUE DE LA CONSIGNE — celle que le bouton « Écouter » prononce.
+ *
+ * Il jouait le russe dans les deux sens. En « dis ce mot en russe », le
+ * russe est précisément ce qu'on demande de produire : le bouton soufflait
+ * donc la réponse, à hauteur de première étape. La règle tient en une
+ * phrase — on prononce ce qui est DEMANDÉ, jamais ce qui est ATTENDU — et
+ * elle vit ici pour qu'un contrôle la confronte à ANSWER_LANG : les deux
+ * doivent toujours désigner des langues différentes.
+ */
+export const PROMPT_LANG: Record<"ru-first" | "fr-first", SpeechLang> = {
+  // On écoute le mot russe et on en cherche le sens.
+  "ru-first": "ru",
+  // On lit le mot français et on cherche à le dire en russe.
+  "fr-first": "fr",
+};
+
 export const ANSWER_LANG: Record<"ru-first" | "fr-first", string> = {
   // Le mot est dit en russe : on répond en français.
   "ru-first": "fr-FR",
