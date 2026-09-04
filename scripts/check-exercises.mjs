@@ -262,6 +262,44 @@ require_(
   `lib/exercises/routes.ts ne correspond plus au catalogue : ${EXERCISE_ROUTES.join(", ")}`
 );
 
+// ─── Durée : les quatre options disent le MÊME temps ──────────────
+//
+// L'item porte sur la construction — accusatif nu, за, че́рез, на — et sur
+// rien d'autre. Si les leurres ne reprennent pas l'expression de temps de la
+// réponse, on ne demande plus « laquelle des quatre constructions ? » mais
+// « laquelle des quatre parle de nuits ? », et l'apprenant répond juste sans
+// rien savoir.
+//
+// Le défaut est invisible aux contrôles génériques : quatre options
+// distinctes, un seul correcteur qui dit oui, tout passe. Il suffit pourtant
+// d'un contexte dont la réponse manque à la table des leurres — le repli
+// fournit alors « за час / че́рез час / на час », qui sont bien quatre
+// options différentes et une question vide.
+{
+  const TIME_PREPOSITIONS = ["че́рез ", "за ", "на "];
+  const bareTime = (option) => {
+    for (const preposition of TIME_PREPOSITIONS) {
+      if (option.startsWith(preposition)) return option.slice(preposition.length);
+    }
+    return option;
+  };
+
+  const random = mulberry32(99);
+  const offenders = new Map();
+  for (let draw = 0; draw < DRAWS; draw += 1) {
+    const exercise = numbers.generateNumberExercise("duration", random);
+    const times = new Set(exercise.options.map(bareTime));
+    if (times.size !== 1) offenders.set(exercise.itemId, [...times].join(" / "));
+  }
+  for (const [itemId, times] of offenders) {
+    failures.push(
+      `numbers › duration › ${itemId} : les options ne parlent pas du même temps (${times}) — ` +
+        `l'expression de temps désigne la réponse, la construction ne se juge plus`
+    );
+  }
+  checks += 1;
+}
+
 // ─── L'alphabet est une liste CLOSE ────────────────────────────────
 //
 // Le résumé de la compétence promet « trente-trois lettres ». La banque en

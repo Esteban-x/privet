@@ -103,6 +103,22 @@ const EXPECTED_PREFIXES = {
   зайти: { imp: "заходить", pastM: "зашёл", pastF: "зашла", governs: "dative" },
   обойти: { imp: "обходить", pastM: "обошёл", pastF: "обошла", governs: "accusative" },
   сойти: { imp: "сходить", pastM: "сошёл", pastF: "сошла", governs: "genitive" },
+  // La série en véhicule. Elle est ici pour la même raison que l'autre :
+  // l'imperfectif n'est PAS dérivable du perfectif — приехать donne
+  // приезжать et non « приездить » —, donc la table le dit une seconde fois,
+  // à la main, et un jour où quelqu'un « régularisera » la banque, ce
+  // fichier refusera.
+  приехать: { imp: "приезжать", pastM: "приехал", pastF: "приехала", governs: "accusative" },
+  уехать: { imp: "уезжать", pastM: "уехал", pastF: "уехала", governs: "genitive" },
+  въехать: { imp: "въезжать", pastM: "въехал", pastF: "въехала", governs: "accusative" },
+  выехать: { imp: "выезжать", pastM: "выехал", pastF: "выехала", governs: "genitive" },
+  подъехать: { imp: "подъезжать", pastM: "подъехал", pastF: "подъехала", governs: "dative" },
+  отъехать: { imp: "отъезжать", pastM: "отъехал", pastF: "отъехала", governs: "genitive" },
+  переехать: { imp: "переезжать", pastM: "переехал", pastF: "переехала", governs: "accusative" },
+  доехать: { imp: "доезжать", pastM: "доехал", pastF: "доехала", governs: "genitive" },
+  заехать: { imp: "заезжать", pastM: "заехал", pastF: "заехала", governs: "dative" },
+  объехать: { imp: "объезжать", pastM: "объехал", pastF: "объехала", governs: "accusative" },
+  съехать: { imp: "съезжать", pastM: "съехал", pastF: "съехала", governs: "genitive" },
 };
 
 for (const p of V.MOTION_PREFIXES) {
@@ -120,6 +136,58 @@ for (const p of V.MOTION_PREFIXES) {
   require_(p.governs === expected.governs, `${p.perfective} : régit "${p.governs}" au lieu de "${expected.governs}"`);
 }
 
+// La table témoin sert dans les DEUX sens. Vérifier que chaque entrée de la
+// banque y figure attrape un ajout fautif ; vérifier que chaque entrée de la
+// table figure dans la banque attrape une SUPPRESSION, qui passait jusqu'ici
+// sans un mot — la boucle ci-dessus ne parle que de ce qu'elle voit.
+{
+  const inBank = new Set(V.MOTION_PREFIXES.map((p) => stripAccent(p.perfective)));
+  for (const perfective of Object.keys(EXPECTED_PREFIXES)) {
+    require_(inBank.has(perfective), `${perfective} est attendu mais ne figure plus dans la banque`);
+  }
+  const ids = V.MOTION_PREFIXES.map((p) => p.id);
+  require_(
+    new Set(ids).size === ids.length,
+    "deux préfixes portent le même identifiant : la correction serveur en trouverait un seul"
+  );
+}
+
+// LA PAGE NE SAIT LÉGENDER QUE DEUX SÉRIES. app/motion/page.tsx groupe les
+// préfixes par mode et écrit au-dessus de chaque groupe sa règle de
+// formation — celle de идти, celle de е́хать. Un préfixe dans un troisième
+// mode ne tomberait dans aucun groupe : il disparaîtrait de la table sans
+// rien casser, et l'exercice continuerait de le tirer. On le refuse ici,
+// là où la donnée vit, plutôt que d'attendre qu'un œil remarque un trou.
+{
+  const CAPTIONED = new Set(["foot", "vehicle"]);
+  for (const p of V.MOTION_PREFIXES) {
+    require_(
+      CAPTIONED.has(p.mode),
+      `${p.perfective} : mode « ${p.mode} » sans légende — la page groupe par mode ` +
+        `et n'affiche que ${[...CAPTIONED].join(" et ")} ; le préfixe serait invisible`
+    );
+  }
+}
+
+// Le signe dur, qui ne s'entend pas et ne se devine pas. Un préfixe qui finit
+// par une consonne le prend devant е- : въе́хать, подъе́хать, съе́хать. Sans
+// lui, « вехать » se lirait avec un е mouillé — un autre mot, s'il existait.
+// La règle est mécanique, donc vérifiable ; c'est pour ça qu'elle est ici et
+// pas seulement dans la table.
+for (const p of V.MOTION_PREFIXES) {
+  if (p.mode !== "vehicle") continue;
+  const prefix = stripAccent(p.prefix).replace(/-$/, "");
+  if (!/[бвгджзклмнпрстфхцчшщ]$/.test(prefix)) continue;
+  require_(
+    stripAccent(p.perfective).startsWith(prefix + "ъе"),
+    `${p.perfective} : le préfixe « ${p.prefix} » finit par une consonne, il faut le signe dur devant е-`
+  );
+  require_(
+    stripAccent(p.imperfective).startsWith(prefix + "ъе"),
+    `${p.imperfective} : signe dur manquant devant е-`
+  );
+}
+
 // ─── 3. Génération des exercices ───────────────────────────────────
 // Les phrases françaises des exercices « mode » et « direction » disent
 // « aller » : la réponse ne peut pas être un verbe de manière.
@@ -130,10 +198,15 @@ const MANNER_FORMS = new Set(
   ])
 );
 
+/** Le mode auquel appartient un perfectif servi comme option. */
+const PREFIX_FORM_MODE = new Map(V.MOTION_PREFIXES.map((p) => [p.perfective, p.mode]));
+const modeOfPrefixForm = (form) => PREFIX_FORM_MODE.get(form) ?? "?";
+
 for (const skill of X.MOTION_SKILLS) {
   let semanticMismatch = 0;
   let unverifiable = 0;
   let malformed = 0;
+  let mixedModes = 0;
   const seenItems = new Set();
 
   for (let i = 0; i < 800; i++) {
@@ -158,6 +231,12 @@ for (const skill of X.MOTION_SKILLS) {
     if ((skill.id === "mode" || skill.id === "direction") && MANNER_FORMS.has(answer)) {
       semanticMismatch += 1;
     }
+    // Un exercice de préfixe montre un pictogramme de mode et demande le
+    // TRAJET. Si les options mélangent les deux séries, le pictogramme donne
+    // la réponse et le schéma ne sert plus à rien.
+    if (skill.id === "prefix" && new Set(ex.options.map(modeOfPrefixForm)).size !== 1) {
+      mixedModes += 1;
+    }
     require_(ex.sentenceFr.trim().length > 0, `${skill.id} : exercice sans phrase française`);
     require_(ex.explain.trim().length > 0, `${skill.id} : exercice sans explication`);
     checks -= 2; // ces deux-là sont comptés une fois par tirage, on n'en garde qu'un
@@ -169,6 +248,10 @@ for (const skill of X.MOTION_SKILLS) {
   require_(
     semanticMismatch === 0,
     `${skill.id} : ${semanticMismatch} exercices dont la phrase dit « aller » mais attendent un verbe de manière`
+  );
+  require_(
+    mixedModes === 0,
+    `${skill.id} : ${mixedModes} exercices mélangent la série à pied et la série en véhicule — le pictogramme donnerait la réponse`
   );
   require_(seenItems.size >= 3, `${skill.id} : seulement ${seenItems.size} items distincts, la pratique tournerait en rond`);
 }
@@ -227,9 +310,16 @@ require_(
 }
 
 // ─── Rapport ───────────────────────────────────────────────────────
-const ACCENTED_FORMS = V.MOTION_PAIRS.flatMap((p) =>
-  [...Object.values(p.uniForms), ...Object.values(p.multiForms)].filter(Boolean)
-);
+// Les formes des PRÉFIXES entrent dans l'hygiène. Elles en étaient absentes
+// tant que la table en comptait onze, écrites d'un coup et relues d'un coup ;
+// la série en véhicule en ajoute onze, et « приезжать » sans accent ou
+// « вы́ехáть » avec deux ne se voient pas à la relecture.
+const ACCENTED_FORMS = [
+  ...V.MOTION_PAIRS.flatMap((p) =>
+    [...Object.values(p.uniForms), ...Object.values(p.multiForms)].filter(Boolean)
+  ),
+  ...V.MOTION_PREFIXES.flatMap((p) => [p.perfective, p.imperfective, p.pastM, p.pastF]),
+];
 
 // ─── Hygiène de l'accent tonique ───────────────────────────────────
 //

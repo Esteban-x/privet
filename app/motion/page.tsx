@@ -24,6 +24,30 @@ const SKILL_SCHEMA = {
   government: "upto",
 } as const;
 
+/**
+ * Les deux séries de préfixes, et la règle propre à chacune.
+ *
+ * Elle est écrite ici parce qu'elle n'est pas la même des deux côtés :
+ * приходи́ть se lit sur ходи́ть, mais l'imperfectif de прие́хать est
+ * приезжа́ть et non « приезди́ть ». Une seule phrase pour les deux séries
+ * enseignerait un verbe qui n'existe pas.
+ */
+const PREFIX_SERIES = [
+  {
+    mode: "foot" as const,
+    title: "À pied",
+    rule: "Préfixe + идти donne le perfectif, préfixe + ходить son imperfectif.",
+  },
+  {
+    mode: "vehicle" as const,
+    title: "En véhicule",
+    rule:
+      "Préfixe + ехать donne le perfectif. L'imperfectif, lui, ne se bâtit pas sur ездить — " +
+      "il prend un troisième radical, -езжать : приехать / приезжать. Et un préfixe qui " +
+      "finit par une consonne prend le signe dur devant е- : въехать, подъехать, съехать.",
+  },
+];
+
 export default async function MotionHub() {
   const progress = new Map<string, { attempts: number; correct: number }>();
 
@@ -165,33 +189,45 @@ export default async function MotionHub() {
 
       <div className="mt-10">
         <SectionLabel color="accent">Les préfixes</SectionLabel>
-        <p className="mb-4 max-w-2xl font-display text-sm leading-relaxed text-muted">
-          Préfixe + <span className="font-semibold">идти</span> donne un perfectif, préfixe +{" "}
-          <span className="font-semibold">ходить</span> son imperfectif. Chaque préfixe appelle
-          aussi sa préposition, et donc son cas.
+        <p className="mb-6 max-w-2xl font-display text-sm leading-relaxed text-muted">
+          Le préfixe fixe le trajet, et il appelle sa préposition — donc son cas. La même
+          grille vaut à pied et en véhicule : qui sait dire{" "}
+          <span className="font-semibold">подойти к двери</span> sait dire{" "}
+          <span className="font-semibold">подъехать к дому</span>. Seule la façon de former
+          l&apos;imperfectif change d&apos;une série à l&apos;autre.
         </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {MOTION_PREFIXES.map((p) => (
-            <div key={p.id} className="rounded-2xl surface p-5">
-              <div className="flex items-baseline gap-2">
-                <span className="font-display text-lg font-bold text-accent-ink">{p.perfective}</span>
-                <span className="font-display text-sm text-muted">/ {p.imperfective}</span>
-              </div>
-              <p className="mt-0.5 font-display text-sm">{p.translation}</p>
-              <p className="mt-1 font-display text-xs text-muted">
-                {p.preposition !== "—" ? `${p.preposition} + ` : ""}
-                {p.governs === "accusative"
-                  ? "accusatif"
-                  : p.governs === "genitive"
-                    ? "génitif"
-                    : "datif"}
-              </p>
-              <p className="mt-2 font-display text-xs italic text-muted">
-                {p.example.ru} — {p.example.fr}
-              </p>
+        {PREFIX_SERIES.map((series) => (
+          <div key={series.mode} className="mb-8 last:mb-0">
+            <h3 className="mb-1 font-display text-sm font-bold">{series.title}</h3>
+            <p className="mb-4 max-w-2xl font-display text-sm leading-relaxed text-muted">
+              {series.rule}
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {MOTION_PREFIXES.filter((p) => p.mode === series.mode).map((p) => (
+                <div key={p.id} className="rounded-2xl surface p-5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display text-lg font-bold text-accent-ink">
+                      {p.perfective}
+                    </span>
+                    <span className="font-display text-sm text-muted">/ {p.imperfective}</span>
+                  </div>
+                  <p className="mt-0.5 font-display text-sm">{p.translation}</p>
+                  <p className="mt-1 font-display text-xs text-muted">
+                    {p.preposition !== "—" ? `${p.preposition} + ` : ""}
+                    {p.governs === "accusative"
+                      ? "accusatif"
+                      : p.governs === "genitive"
+                        ? "génitif"
+                        : "datif"}
+                  </p>
+                  <p className="mt-2 font-display text-xs italic text-muted">
+                    {p.example.ru} — {p.example.fr}
+                  </p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

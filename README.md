@@ -434,6 +434,16 @@ en même temps.
 3. **Le préfixe** — при-, у-, в-, вы-, под-… qui change le sens, rend le
    verbe perfectif, et impose sa préposition et donc son cas.
 
+Les onze préfixes existent dans les **deux séries** : à pied (`прийти`) et en
+véhicule (`приехать`), mêmes prépositions et mêmes cas. Qui sait dire
+« подойти к двери » sait dire « подъехать к дому ». Deux choses seulement
+changent, et ce sont elles que la série en véhicule enseigne : l'imperfectif
+ne se bâtit pas sur `ездить` mais sur un troisième radical, `-езжать`
+(`приезжать`, jamais « приездить ») ; et un préfixe qui finit par une
+consonne prend le **signe dur** devant е- (`въехать`, `подъехать`,
+`съехать`). Les deux règles sont vérifiées — la première par la table
+témoin, la seconde mécaniquement.
+
 `/motion` traite ces trois couches comme quatre compétences séparées, dans
 l'ordre où elles se construisent (A1 → B1). Chacune isole UNE difficulté :
 mélanger le mode et la direction dans un même exercice ne dirait pas laquelle
@@ -620,10 +630,17 @@ de réussite reste estimée A0.
   options. Soit on les compte à part, soit on accepte de sous-estimer la
   difficulté des autres.
 - Les banques les plus minces, celles qui ne tirent pas dans une banque de
-  contextes et qu'aucun script ne peut donc élargir : `numbers/duration`
-  (8 items), `participles/subject` (8), `motion/prefix` (11). Un apprenant les
-  épuise en une séance. `alphabet/spelling` (20) et `alphabet/sounds` (22) en
-  sont sorties, écrites à la main.
+  contextes et qu'aucun script ne peut donc élargir : `aspect/markers`
+  (13 items), `numbers/age` (15), `motion/mode` (17). En sont sorties, écrites
+  à la main : `alphabet/spelling` (20), `alphabet/sounds` (22),
+  `numbers/duration` (8 → 22), `participles/subject` (8 → 20) et
+  `motion/prefix` (11 → 22, la série en véhicule).
+
+  Ces trois-là résistent pour une raison de langue, pas de courage :
+  `motion/mode` est bornée par le nombre de verbes d'« aller » que le russe
+  possède, `numbers/age` par les nombres qu'il vaut la peine de demander, et
+  `aspect/markers` par la liste des adverbes qui décident vraiment de
+  l'aspect. Les allonger demanderait d'inventer des items sans contenu.
 - Faire entrer `motion_progress` dans l'estimation continue du niveau : les
   seuils actuels sont calibrés sur les 136 déclencheurs de cas, les ajouter
   demande de les recalibrer.

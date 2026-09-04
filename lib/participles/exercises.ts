@@ -723,7 +723,7 @@ const SUBJECT_ITEMS: SubjectItem[] = [
     correct: "Чита́я э́ту кни́гу, я мно́гое по́нял.",
     wrong: ["Чита́я э́ту кни́гу, мне мно́гое ста́ло я́сно.", "Чита́я э́ту кни́гу, всё ста́ло поня́тно."],
     fr: "En lisant ce livre, j'ai compris beaucoup de choses.",
-    why: "« мне » et « всё » ne sont pas des sujets qui lisent : seule la première phrase respecte l'unicité du sujet.",
+    why: "« мне » et « всё » ne sont pas des sujets qui lisent : seule la phrase où « я » lit ET comprend respecte l'unicité du sujet.",
   },
   {
     id: "finishing",
@@ -765,7 +765,100 @@ const SUBJECT_ITEMS: SubjectItem[] = [
     correct: "Прие́хав в Москву́, мы сра́зу пошли́ на Кра́сную пло́щадь.",
     wrong: ["Прие́хав в Москву́, нас встре́тили друзья́.", "Прие́хав в Москву́, бы́ло уже́ по́здно."],
     fr: "Arrivés à Moscou, nous sommes allés tout de suite sur la place Rouge.",
-    why: "Dans la deuxième phrase, le sujet est « друзья́ » — ce ne sont pas eux qui arrivent. La troisième n'a pas de sujet du tout.",
+    why: "« Нас встре́тили друзья́ » a pour sujet « друзья́ » — ce ne sont pas eux qui arrivent. « Бы́ло уже́ по́здно » n'a pas de sujet du tout.",
+  },
+
+  // Les quatre façons de casser la règle, reprises en alternance : un autre
+  // NOM devient sujet du verbe principal, un datif impersonnel remplace le
+  // sujet, une tournure sans sujet du tout, ou un passif qui met l'objet à
+  // la place de l'agent. Le francophone ne les entend pas — « en répondant
+  // à la question, sa voix tremblait » passe très bien en français.
+  //
+  // Aucune explication ne désigne une phrase par son RANG : les options sont
+  // mélangées à chaque tirage. Elles citent le russe.
+  {
+    id: "crossing",
+    correct: "Переходя́ у́лицу, он посмотре́л нале́во.",
+    wrong: ["Переходя́ у́лицу, его́ чуть не сби́ла маши́на.", "Переходя́ у́лицу, ему́ ста́ло стра́шно."],
+    fr: "En traversant la rue, il a regardé à gauche.",
+    why: "Dans « его́ чуть не сби́ла маши́на », le sujet est « маши́на » : ce serait la voiture qui traverse. Et « ему́ » est un datif — un datif n'est jamais sujet.",
+  },
+  {
+    id: "preparing",
+    correct: "Гото́вя у́жин, она́ слу́шала ра́дио.",
+    wrong: ["Гото́вя у́жин, у неё зазвони́л телефо́н.", "Гото́вя у́жин, бы́ло ве́село."],
+    fr: "En préparant le dîner, elle écoutait la radio.",
+    why: "« Телефо́н » ne prépare pas le dîner, et « бы́ло ве́село » n'a aucun sujet : dans les deux cas le gérondif reste sans support.",
+  },
+  {
+    id: "leaving-office",
+    correct: "Вы́йдя из о́фиса, он встре́тил колле́гу.",
+    wrong: ["Вы́йдя из о́фиса, его́ жда́ла маши́на.", "Вы́йдя из о́фиса, ста́ло темно́."],
+    fr: "En sortant du bureau, il a croisé un collègue.",
+    why: "« Его́ жда́ла маши́на » a pour sujet la voiture — c'est elle qui serait sortie du bureau. « Ста́ло темно́ » n'a pas de sujet.",
+  },
+  {
+    id: "writing-letter",
+    correct: "Написа́в письмо́, она́ отпра́вила его́.",
+    wrong: ["Написа́в письмо́, оно́ бы́ло отпра́влено.", "Написа́в письмо́, ей ста́ло споко́йнее."],
+    fr: "Ayant écrit la lettre, elle l'a envoyée.",
+    why: "Le passif déplace l'agent hors de la phrase : « оно́ бы́ло отпра́влено » ne dit plus qui a écrit. Et « ей » est au datif, donc pas sujet.",
+  },
+  {
+    id: "looking-photos",
+    correct: "Рассма́тривая фотогра́фии, мы вспомина́ли ле́то.",
+    wrong: ["Рассма́тривая фотогра́фии, ле́то каза́лось далёким.", "Рассма́тривая фотогра́фии, нам ста́ло гру́стно."],
+    fr: "En regardant les photos, nous nous souvenions de l'été.",
+    why: "Ce n'est pas l'été qui regarde les photos, et « нам » est au datif. Seul « мы » peut à la fois regarder et se souvenir.",
+  },
+  {
+    id: "answering",
+    correct: "Отвеча́я на вопро́с, студе́нт волнова́лся.",
+    wrong: ["Отвеча́я на вопро́с, его́ го́лос дрожа́л.", "Отвеча́я на вопро́с, бы́ло тру́дно сосредото́читься."],
+    fr: "En répondant à la question, l'étudiant était nerveux.",
+    why: "Le piège du francophone : « en répondant, sa voix tremblait » se dit en français, mais en russe le sujet devient « го́лос » — ce n'est pas la voix qui répond.",
+  },
+  {
+    id: "having-dined",
+    correct: "Поу́жинав, они́ пошли́ гуля́ть.",
+    wrong: ["Поу́жинав, им захоте́лось спать.", "Поу́жинав, посу́да была́ вы́мыта."],
+    fr: "Après avoir dîné, ils sont allés se promener.",
+    why: "« Им захоте́лось » est une tournure impersonnelle au datif, et « посу́да была́ вы́мыта » fait de la vaisselle le sujet : ce n'est pas elle qui a dîné.",
+  },
+  {
+    id: "travelling",
+    correct: "Путеше́ствуя по Росси́и, мы ви́дели мно́го городо́в.",
+    wrong: ["Путеше́ствуя по Росси́и, нам понра́вились города́.", "Путеше́ствуя по Росси́и, бы́ло интере́сно."],
+    fr: "En voyageant à travers la Russie, nous avons vu beaucoup de villes.",
+    why: "« Нам понра́вились города́ » a pour sujet « города́ », et les villes ne voyagent pas. « Бы́ло интере́сно » n'a pas de sujet du tout.",
+  },
+  {
+    id: "having-returned",
+    correct: "Верну́вшись из о́тпуска, он сра́зу вы́шел на рабо́ту.",
+    wrong: ["Верну́вшись из о́тпуска, его́ ждала́ ку́ча пи́сем.", "Верну́вшись из о́тпуска, бы́ло тру́дно нача́ть рабо́тать."],
+    fr: "Rentré de vacances, il a repris le travail tout de suite.",
+    why: "« Ку́ча пи́сем » est le sujet là où les lettres attendent : ce n'est pas le tas qui rentre de vacances. « Бы́ло тру́дно » est impersonnel.",
+  },
+  {
+    id: "studying-russian",
+    correct: "Изуча́я ру́сский язы́к, она́ полюби́ла Че́хова.",
+    wrong: ["Изуча́я ру́сский язы́к, у неё появи́лись но́вые друзья́.", "Изуча́я ру́сский язы́к, бы́ло непро́сто запо́мнить падежи́."],
+    fr: "En étudiant le russe, elle s'est prise d'affection pour Tchekhov.",
+    why: "« У неё появи́лись друзья́ » a pour sujet « друзья́ » — les amis n'étudient pas le russe. « Бы́ло непро́сто » n'a pas de sujet du tout.",
+  },
+  {
+    id: "closing-door",
+    correct: "Закры́в дверь, она́ вы́ключила свет.",
+    wrong: ["Закры́в дверь, свет был вы́ключен.", "Закры́в дверь, в ко́мнате ста́ло темно́."],
+    fr: "Ayant fermé la porte, elle a éteint la lumière.",
+    why: "Le passif « свет был вы́ключен » fait de la lumière le sujet, et « в ко́мнате ста́ло темно́ » n'en a aucun : personne n'a plus fermé la porte.",
+  },
+  {
+    id: "hurrying",
+    correct: "Спеша́ на по́езд, я забы́л зонт.",
+    wrong: ["Спеша́ на по́езд, зонт оста́лся до́ма.", "Спеша́ на по́езд, мне бы́ло не до за́втрака."],
+    fr: "En me dépêchant pour le train, j'ai oublié mon parapluie.",
+    why: "Ce n'est pas le parapluie qui court après le train. Et « мне » est au datif : la tournure est impersonnelle, donc sans sujet à partager.",
   },
 ];
 

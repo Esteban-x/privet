@@ -251,10 +251,17 @@ export interface MotionPrefix {
   prefix: string;
   /** Perfectif : préfixe + verbe unidirectionnel. */
   perfective: string;
-  /** Imperfectif : préfixe + verbe multidirectionnel. */
+  /**
+   * Imperfectif. À pied, c'est préfixe + le multidirectionnel (приходи́ть).
+   * En véhicule, NON : le multidirectionnel е́здить ne se préfixe pas, et
+   * l'imperfectif se bâtit sur un troisième radical, -езжа́ть. C'est écrit
+   * ici parce qu'aucune règle ne le tire de la paire.
+   */
   imperfective: string;
   translation: string;
   schema: TrajectorySchema;
+  /** À pied ou en véhicule : le même préfixe existe dans les deux séries. */
+  mode: MotionMode;
   /** Passé du perfectif, masculin et féminin. */
   pastM: string;
   pastF: string;
@@ -278,6 +285,7 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "приходи́ть",
     translation: "arriver, venir",
     schema: "reach",
+    mode: "foot",
     pastM: "пришёл",
     pastF: "пришла́",
     preposition: "в / на",
@@ -291,11 +299,12 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "уходи́ть",
     translation: "partir, s'en aller",
     schema: "awayfrom",
+    mode: "foot",
     pastM: "ушёл",
     pastF: "ушла́",
     preposition: "из / с",
     governs: "genitive",
-    example: { ru: "она́ ушла́ из до́ма.", fr: "Elle est partie de la maison." },
+    example: { ru: "Она́ ушла́ из до́ма.", fr: "Elle est partie de la maison." },
   },
   {
     id: "v",
@@ -304,6 +313,7 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "входи́ть",
     translation: "entrer",
     schema: "into",
+    mode: "foot",
     pastM: "вошёл",
     pastF: "вошла́",
     preposition: "в",
@@ -317,12 +327,13 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "выходи́ть",
     translation: "sortir",
     schema: "outof",
+    mode: "foot",
     // вы- porte toujours l'accent au perfectif : вы́шел, jamais « вышёл ».
     pastM: "вы́шел",
     pastF: "вы́шла",
     preposition: "из",
     governs: "genitive",
-    example: { ru: "она́ вы́шла из магази́на.", fr: "Elle est sortie du magasin." },
+    example: { ru: "Она́ вы́шла из магази́на.", fr: "Elle est sortie du magasin." },
   },
   {
     id: "pod",
@@ -331,6 +342,7 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "подходи́ть",
     translation: "s'approcher",
     schema: "upto",
+    mode: "foot",
     pastM: "подошёл",
     pastF: "подошла́",
     preposition: "к",
@@ -344,6 +356,7 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "отходи́ть",
     translation: "s'écarter, s'éloigner",
     schema: "awayfrom",
+    mode: "foot",
     pastM: "отошёл",
     pastF: "отошла́",
     preposition: "от",
@@ -357,6 +370,7 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "переходи́ть",
     translation: "traverser",
     schema: "across",
+    mode: "foot",
     pastM: "перешёл",
     pastF: "перешла́",
     preposition: "че́рез",
@@ -370,6 +384,7 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "доходи́ть",
     translation: "aller jusqu'à, atteindre",
     schema: "reach",
+    mode: "foot",
     pastM: "дошёл",
     pastF: "дошла́",
     preposition: "до",
@@ -383,6 +398,7 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "заходи́ть",
     translation: "passer (chez), faire un détour",
     schema: "past",
+    mode: "foot",
     pastM: "зашёл",
     pastF: "зашла́",
     preposition: "к",
@@ -396,6 +412,7 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "обходи́ть",
     translation: "contourner, faire le tour de",
     schema: "around",
+    mode: "foot",
     pastM: "обошёл",
     pastF: "обошла́",
     preposition: "—",
@@ -409,11 +426,186 @@ export const MOTION_PREFIXES: MotionPrefix[] = [
     imperfective: "сходи́ть",
     translation: "descendre de",
     schema: "awayfrom",
+    mode: "foot",
     pastM: "сошёл",
     pastF: "сошла́",
     preposition: "с",
     governs: "genitive",
-    example: { ru: "она́ сошла́ с по́езда.", fr: "Elle est descendue du train." },
+    example: { ru: "Она́ сошла́ с по́езда.", fr: "Elle est descendue du train." },
+  },
+
+  // ─── La même grille, en véhicule ─────────────────────────────────
+  //
+  // Le système de préfixes ne tient pas à идти : il s'applique tel quel à
+  // е́хать, avec les mêmes prépositions et les mêmes cas. Un apprenant qui a
+  // compris « подойти́ к две́ри » n'a rien de neuf à apprendre pour
+  // « подъе́хать к до́му » — sauf DEUX choses, et ce sont elles que cette
+  // série enseigne :
+  //
+  //   L'IMPERFECTIF CHANGE DE RADICAL. приходи́ть se lit sur ходи́ть ; le
+  //   pendant de прие́хать n'est pas « приезди́ть », qui n'existe pas, mais
+  //   приезжа́ть. Le multidirectionnel е́здить ne se préfixe pas.
+  //
+  //   LE Ъ APPARAÎT. Un préfixe qui finit par une consonne prend le signe
+  //   dur devant е- : въе́хать, подъе́хать, отъе́хать, объе́хать, съе́хать.
+  //   À pied, la question ne se posait pas — войти́, подойти́ commencent par
+  //   une voyelle de liaison.
+  {
+    id: "pri-ekh",
+    prefix: "при-",
+    perfective: "прие́хать",
+    imperfective: "приезжа́ть",
+    translation: "arriver, venir",
+    schema: "reach",
+    mode: "vehicle",
+    pastM: "прие́хал",
+    pastF: "прие́хала",
+    preposition: "в / на",
+    governs: "accusative",
+    example: { ru: "Он прие́хал в Москву́.", fr: "Il est arrivé à Moscou." },
+  },
+  {
+    id: "u-ekh",
+    prefix: "у-",
+    perfective: "уе́хать",
+    imperfective: "уезжа́ть",
+    translation: "partir, s'en aller",
+    schema: "awayfrom",
+    mode: "vehicle",
+    pastM: "уе́хал",
+    pastF: "уе́хала",
+    preposition: "из / с",
+    governs: "genitive",
+    example: { ru: "Она́ уе́хала из го́рода.", fr: "Elle est partie de la ville." },
+  },
+  {
+    id: "v-ekh",
+    prefix: "в-",
+    perfective: "въе́хать",
+    imperfective: "въезжа́ть",
+    translation: "entrer",
+    schema: "into",
+    mode: "vehicle",
+    // Signe dur : в + е́хать ne peut pas s'écrire « ве́хать ».
+    pastM: "въе́хал",
+    pastF: "въе́хала",
+    preposition: "в",
+    governs: "accusative",
+    example: { ru: "Маши́на въе́хала во двор.", fr: "La voiture est entrée dans la cour." },
+  },
+  {
+    id: "vy-ekh",
+    prefix: "вы-",
+    perfective: "вы́ехать",
+    imperfective: "выезжа́ть",
+    translation: "sortir",
+    schema: "outof",
+    mode: "vehicle",
+    // вы- porte l'accent au perfectif et le perd à l'imperfectif :
+    // вы́ехать mais выезжа́ть.
+    pastM: "вы́ехал",
+    pastF: "вы́ехала",
+    preposition: "из",
+    governs: "genitive",
+    example: { ru: "Мы вы́ехали из гаража́.", fr: "Nous sommes sortis du garage." },
+  },
+  {
+    id: "pod-ekh",
+    prefix: "под-",
+    perfective: "подъе́хать",
+    imperfective: "подъезжа́ть",
+    translation: "s'approcher",
+    schema: "upto",
+    mode: "vehicle",
+    pastM: "подъе́хал",
+    pastF: "подъе́хала",
+    preposition: "к",
+    governs: "dative",
+    example: { ru: "Такси́ подъе́хало к до́му.", fr: "Le taxi s'est approché de la maison." },
+  },
+  {
+    id: "ot-ekh",
+    prefix: "от-",
+    perfective: "отъе́хать",
+    imperfective: "отъезжа́ть",
+    translation: "s'écarter, s'éloigner",
+    schema: "awayfrom",
+    mode: "vehicle",
+    pastM: "отъе́хал",
+    pastF: "отъе́хала",
+    preposition: "от",
+    governs: "genitive",
+    example: { ru: "Авто́бус отъе́хал от остано́вки.", fr: "Le bus s'est éloigné de l'arrêt." },
+  },
+  {
+    id: "pere-ekh",
+    prefix: "пере́-",
+    perfective: "перее́хать",
+    imperfective: "переезжа́ть",
+    translation: "traverser",
+    schema: "across",
+    mode: "vehicle",
+    pastM: "перее́хал",
+    pastF: "перее́хала",
+    preposition: "че́рез",
+    governs: "accusative",
+    example: { ru: "Мы перее́хали че́рез мост.", fr: "Nous avons traversé le pont." },
+  },
+  {
+    id: "do-ekh",
+    prefix: "до-",
+    perfective: "дое́хать",
+    imperfective: "доезжа́ть",
+    translation: "aller jusqu'à, atteindre",
+    schema: "reach",
+    mode: "vehicle",
+    pastM: "дое́хал",
+    pastF: "дое́хала",
+    preposition: "до",
+    governs: "genitive",
+    example: { ru: "Мы дое́хали до вокза́ла.", fr: "Nous sommes arrivés jusqu'à la gare." },
+  },
+  {
+    id: "za-ekh",
+    prefix: "за-",
+    perfective: "зае́хать",
+    imperfective: "заезжа́ть",
+    translation: "passer (chez), faire un détour",
+    schema: "past",
+    mode: "vehicle",
+    pastM: "зае́хал",
+    pastF: "зае́хала",
+    preposition: "к",
+    governs: "dative",
+    example: { ru: "Я зае́хал к роди́телям.", fr: "Je suis passé chez mes parents." },
+  },
+  {
+    id: "ob-ekh",
+    prefix: "об-",
+    perfective: "объе́хать",
+    imperfective: "объезжа́ть",
+    translation: "contourner, faire le tour de",
+    schema: "around",
+    mode: "vehicle",
+    pastM: "объе́хал",
+    pastF: "объе́хала",
+    preposition: "—",
+    governs: "accusative",
+    example: { ru: "Он объе́хал про́бку.", fr: "Il a contourné l'embouteillage." },
+  },
+  {
+    id: "s-ekh",
+    prefix: "с-",
+    perfective: "съе́хать",
+    imperfective: "съезжа́ть",
+    translation: "descendre de",
+    schema: "awayfrom",
+    mode: "vehicle",
+    pastM: "съе́хал",
+    pastF: "съе́хала",
+    preposition: "с",
+    governs: "genitive",
+    example: { ru: "Маши́на съе́хала с холма́.", fr: "La voiture est descendue de la colline." },
   },
 ];
 

@@ -349,9 +349,17 @@ function directionExercise(random: () => number): MotionExercise {
 // ─── 3. Préfixes ───────────────────────────────────────────────────
 // Le schéma porte tout le sens : une flèche qui entre, qui sort, qui
 // s'arrête au bord, qui contourne. L'apprenant lit la géométrie.
+//
+// LES LEURRES RESTENT DANS LE MODE DE LA RÉPONSE. Depuis que la série en
+// véhicule existe, mélanger les deux rendrait l'exercice trivial dans un
+// sens (un seul verbe en -е́хать parmi trois en -йти́ : on le reconnaît sans
+// lire le schéma) et injuste dans l'autre. Le mode est DONNÉ par le
+// pictogramme ; ce qui est demandé, c'est le trajet.
 function prefixExercise(random: () => number): MotionExercise {
   const target = pick(MOTION_PREFIXES, random);
-  const others = MOTION_PREFIXES.filter((p) => p.id !== target.id && p.schema !== target.schema);
+  const others = MOTION_PREFIXES.filter(
+    (p) => p.id !== target.id && p.schema !== target.schema && p.mode === target.mode
+  );
   const distractors: MotionPrefix[] = [];
   const shuffled = [...others];
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
@@ -374,10 +382,17 @@ function prefixExercise(random: () => number): MotionExercise {
     prompt: "Quel verbe décrit ce trajet ?",
     sentenceFr: target.translation,
     schema: target.schema,
-    mode: "foot",
+    mode: target.mode,
     options,
     correctIndex,
-    explain: `${target.prefix} → ${target.perfective} / ${target.imperfective} = ${target.translation}. ${target.example.ru} — ${target.example.fr} Préfixe + идти donne le perfectif, préfixe + ходить l'imperfectif.`,
+    // La règle de formation n'est pas la même dans les deux séries, et
+    // l'annoncer de travers apprendrait « приездить ».
+    explain:
+      `${target.prefix} → ${target.perfective} / ${target.imperfective} = ${target.translation}. ` +
+      `${target.example.ru} — ${target.example.fr} ` +
+      (target.mode === "vehicle"
+        ? "Préfixe + е́хать donne le perfectif ; l'imperfectif se bâtit sur -езжа́ть, pas sur е́здить."
+        : "Préfixe + идти donne le perfectif, préfixe + ходить l'imperfectif."),
   };
 }
 

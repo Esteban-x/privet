@@ -522,6 +522,112 @@ const DURATION_CONTEXTS: DurationContext[] = [
     correct: "за неде́лю",
     why: "За + accusatif mesure le temps nécessaire au résultat — le verbe est perfectif (написа́ла).",
   },
+
+  // ─── Accusatif seul : combien de temps ça a duré ────────────────
+  {
+    id: "slept-all-night",
+    ru: "Он спал ___.",
+    fr: "Il a dormi toute la nuit.",
+    correct: "всю ночь",
+    why: "Dormir n'aboutit à rien : il n'y a que de la durée, donc l'accusatif seul. « На всю ночь » dirait qu'il s'est couché POUR la nuit — c'est остался на всю ночь, pas спал.",
+  },
+  {
+    id: "waited-twenty-minutes",
+    ru: "Мы жда́ли авто́буса ___.",
+    fr: "Nous avons attendu le bus vingt minutes.",
+    correct: "два́дцать мину́т",
+    why: "Жда́ли est imperfectif et l'attente n'a pas de terme atteint : accusatif nu. За два́дцать мину́т supposerait un résultat obtenu en vingt minutes.",
+  },
+  {
+    id: "worked-all-day",
+    ru: "Она́ рабо́тала ___.",
+    fr: "Elle a travaillé toute la journée.",
+    correct: "весь день",
+    why: "L'accusatif seul répond à « combien de temps ». Весь день, sans préposition — la journée est remplie par l'activité, pas mesurée par son résultat.",
+  },
+  {
+    id: "studied-five-years",
+    ru: "Он учи́лся в университе́те ___.",
+    fr: "Il a étudié cinq ans à l'université.",
+    correct: "пять лет",
+    why: "Cinq ans de présence effective : accusatif seul. За пять лет dirait ce qu'il a réussi À FAIRE en cinq ans, pas combien de temps il y est resté.",
+  },
+
+  // ─── За + accusatif : le temps qu'il a fallu pour aboutir ───────
+  {
+    id: "learned-in-a-month",
+    ru: "Она́ вы́учила все слова́ ___.",
+    fr: "Elle a appris tous les mots en un mois.",
+    correct: "за ме́сяц",
+    why: "Il y a un résultat — tous les mots sont sus — et вы́учила est perfectif : за + accusatif. Ме́сяц seul dirait qu'elle a passé un mois à apprendre, sans dire qu'elle a fini.",
+  },
+  {
+    id: "read-in-two-days",
+    ru: "Я прочита́л рома́н ___.",
+    fr: "J'ai lu le roman en deux jours.",
+    correct: "за два дня",
+    why: "Прочита́л (perfectif) : le livre est fini. За два дня mesure le temps qu'il a fallu. Два дня seul irait avec чита́л — j'ai lu, sans dire jusqu'au bout.",
+  },
+  {
+    id: "built-in-a-year",
+    ru: "Дом постро́или ___.",
+    fr: "On a construit la maison en un an.",
+    correct: "за год",
+    why: "La maison est debout : le résultat existe, donc за + accusatif. C'est la question « en combien de temps ? », pas « pendant combien de temps ? ».",
+  },
+  {
+    id: "ate-in-five-minutes",
+    ru: "Он съел суп ___.",
+    fr: "Il a mangé la soupe en cinq minutes.",
+    correct: "за пять мину́т",
+    why: "Съел : l'assiette est vide. За + accusatif. Че́рез пять мину́т voudrait dire qu'il s'est mis à manger cinq minutes plus tard.",
+  },
+
+  // ─── Че́рез + accusatif : dans combien de temps ──────────────────
+  {
+    id: "train-in-ten-minutes",
+    ru: "По́езд отправля́ется ___.",
+    fr: "Le train part dans dix minutes.",
+    correct: "че́рез де́сять мину́т",
+    why: "Un point dans le futur, compté depuis maintenant : че́рез + accusatif. За де́сять мину́т dirait combien de temps le départ a PRIS, ce qui n'a pas de sens ici.",
+  },
+  {
+    id: "back-in-a-week",
+    ru: "Я верну́сь ___.",
+    fr: "Je reviendrai dans une semaine.",
+    correct: "че́рез неде́лю",
+    why: "Че́рез situe le retour ; на неде́лю dirait pour combien de temps je reste une fois revenu. Deux phrases justes, deux sens différents — c'est le contexte qui tranche.",
+  },
+  {
+    id: "exam-in-three-days",
+    ru: "Экза́мен бу́дет ___.",
+    fr: "L'examen aura lieu dans trois jours.",
+    correct: "че́рез три дня",
+    why: "Le délai qui nous sépare de l'événement : че́рез + accusatif. Три дня seul dirait que l'examen DURE trois jours.",
+  },
+
+  // ─── На + accusatif : pour combien de temps ─────────────────────
+  {
+    id: "left-for-a-month",
+    ru: "Он уе́хал в дере́вню ___.",
+    fr: "Il est parti à la campagne pour un mois.",
+    correct: "на ме́сяц",
+    why: "На porte sur ce qui SUIT le départ : il compte y rester un mois. Le trajet, lui, a duré quelques heures — c'est toute la différence avec l'accusatif seul.",
+  },
+  {
+    id: "holiday-for-two-weeks",
+    ru: "Он взял о́тпуск ___.",
+    fr: "Il a pris deux semaines de congé.",
+    correct: "на две неде́ли",
+    why: "Взять о́тпуск dure un instant ; ce sont les deux semaines de congé qui suivent. На + accusatif est obligatoire ici, l'accusatif nu serait faux.",
+  },
+  {
+    id: "booked-for-three-nights",
+    ru: "Мы заброни́ровали но́мер ___.",
+    fr: "Nous avons réservé la chambre pour trois nuits.",
+    correct: "на три но́чи",
+    why: "La réservation se fait en une minute ; les trois nuits sont la durée réservée. На + accusatif — et но́чи après три, comme après tout nombre de 2 à 4.",
+  },
 ];
 
 const DURATION_DISTRACTORS: Record<string, string[]> = {
@@ -532,6 +638,20 @@ const DURATION_DISTRACTORS: Record<string, string[]> = {
   "три го́да": ["на три го́да", "за три го́да", "че́рез три го́да"],
   "че́рез пять мину́т": ["за пять мину́т", "на пять мину́т", "пять мину́т"],
   "за неде́лю": ["неде́лю", "на неде́лю", "че́рез неде́лю"],
+  "всю ночь": ["за всю ночь", "че́рез всю ночь", "на всю ночь"],
+  "два́дцать мину́т": ["за два́дцать мину́т", "че́рез два́дцать мину́т", "на два́дцать мину́т"],
+  "весь день": ["за весь день", "че́рез весь день", "на весь день"],
+  "пять лет": ["за пять лет", "че́рез пять лет", "на пять лет"],
+  "за ме́сяц": ["ме́сяц", "че́рез ме́сяц", "на ме́сяц"],
+  "за два дня": ["два дня", "че́рез два дня", "на два дня"],
+  "за год": ["год", "че́рез год", "на год"],
+  "за пять мину́т": ["пять мину́т", "че́рез пять мину́т", "на пять мину́т"],
+  "че́рез де́сять мину́т": ["за де́сять мину́т", "на де́сять мину́т", "де́сять мину́т"],
+  "че́рез неде́лю": ["за неде́лю", "на неде́лю", "неде́лю"],
+  "че́рез три дня": ["за три дня", "на три дня", "три дня"],
+  "на ме́сяц": ["ме́сяц", "за ме́сяц", "че́рез ме́сяц"],
+  "на две неде́ли": ["две неде́ли", "за две неде́ли", "че́рез две неде́ли"],
+  "на три но́чи": ["три но́чи", "за три но́чи", "че́рез три но́чи"],
 };
 
 function durationExercise(random: Rng): PracticeExercise {

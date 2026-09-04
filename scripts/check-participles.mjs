@@ -180,6 +180,14 @@ for (const [label, contexts, required] of CONTEXT_SETS) {
   require_(contexts.length >= 5, `${label} : seulement ${contexts.length} contextes`);
 }
 
+// LE GÉRONDIF EST LE MÊME DANS LES TROIS PHRASES. C'est ce qui fait que la
+// question porte sur la règle du sujet : les trois propositions s'ouvrent
+// pareil, et seule la suite les sépare. Qu'une seule s'ouvre autrement, et on
+// choisit sur les premiers mots sans avoir cherché le sujet de quoi que ce
+// soit — l'exercice serait réussi et la règle jamais rencontrée.
+const gerundClause = (sentence) => sentence.slice(0, sentence.indexOf(",") + 1);
+
+const subjectIds = new Set();
 for (const item of X.SUBJECT_ITEMS) {
   require_(item.wrong.length >= 2, `sujet unique / ${item.id} : il faut au moins deux distracteurs`);
   require_(
@@ -187,6 +195,56 @@ for (const item of X.SUBJECT_ITEMS) {
     `sujet unique / ${item.id} : la bonne réponse figure aussi parmi les fautives`
   );
   require_(item.why.trim().length > 20, `sujet unique / ${item.id} : justification trop courte`);
+  require_(item.fr.trim().length > 0, `sujet unique / ${item.id} : phrase française manquante`);
+  require_(
+    !subjectIds.has(item.id),
+    `sujet unique / ${item.id} : identifiant en double — le correcteur n'en trouverait qu'un`
+  );
+  subjectIds.add(item.id);
+
+  const opening = gerundClause(item.correct);
+  require_(
+    opening.length > 0,
+    `sujet unique / ${item.id} : la bonne réponse n'a pas de proposition au gérondif (pas de virgule)`
+  );
+  for (const wrong of item.wrong) {
+    require_(
+      gerundClause(wrong) === opening,
+      `sujet unique / ${item.id} : « ${wrong} » ne s'ouvre pas sur « ${opening} » — ` +
+        `le gérondif doit être le même partout, sinon on répond sur les premiers mots`
+    );
+  }
+}
+require_(
+  X.SUBJECT_ITEMS.length >= 12,
+  `sujet unique : seulement ${X.SUBJECT_ITEMS.length} items, une séance en fait le tour`
+);
+
+// L'EXPLICATION NE PEUT PAS DÉSIGNER UNE PHRASE PAR SON RANG. Les options
+// sont mélangées à chaque tirage : « dans la deuxième phrase, le sujet est
+// друзья » désigne, une fois sur trois, la bonne réponse. L'explication
+// s'affiche APRÈS le choix, au moment précis où l'apprenant cherche à
+// comprendre, et elle le renvoie alors à une phrase au hasard.
+//
+// Le défaut ne se voyait sur aucun contrôle — le texte est présent, assez
+// long, et l'exercice se corrige juste. Il ne se voit qu'à la lecture, et
+// seulement si on pense au mélange. Une explication cite donc la phrase.
+{
+  // Le texte est plié en ASCII avant l'essai : « deuxieme ». Un accent peut
+  // s'écrire précomposé (U+00E8) ou décomposé (e + U+0300) selon l'outil qui
+  // a produit le fichier, et un motif qui nomme « è » en rate donc la moitié
+  // — c'est exactement comme ça que ce contrôle est né muet.
+  const fold = (text) =>
+    text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const POSITIONAL = /\b(?:premiere?|deuxieme|seconde?|troisieme|quatrieme|derniere?)\b/;
+  for (const item of X.SUBJECT_ITEMS) {
+    const found = fold(item.why).match(POSITIONAL);
+    require_(
+      !found,
+      `sujet unique / ${item.id} : l'explication désigne une phrase par son rang ` +
+        `(« ${found?.[0]} ») alors que les options sont mélangées — cite la phrase`
+    );
+  }
 }
 
 // ─── 4. Génération et correction ───────────────────────────────────
